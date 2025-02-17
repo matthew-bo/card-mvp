@@ -9,6 +9,7 @@ import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import Image from 'next/image';
 
 export default function Dashboard() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -255,9 +256,11 @@ export default function Dashboard() {
                     </svg>
                   </button>
                   <div className="flex items-start space-x-4">
-                    <img
-                      src={`/api/placeholder/300/180`}
+                    <Image
+                      src="/api/placeholder/300/180"
                       alt={`${card.name} logo`}
+                      width={300}
+                      height={180}
                       className="w-24 h-16 object-contain rounded"
                     />
                     <div>
