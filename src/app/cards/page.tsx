@@ -6,10 +6,6 @@ import { collection, addDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { creditCards } from '@/lib/cardDatabase';
 
-interface CardFormData {
-  cardId: string;
-}
-
 export default function CardsPage() {
   const [selectedCard, setSelectedCard] = useState<string>('');
   const [loading, setLoading] = useState(false);

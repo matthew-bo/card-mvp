@@ -58,7 +58,7 @@ export function getCardRecommendations(params: {
   // Score each card
   const scoredCards = availableCards.map(card => {
     let score = 0;
-    let reasons: string[] = [];
+    const reasons: string[] = [];
 
     // Credit Score Check
     if (creditScore) {

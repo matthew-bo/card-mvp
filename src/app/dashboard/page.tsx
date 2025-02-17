@@ -319,9 +319,11 @@ export default function Dashboard() {
               {recommendations.map(({ card, reason }) => (
                 <div key={card.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
                   <div className="flex flex-col space-y-4">
-                    <img
-                      src={`/api/placeholder/300/180`}
+                    <Image
+                      src="/api/placeholder/300/180"
                       alt={`${card.name} logo`}
+                      width={300}
+                      height={180}
                       className="w-full h-32 object-contain rounded mb-2"
                     />
                     <div>
