@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, query, getDocs, orderBy, limit, deleteDoc, doc, where } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, deleteDoc, doc, where } from 'firebase/firestore';
 import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 export default function Dashboard() {
   const [expenses, setExpenses] = useState<any[]>([]);
