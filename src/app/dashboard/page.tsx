@@ -10,9 +10,15 @@ import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import Image from 'next/image';
+interface Expense {
+  id: string;
+  amount: number;
+  category: 'dining' | 'travel' | 'grocery' | 'gas' | 'other';
+  date: Date;
+}
 
 export default function Dashboard() {
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
   const [optimizationPreference, setOptimizationPreference] = useState<OptimizationPreference>('points');
   const [recommendations, setRecommendations] = useState<{ card: CreditCardDetails; reason: string; score: number }[]>([]);
@@ -205,10 +211,10 @@ export default function Dashboard() {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
             <div className="space-y-2">
-              {expenses.length === 0 ? (
+            {expenses.length === 0 ? (
                 <p className="text-gray-500">No expenses in selected date range</p>
               ) : (
-                expenses.map((expense: any) => (
+                expenses.map((expense) => (
                   <div key={expense.id} className="p-3 bg-gray-50 rounded-md">
                     <div className="flex justify-between items-center">
                       <div>
