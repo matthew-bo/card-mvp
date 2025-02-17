@@ -65,6 +65,7 @@ export default function CardsPage() {
             </select>
           </div>
 
+
           {selectedCard && (
             <div className="p-4 bg-gray-50 rounded-md">
               <h3 className="font-medium mb-2">Card Details</h3>
@@ -73,7 +74,7 @@ export default function CardsPage() {
                   <p><span className="font-medium">Annual Fee:</span> ${card.annualFee}</p>
                   <div>
                     <p className="font-medium">Reward Rates:</p>
-                    {Object.entries(card.rewards)
+                    {Object.entries(card.rewardRates)  
                       .filter(([, rate]) => rate > 0)
                       .map(([category, rate]) => (
                         <p key={category} className="ml-4 capitalize">
@@ -83,7 +84,7 @@ export default function CardsPage() {
                   </div>
                   {card.signupBonus && (
                     <p>
-                      <span className="font-medium">Sign-up Bonus:</span> {card.signupBonus.amount} {card.signupBonus.type}
+                      <span className="font-medium">Sign-up Bonus:</span> {card.signupBonus.description}
                     </p>
                   )}
                   <p><span className="font-medium">Required Score:</span> {card.creditScoreRequired}</p>
@@ -94,10 +95,9 @@ export default function CardsPage() {
 
           <button
             type="submit"
-            disabled={loading || !selectedCard}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            {loading ? 'Adding...' : 'Add Card'}
+            Add Card
           </button>
         </form>
       </div>
