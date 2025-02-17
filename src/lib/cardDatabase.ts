@@ -1,295 +1,303 @@
 import { CreditCardDetails } from '@/types/cards';
 
 export const creditCards: CreditCardDetails[] = [
-  {
-    id: "chase-sapphire-preferred",
-    name: "Chase Sapphire Preferred",
-    issuer: "Chase",
-    rewards: {
-      dining: 3,
-      travel: 2.5,
-      grocery: 1,
-      gas: 1,
-      other: 1
-    },
-    annualFee: 95,
-    creditScoreRequired: "good",
-    perks: [
-      "Trip Cancellation/Interruption Insurance",
-      "Primary Auto Rental Coverage",
-      "No Foreign Transaction Fees",
-      "1:1 Point Transfer to Travel Partners"
-    ],
-    signupBonus: {
-      amount: 60000,
-      type: "points",
-      spendRequired: 4000,
-      timeframe: 3
-    },
-    foreignTransactionFee: false,
-    categories: ["travel", "dining", "points"],
-    description: "Best mid-tier travel card with great transfer partners and travel protection benefits."
-  },
-  {
-    id: "amex-gold",
-    name: "American Express Gold Card",
-    issuer: "American Express",
-    rewards: {
-      dining: 4,
-      travel: 3,
-      grocery: 4,
-      gas: 1,
-      other: 1
-    },
-    annualFee: 250,
-    creditScoreRequired: "good",
-    perks: [
-      "$120 Dining Credit",
-      "$120 Uber Cash",
-      "No Foreign Transaction Fees",
-      "Transfer Points to Travel Partners"
-    ],
-    signupBonus: {
-      amount: 60000,
-      type: "points",
-      spendRequired: 4000,
-      timeframe: 3
-    },
-    foreignTransactionFee: false,
-    categories: ["dining", "grocery", "points", "travel"],
-    description: "Excellent for foodies and grocery shoppers with strong dining and grocery rewards."
-  },
-  {
-    id: "citi-double-cash",
-    name: "Citi Double Cash",
-    issuer: "Citi",
-    rewards: {
-      dining: 2,
-      travel: 2,
-      grocery: 2,
-      gas: 2,
-      other: 2
-    },
-    annualFee: 0,
-    creditScoreRequired: "good",
-    perks: [
-      "0% Intro APR on Balance Transfers",
-      "Simple Rewards Structure"
-    ],
-    foreignTransactionFee: true,
-    categories: ["cashback", "no-annual-fee"],
-    description: "Simple but effective 2% cashback on everything - 1% when you buy, 1% when you pay."
-  },
-  {
-    id: "capital-one-venture",
-    name: "Capital One Venture",
-    issuer: "Capital One",
-    rewards: {
-      dining: 2,
-      travel: 5,
-      grocery: 2,
-      gas: 2,
-      other: 2
-    },
-    annualFee: 95,
-    creditScoreRequired: "good",
-    perks: [
-      "Global Entry/TSA PreCheck Credit",
-      "No Foreign Transaction Fees",
-      "Transfer Miles to Travel Partners"
-    ],
-    signupBonus: {
-      amount: 75000,
-      type: "points",
-      spendRequired: 4000,
-      timeframe: 3
-    },
-    foreignTransactionFee: false,
-    categories: ["travel", "points"],
-    description: "Flexible travel rewards card with straightforward earning structure."
-  },
-  {
-    id: "discover-it",
-    name: "Discover it Cash Back",
-    issuer: "Discover",
-    rewards: {
-      dining: 1,
-      travel: 1,
-      grocery: 1,
-      gas: 1,
-      other: 1
-    },
-    annualFee: 0,
-    creditScoreRequired: "fair",
-    perks: [
-      "Cashback Match for First Year",
-      "5% Rotating Quarterly Categories",
-      "No Foreign Transaction Fees"
-    ],
-    foreignTransactionFee: false,
-    categories: ["cashback", "rotating-categories", "build-credit"],
-    description: "Great starter card with rotating 5% categories and first-year cashback match."
-  },
-  {
-    id: "chase-freedom-unlimited",
-    name: "Chase Freedom Unlimited",
-    issuer: "Chase",
-    rewards: {
-      dining: 3,
-      travel: 5,
-      grocery: 1.5,
-      gas: 1.5,
-      other: 1.5
-    },
-    annualFee: 0,
-    creditScoreRequired: "good",
-    perks: [
-      "No Annual Fee",
-      "0% Intro APR Period",
-      "Purchase Protection"
-    ],
-    signupBonus: {
-      amount: 200,
-      type: "cashback",
-      spendRequired: 500,
-      timeframe: 3
-    },
-    foreignTransactionFee: true,
-    categories: ["cashback", "no-annual-fee"],
-    description: "Solid no-annual-fee card with great everyday earning rates."
-  },
-  {
-    id: "amex-platinum",
-    name: "American Express Platinum",
-    issuer: "American Express",
-    rewards: {
-      dining: 1,
-      travel: 5,
-      grocery: 1,
-      gas: 1,
-      other: 1
-    },
-    annualFee: 695,
-    creditScoreRequired: "excellent",
-    perks: [
-      "$200 Airline Fee Credit",
-      "$200 Hotel Credit",
-      "$200 Uber Cash",
-      "Airport Lounge Access",
-      "Global Entry/TSA PreCheck Credit",
-      "Platinum Concierge"
-    ],
-    signupBonus: {
-      amount: 80000,
-      type: "points",
-      spendRequired: 6000,
-      timeframe: 6
-    },
-    foreignTransactionFee: false,
-    categories: ["travel", "premium", "points", "lounge-access"],
-    description: "Premium travel card with extensive benefits and airport lounge access."
-  },
+  // Chase Cards
   {
     id: "chase-sapphire-reserve",
     name: "Chase Sapphire Reserve",
     issuer: "Chase",
-    rewards: {
+    rewardRates: {
       dining: 3,
-      travel: 3,
+      travel: 5,
       grocery: 1,
       gas: 1,
+      entertainment: 1,
+      rent: 1,
       other: 1
     },
     annualFee: 550,
     creditScoreRequired: "excellent",
     perks: [
-      "$300 Travel Credit",
-      "Priority Pass Lounge Access",
+      "$300 Annual Travel Credit",
+      "Priority Pass™ Select Lounge Access",
       "Global Entry/TSA PreCheck Credit",
+      "10x Points on Hotels and Car Rentals through Chase",
       "Primary Rental Car Insurance",
-      "Trip Delay Insurance"
+      "Trip Delay/Cancellation Insurance",
+      "DoorDash DashPass Membership"
     ],
     signupBonus: {
       amount: 60000,
       type: "points",
       spendRequired: 4000,
-      timeframe: 3
+      timeframe: 3,
+      description: "Earn 60,000 bonus points after spending $4,000 in first 3 months (worth $900 when redeemed for travel)"
     },
     foreignTransactionFee: false,
-    categories: ["travel", "premium", "points", "lounge-access"],
-    description: "Premium travel card with strong travel credits and superior travel protection."
+    categories: ["travel", "premium", "dining", "points"],
+    description: "Premium travel card with extensive travel benefits and strong rewards on travel and dining."
   },
   {
-    id: "capital-one-quicksilver",
-    name: "Capital One Quicksilver",
-    issuer: "Capital One",
-    rewards: {
-      dining: 1.5,
-      travel: 1.5,
-      grocery: 1.5,
+    id: "chase-freedom-unlimited",
+    name: "Chase Freedom Unlimited",
+    issuer: "Chase",
+    rewardRates: {
+      dining: 3,
+      travel: 5,
+      grocery: 3,
       gas: 1.5,
+      entertainment: 1.5,
+      rent: 1.5,
       other: 1.5
     },
     annualFee: 0,
     creditScoreRequired: "good",
     perks: [
-      "No Annual Fee",
-      "Simple Rewards Structure",
+      "3% on Dining and Drugstores",
+      "5% on Travel through Chase",
+      "1.5% on Everything Else",
       "0% Intro APR Period"
     ],
     signupBonus: {
       amount: 200,
       type: "cashback",
       spendRequired: 500,
-      timeframe: 3
+      timeframe: 3,
+      description: "Earn $200 bonus after spending $500 in first 3 months"
     },
-    foreignTransactionFee: false,
+    foreignTransactionFee: true,
     categories: ["cashback", "no-annual-fee"],
-    description: "Simple flat-rate cashback card with no annual fee."
+    description: "No annual fee card with strong everyday rewards and flexible redemption options."
   },
   {
-    id: "capital-one-secured",
-    name: "Capital One Secured Mastercard",
-    issuer: "Capital One",
-    rewards: {
-      dining: 0,
-      travel: 0,
-      grocery: 0,
-      gas: 0,
-      other: 0
-    },
-    annualFee: 0,
-    creditScoreRequired: "poor",
-    perks: [
-      "No Annual Fee",
-      "Path to Credit Building",
-      "Automatic Credit Line Review"
-    ],
-    foreignTransactionFee: false,
-    categories: ["secured", "build-credit", "no-annual-fee"],
-    description: "Excellent secured card for building credit with no annual fee."
-  },
-  {
-    id: "discover-secured",
-    name: "Discover it Secured",
-    issuer: "Discover",
-    rewards: {
-      dining: 2,
-      travel: 1,
-      grocery: 2,
-      gas: 2,
+    id: "chase-freedom-flex",
+    name: "Chase Freedom Flex",
+    issuer: "Chase",
+    rewardRates: {
+      dining: 3,
+      travel: 5,
+      grocery: 3,
+      gas: 1,
+      entertainment: 1,
+      rent: 1,
       other: 1
     },
     annualFee: 0,
-    creditScoreRequired: "poor",
+    creditScoreRequired: "good",
     perks: [
-      "No Annual Fee",
-      "Cashback Match First Year",
-      "Free FICO Score",
-      "Path to Unsecured Card"
+      "5% Rotating Quarterly Categories",
+      "3% on Dining and Drugstores",
+      "5% on Travel through Chase",
+      "Cell Phone Protection",
+      "0% Intro APR Period"
     ],
+    signupBonus: {
+      amount: 200,
+      type: "cashback",
+      spendRequired: 500,
+      timeframe: 3,
+      description: "Earn $200 bonus after spending $500 in first 3 months"
+    },
+    foreignTransactionFee: true,
+    categories: ["cashback", "rotating-categories", "no-annual-fee"],
+    description: "No annual fee card with rotating 5% categories and strong fixed category rewards."
+  },
+  // Amex Cards
+  {
+    id: "amex-blue-cash-preferred",
+    name: "American Express Blue Cash Preferred",
+    issuer: "American Express",
+    rewardRates: {
+      dining: 1,
+      travel: 1,
+      grocery: 6,
+      gas: 3,
+      entertainment: 6,
+      rent: 1,
+      other: 1
+    },
+    annualFee: 95,
+    creditScoreRequired: "good",
+    perks: [
+      "6% at U.S. Supermarkets (up to $6,000 per year)",
+      "6% on Select U.S. Streaming Services",
+      "3% on Transit and U.S. Gas Stations",
+      "Return Protection",
+      "Purchase Protection"
+    ],
+    signupBonus: {
+      amount: 250,
+      type: "cashback",
+      spendRequired: 3000,
+      timeframe: 6,
+      description: "Earn $250 back after spending $3,000 in first 6 months"
+    },
+    foreignTransactionFee: true,
+    categories: ["cashback", "grocery", "streaming"],
+    description: "Strong cash back card for groceries, streaming, and transit expenses."
+  },
+  {
+    id: "amex-green",
+    name: "American Express Green Card",
+    issuer: "American Express",
+    rewardRates: {
+      dining: 3,
+      travel: 3,
+      grocery: 1,
+      gas: 1,
+      entertainment: 1,
+      rent: 1,
+      other: 1
+    },
+    annualFee: 150,
+    creditScoreRequired: "good",
+    perks: [
+      "$100 CLEAR® Credit",
+      "$100 LoungeBuddy Credit",
+      "Trip Delay Insurance",
+      "Purchase Protection",
+      "Extended Warranty"
+    ],
+    signupBonus: {
+      amount: 40000,
+      type: "points",
+      spendRequired: 2000,
+      timeframe: 6,
+      description: "Earn 40,000 Membership Rewards points after spending $2,000 in first 6 months"
+    },
     foreignTransactionFee: false,
-    categories: ["secured", "build-credit", "cashback", "no-annual-fee"],
-    description: "Best secured card with cashback rewards and no annual fee."
+    categories: ["travel", "dining", "points"],
+    description: "Entry-level travel rewards card with strong earnings on travel and dining."
+  },
+  // Capital One Cards
+  {
+    id: "capital-one-savor-one",
+    name: "Capital One SavorOne",
+    issuer: "Capital One",
+    rewardRates: {
+      dining: 3,
+      travel: 1,
+      grocery: 3,
+      gas: 1,
+      entertainment: 3,
+      rent: 1,
+      other: 1
+    },
+    annualFee: 0,
+    creditScoreRequired: "good",
+    perks: [
+      "3% on Dining, Entertainment, Groceries",
+      "3% on Streaming Services",
+      "No Foreign Transaction Fees",
+      "Extended Warranty",
+      "Travel Accident Insurance"
+    ],
+    signupBonus: {
+      amount: 200,
+      type: "cashback",
+      spendRequired: 500,
+      timeframe: 3,
+      description: "Earn $200 cash bonus after spending $500 in first 3 months"
+    },
+    foreignTransactionFee: false,
+    categories: ["cashback", "dining", "entertainment", "no-annual-fee"],
+    description: "No annual fee card with strong rewards on dining, entertainment, and groceries."
+  },
+  {
+    id: "capital-one-quicksilver",
+    name: "Capital One Quicksilver",
+    issuer: "Capital One",
+    rewardRates: {
+      dining: 1.5,
+      travel: 1.5,
+      grocery: 1.5,
+      gas: 1.5,
+      entertainment: 1.5,
+      rent: 1.5,
+      other: 1.5
+    },
+    annualFee: 0,
+    creditScoreRequired: "good",
+    perks: [
+      "1.5% Cash Back on Everything",
+      "No Foreign Transaction Fees",
+      "Extended Warranty",
+      "Travel Accident Insurance"
+    ],
+    signupBonus: {
+      amount: 200,
+      type: "cashback",
+      spendRequired: 500,
+      timeframe: 3,
+      description: "Earn $200 cash bonus after spending $500 in first 3 months"
+    },
+    foreignTransactionFee: false,
+    categories: ["cashback", "no-annual-fee"],
+    description: "Simple flat-rate cash back card with no annual fee."
+  },
+  // Discover Cards
+  {
+    id: "discover-it-cash-back",
+    name: "Discover it Cash Back",
+    issuer: "Discover",
+    rewardRates: {
+      dining: 1,
+      travel: 1,
+      grocery: 1,
+      gas: 1,
+      entertainment: 1,
+      rent: 1,
+      other: 1
+    },
+    annualFee: 0,
+    creditScoreRequired: "fair",
+    perks: [
+      "5% Rotating Quarterly Categories",
+      "Cashback Match First Year",
+      "No Foreign Transaction Fees",
+      "Free FICO Score"
+    ],
+    signupBonus: {
+      amount: 0,
+      type: "cashback",
+      spendRequired: 0,
+      timeframe: 12,
+      description: "Cashback Match: All cash back earned in first year is matched (effectively doubles rewards)"
+    },
+    foreignTransactionFee: false,
+    categories: ["cashback", "rotating-categories", "no-annual-fee"],
+    description: "No annual fee card with rotating 5% categories and first-year cashback match."
+  },
+  {
+    id: "discover-it-student",
+    name: "Discover it Student Cash Back",
+    issuer: "Discover",
+    rewardRates: {
+      dining: 1,
+      travel: 1,
+      grocery: 1,
+      gas: 1,
+      entertainment: 1,
+      rent: 1,
+      other: 1
+    },
+    annualFee: 0,
+    creditScoreRequired: "fair",
+    perks: [
+      "5% Rotating Quarterly Categories",
+      "Cashback Match First Year",
+      "Good Grade Reward ($20 statement credit each school year)",
+      "Free FICO Score"
+    ],
+    signupBonus: {
+      amount: 0,
+      type: "cashback",
+      spendRequired: 0,
+      timeframe: 12,
+      description: "Cashback Match: All cash back earned in first year is matched (effectively doubles rewards)"
+    },
+    foreignTransactionFee: false,
+    categories: ["student", "cashback", "rotating-categories", "build-credit"],
+    description: "Student card with rotating 5% categories and first-year cashback match."
   }
 ];

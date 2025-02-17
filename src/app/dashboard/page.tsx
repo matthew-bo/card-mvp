@@ -84,8 +84,8 @@ export default function Dashboard() {
   const getComparisonData = () => {
     const categories = ['dining', 'travel', 'grocery', 'gas', 'other'];
     return categories.map(category => {
-      const currentBestRate = Math.max(...userCards.map(card => card.rewards[category as keyof typeof card.rewards] || 0));
-      const recommendedBestRate = Math.max(...recommendations.map(rec => rec.card.rewards[category as keyof typeof rec.card.rewards] || 0));
+      const currentBestRate = Math.max(...userCards.map(card => card.rewardRates[category as keyof typeof card.rewardRates] || 0));
+      const recommendedBestRate = Math.max(...recommendations.map(rec => rec.card.rewardRates[category as keyof typeof rec.card.rewardRates] || 0));
       
       return {
         category: category.charAt(0).toUpperCase() + category.slice(1),
@@ -265,7 +265,7 @@ export default function Dashboard() {
                         <p>Annual Fee: ${card.annualFee}</p>
                         <div className="mt-2">
                           <p className="font-medium">Reward Rates:</p>
-                          {Object.entries(card.rewards)
+                          {Object.entries(card.rewardRates)
                             .filter(([, rate]) => rate > 0)
                             .map(([category, rate]) => (
                               <p key={category} className="ml-2 capitalize">
@@ -332,7 +332,7 @@ export default function Dashboard() {
                         <div className="text-sm">
                           <span className="font-medium">Top Rewards:</span>
                           <ul className="mt-1 space-y-1">
-                            {Object.entries(card.rewards)
+                            {Object.entries(card.rewardRates)
                               .sort(([,a], [,b]) => b - a)
                               .slice(0, 2)
                               .map(([category, rate]) => (

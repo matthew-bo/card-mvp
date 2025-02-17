@@ -4,11 +4,13 @@ export interface CreditCardDetails {
   id: string;
   name: string;
   issuer: string;
-  rewards: {
+  rewardRates: { 
     dining: number;
     travel: number;
     grocery: number;
     gas: number;
+    entertainment: number;
+    rent: number;
     other: number;
   };
   annualFee: number;
@@ -19,6 +21,7 @@ export interface CreditCardDetails {
     type: "points" | "cashback";
     spendRequired: number;
     timeframe: number;
+    description: string;
   };
   foreignTransactionFee: boolean;
   categories: string[];
