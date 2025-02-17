@@ -4,11 +4,15 @@ import { useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Link from 'next/link';
+import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 export default function ExpensesPage() {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState(subMonths(startOfMonth(new Date()), 1).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(endOfMonth(new Date()).toISOString().split('T')[0]);
+  
 
   const categories = [
     { id: 'dining', name: 'Dining' },
@@ -52,6 +56,31 @@ export default function ExpensesPage() {
           >
             Back to Dashboard
           </Link>
+        </div>
+
+          {/* Date Range Filter */}
+          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h2 className="text-xl font-semibold mb-4">Filter Date Range</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md">

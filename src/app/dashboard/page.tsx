@@ -8,7 +8,6 @@ import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import Image from 'next/image';
 interface Expense {
   id: string;
@@ -25,8 +24,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [creditScore, setCreditScore] = useState<'poor' | 'fair' | 'good' | 'excellent'>('good');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [startDate, setStartDate] = useState(subMonths(startOfMonth(new Date()), 1).toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(endOfMonth(new Date()).toISOString().split('T')[0]);
 
   const handleDeleteExpense = async (expenseId: string) => {
     if (!window.confirm('Are you sure you want to delete this expense?')) return;
@@ -34,7 +31,17 @@ export default function Dashboard() {
     setIsDeleting(true);
     try {
       await deleteDoc(doc(db, 'expenses', expenseId));
-      setExpenses(expenses.filter(exp => exp.id !== expenseId));
+      const newExpenses = expenses.filter(exp => exp.id !== expenseId);
+      setExpenses(newExpenses);
+      
+      // Update recommendations after expense deletion
+      const newRecommendations = getCardRecommendations({
+        expenses: newExpenses,
+        currentCards: userCards,
+        optimizationPreference,
+        creditScore
+      });
+      setRecommendations(newRecommendations);
     } catch (error) {
       console.error('Error deleting expense:', error);
       alert('Error deleting expense');
@@ -54,7 +61,17 @@ export default function Dashboard() {
       
       if (!querySnapshot.empty) {
         await deleteDoc(doc(db, 'user-cards', querySnapshot.docs[0].id));
-        setUserCards(userCards.filter(card => card.id !== cardId));
+        const newCards = userCards.filter(card => card.id !== cardId);
+        setUserCards(newCards);
+
+        // Update recommendations after card deletion
+        const newRecommendations = getCardRecommendations({
+          expenses: expenses,
+          currentCards: newCards,
+          optimizationPreference,
+          creditScore
+        });
+        setRecommendations(newRecommendations);
       }
     } catch (error) {
       console.error('Error deleting card:', error);
@@ -86,8 +103,6 @@ export default function Dashboard() {
         const expensesRef = collection(db, 'expenses');
         const expensesQuery = query(
           expensesRef,
-          where('date', '>=', new Date(startDate)),
-          where('date', '<=', new Date(endDate)),
           orderBy('date', 'desc')
         );
         const expensesSnap = await getDocs(expensesQuery);
@@ -124,7 +139,7 @@ export default function Dashboard() {
     }
 
     fetchUserData();
-  }, [optimizationPreference, creditScore, startDate, endDate]);
+  }, [optimizationPreference, creditScore]);
 
   return (
     <main className="min-h-screen p-8">
@@ -161,31 +176,6 @@ export default function Dashboard() {
           </select>
         </div>
 
-        {/* Date Range Filter */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Expense Date Range</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Quick Actions and Recent Activity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Quick Actions */}
@@ -209,7 +199,7 @@ export default function Dashboard() {
 
           {/* Recent Activity */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+            <h2 className="text-xl font-semibold mb-4">Expenses</h2>
             <div className="space-y-2">
             {expenses.length === 0 ? (
                 <p className="text-gray-500">No expenses in selected date range</p>
