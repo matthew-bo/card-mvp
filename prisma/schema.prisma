@@ -1,0 +1,50 @@
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  linkedCards   LinkedCard[]
+  accounts      BankAccount[]
+  transactions  Transaction[]
+}
+
+model LinkedCard {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  cardId        String    // Reference to our card database
+  lastFourDigits String
+  plaidAccountId String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model BankAccount {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  plaidAccountId String
+  name          String
+  mask          String
+  type          String
+  subtype       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  date          DateTime
+  amount        Float
+  description   String
+  category      String
+  merchantName  String?
+  cardUsed      String    // Reference to LinkedCard
+  rewardsEarned Float
+  potentialRewards Float
+  missedValue   Float
+  createdAt     DateTime  @default(now())
+}

@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { creditCards } from '@/lib/cardDatabase';
+import { storeCardData } from '@/utils/cardStorage';
 
 export default function CardsPage() {
   const [selectedCard, setSelectedCard] = useState<string>('');
@@ -13,14 +14,18 @@ export default function CardsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCard) return;
-
+  
     setLoading(true);
     try {
-      await addDoc(collection(db, 'user-cards'), {
+      const cardData = {
         cardId: selectedCard,
+        lastFour: "1234", // You'll need to get this from user input
+        type: "credit",
         dateAdded: new Date()
-      });
-
+      };
+  
+      await storeCardData('temp-user-id', cardData); // Replace with actual user ID
+  
       setSelectedCard('');
       alert('Card added successfully!');
     } catch (error) {
