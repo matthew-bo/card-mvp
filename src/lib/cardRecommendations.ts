@@ -39,7 +39,7 @@ interface CreditScoreRequirement {
 
 type ValidationError = {
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
 };
 
 type CreditScoreType = 'poor' | 'fair' | 'good' | 'excellent';

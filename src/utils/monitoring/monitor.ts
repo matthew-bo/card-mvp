@@ -5,7 +5,7 @@ interface MonitoringEvent {
   level: AlertLevel;
   message: string;
   timestamp: Date;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export class Monitor {
@@ -28,7 +28,7 @@ export class Monitor {
     }
   }
 
-  static async logEvent(type: string, message: string, level: AlertLevel = 'info', data?: any) {
+  static async logEvent(type: string, message: string, level: AlertLevel = 'info', data?: Record<string, unknown>) {
     await this.persistLog({
       type,
       level,
@@ -60,7 +60,7 @@ export class Monitor {
     );
   }
 
-  static async trackSecurity(message: string, data?: any) {
+  static async trackSecurity(message: string, data?: Record<string, unknown>) {
     await this.logEvent('security', message, 'warning', data);
   }
 }

@@ -25,7 +25,7 @@ export const AlertThresholds = {
 
 export class AlertManager {
   static async checkThresholds(metric: string, value: number) {
-    const thresholds = (AlertThresholds as any)[metric];
+    const thresholds = (AlertThresholds as Record<string, { warning: number; critical: number }>)[metric];
     if (!thresholds) return;
 
     if (value >= thresholds.critical) {
@@ -48,6 +48,6 @@ export class AlertManager {
   }
 
   private static async sendAlert(event: MonitoringEvent) {
-    await Monitor.logEvent(event);
+    await Monitor.logEvent(event.type, event.message, event.level, event.data);
   }
 }

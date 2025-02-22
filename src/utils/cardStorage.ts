@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { Monitor } from './monitoring/monitor';
 
 export async function storeCardData(userId: string, cardData: { cardId: string }) {

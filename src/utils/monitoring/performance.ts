@@ -1,11 +1,4 @@
 import { Monitor } from './monitor';
-import * as Sentry from "@sentry/nextjs";
-
-interface PerformanceMetric {
-  name: string;
-  value: number;
-  tags?: Record<string, string>;
-}
 
 export class PerformanceMonitor {
     static trackLoadTime(componentName: string, duration: number) {
@@ -16,11 +9,7 @@ export class PerformanceMonitor {
         timestamp: new Date()
       };
       
-      // Log to Sentry
-      Sentry.captureMessage('Performance Metric', {
-        level: 'info',
-        extra: metric
-      });
+      Monitor.logEvent('performance', `Component ${componentName} loaded in ${duration}ms`, 'info', metric);
     }
   
     static trackApiCall(endpoint: string, duration: number) {
@@ -31,10 +20,7 @@ export class PerformanceMonitor {
         timestamp: new Date()
       };
       
-      Sentry.captureMessage('API Performance', {
-        level: 'info',
-        extra: metric
-      });
+      Monitor.logEvent('performance', `API ${endpoint} took ${duration}ms`, 'info', metric);
     }
   
     static trackOperation(operation: string, startTime: number) {
@@ -46,31 +32,6 @@ export class PerformanceMonitor {
         timestamp: new Date()
       };
       
-      Sentry.captureMessage('Operation Performance', {
-        level: 'info',
-        extra: metric
-      });
+      Monitor.logEvent('performance', `Operation ${operation} took ${duration}ms`, 'info', metric);
     }
-  }
-
-export function trackPerformance() {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
-    const originalMethod = descriptor.value;
-
-    descriptor.value = async function (...args: any[]) {
-      const start = performance.now();
-      try {
-        return await originalMethod.apply(this, args);
-      } finally {
-        const duration = performance.now() - start;
-        await Monitor.trackPerformance(propertyKey, duration);
-      }
-    };
-
-    return descriptor;
-  };
 }
