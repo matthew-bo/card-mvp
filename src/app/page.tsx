@@ -9,6 +9,7 @@ import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { SimpleMonitor } from '@/utils/monitoring/simpleMonitor';
 
 interface FirestoreExpense {
   amount: number;
@@ -142,9 +143,9 @@ export default function Home() {
       } catch (err) {
         const error = err as Error;
         console.error('Error loading user data:', error);
+        console.error('Error stack:', error.stack);
         setError('Failed to load your data. Please try again.');
-      } finally {
-        setLoading(false);
+        SimpleMonitor.trackError(error);
       }
     };
 
@@ -391,15 +392,12 @@ export default function Home() {
                   <div key={expense.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
                     <div>
                       <span className="font-medium capitalize">{expense.category}</span>
-                      <span className="text-gray-500 ml-2">
-                        {expense.date.toLocaleDateString()}
-                      </span>
                     </div>
                     <span className="font-medium">
                       ${expense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
-                ))}
+                ))}   
               </div>
             )}
           </div>
