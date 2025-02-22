@@ -5,6 +5,8 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { useAuth } from '@/components/AuthProvider';
+import { SimpleMonitor } from '@/utils/monitoring/simpleMonitor';
 
 export default function ExpensesPage() {
   const [amount, setAmount] = useState('');
@@ -12,6 +14,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState(subMonths(startOfMonth(new Date()), 1).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(endOfMonth(new Date()).toISOString().split('T')[0]);
+  const { user } = useAuth();
   
 
   const categories = [
@@ -27,18 +30,39 @@ export default function ExpensesPage() {
     setLoading(true);
 
     try {
+      if (!user) {
+        throw new Error('Must be logged in to add expenses');
+      }
+
+      // Validate amount
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        throw new Error('Invalid amount');
+      }
+
       await addDoc(collection(db, 'expenses'), {
-        amount: parseFloat(amount),
+        amount: numAmount,
         category,
         date: new Date(),
-        userId: 'temp-user-id' // We'll update this with real auth later
+        userId: user.uid
       });
+
+      SimpleMonitor.logEvent(
+        'expense_added',
+        'Expense recorded successfully',
+        { 
+          userId: user.uid,
+          category,
+          amount: numAmount 
+        }
+      );
 
       setAmount('');
       setCategory('');
       alert('Expense added successfully!');
     } catch (error) {
       console.error('Error adding expense:', error);
+      SimpleMonitor.trackError(error as Error);
       alert('Error adding expense');
     } finally {
       setLoading(false);
