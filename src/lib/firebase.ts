@@ -13,28 +13,22 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase only if it hasn't been initialized
-let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-let auth = getAuth(app);
-let db = getFirestore(app);
-let storage = getStorage(app);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Development environment setup
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  try {
-    // Import emulators dynamically to avoid Edge Runtime issues
-    const { connectAuthEmulator } = require('firebase/auth');
-    const { connectFirestoreEmulator } = require('firebase/firestore');
-    const { connectStorageEmulator } = require('firebase/storage');
-
-    // Connect to emulators
+  Promise.all([
+    import('firebase/auth'),
+    import('firebase/firestore'),
+    import('firebase/storage')
+  ]).then(([{ connectAuthEmulator }, { connectFirestoreEmulator }, { connectStorageEmulator }]) => {
     connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
     connectFirestoreEmulator(db, 'localhost', 8080);
     connectStorageEmulator(storage, 'localhost', 9199);
-
-    console.log('Firebase Emulators Connected');
-  } catch (err) {
-    console.error('Error connecting to Firebase emulators:', err);
-  }
+  }).catch(console.error);
 }
 
 // Error handling for initialization

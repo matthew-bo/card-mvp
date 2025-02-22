@@ -10,6 +10,27 @@ import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+interface FirestoreExpense {
+  amount: number;
+  category: string;
+  date: { toDate: () => Date };
+  userId: string;
+}
+
+interface LoadedExpense {
+  id: string;
+  amount: number;
+  category: string;
+  date: Date;
+  userId: string;
+}
+
+interface RecommendedCard {
+  card: CreditCardDetails;
+  reason: string;
+  score: number;
+}
+
 export default function Home() {
   const { user } = useAuth();
   
@@ -21,9 +42,9 @@ export default function Home() {
   const [selectedCard, setSelectedCard] = useState('');
   
   // State for data
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
-  const [recommendations, setRecommendations] = useState<{ card: CreditCardDetails; reason: string; score: number }[]>([]);
+  const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
   
   // State for UI
   const [loading, setLoading] = useState(false);
@@ -38,18 +59,22 @@ export default function Home() {
     { id: 'entertainment', name: 'Entertainment' },
     { id: 'rent', name: 'Rent' },
     { id: 'other', name: 'Other' }
-  ];
+  ] as const;
 
   // Load saved data for non-logged in users
   useEffect(() => {
     if (!user) {
       const savedData = localStorage.getItem('cardPickerUserData');
       if (savedData) {
-        const data = JSON.parse(savedData);
-        setOptimizationPreference(data.optimizizationPreference || 'points');
-        setCreditScore(data.creditScore || 'good');
-        setExpenses(data.expenses || []);
-        setUserCards(data.userCards || []);
+        try {
+          const data = JSON.parse(savedData);
+          setOptimizationPreference(data.optimizationPreference || 'points');
+          setCreditScore(data.creditScore || 'good');
+          setExpenses(data.expenses || []);
+          setUserCards(data.userCards || []);
+        } catch (err) {
+          console.error('Error loading saved data:', err);
+        }
       }
     }
   }, [user]);
@@ -63,7 +88,11 @@ export default function Home() {
         expenses,
         userCards
       };
-      localStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
+      try {
+        localStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
+      } catch (err) {
+        console.error('Error saving data:', err);
+      }
     }
   }, [optimizationPreference, creditScore, expenses, userCards, user]);
 
@@ -81,11 +110,14 @@ export default function Home() {
           orderBy('date', 'desc'))
         );
         
-        const loadedExpenses = expensesSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data().date.toDate()
-        }));
+        const loadedExpenses = expensesSnap.docs.map(doc => {
+          const data = doc.data() as FirestoreExpense;
+          return {
+            id: doc.id,
+            ...data,
+            date: data.date.toDate()
+          } as LoadedExpense;
+        });
         setExpenses(loadedExpenses);
 
         const cardsSnap = await getDocs(
@@ -107,7 +139,8 @@ export default function Home() {
           setOptimizationPreference(prefs.optimizationPreference);
           setCreditScore(prefs.creditScore);
         }
-      } catch (error) {
+      } catch (err) {
+        const error = err as Error;
         console.error('Error loading user data:', error);
         setError('Failed to load your data. Please try again.');
       } finally {
@@ -117,7 +150,6 @@ export default function Home() {
 
     loadUserData();
   }, [user]);
-
   // Automatically save data for logged-in users
   useEffect(() => {
     const saveUserData = async () => {
@@ -130,7 +162,8 @@ export default function Home() {
           creditScore,
           updatedAt: new Date()
         });
-      } catch (error) {
+      } catch (err) {
+        const error = err as Error;
         console.error('Error saving preferences:', error);
         setError('Failed to save your preferences. Your changes may not be saved.');
       }
@@ -149,7 +182,8 @@ export default function Home() {
         creditScore
       });
       setRecommendations(newRecommendations);
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('Error updating recommendations:', error);
       setError('Failed to update recommendations. Please try again.');
     }
@@ -173,14 +207,23 @@ export default function Home() {
 
       if (user) {
         const docRef = await addDoc(collection(db, 'expenses'), expenseData);
-        setExpenses(prev => [{ id: docRef.id, ...expenseData }, ...prev]);
+        setExpenses(prev => [{
+          id: docRef.id,
+          ...expenseData,
+          date: expenseData.date
+        }, ...prev]);
       } else {
-        setExpenses(prev => [{ id: Date.now().toString(), ...expenseData }, ...prev]);
+        setExpenses(prev => [{
+          id: Date.now().toString(),
+          ...expenseData,
+          date: expenseData.date
+        }, ...prev]);
       }
 
       setAmount('');
       setCategory('');
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('Error adding expense:', error);
       setError('Failed to add expense. Please try again.');
     } finally {
@@ -210,7 +253,8 @@ export default function Home() {
 
       setUserCards(prev => [...prev, newCard]);
       setSelectedCard('');
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('Error adding card:', error);
       setError('Failed to add card. Please try again.');
     } finally {
@@ -220,10 +264,10 @@ export default function Home() {
 
   // Get comparison data for chart
   const getComparisonData = () => {
-    const categories = ['dining', 'travel', 'grocery', 'gas', 'entertainment', 'rent'] as const;
+    const chartCategories = ['dining', 'travel', 'grocery', 'gas', 'entertainment', 'rent'] as const;
     type CategoryKey = keyof CreditCardDetails['rewardRates'];
 
-    return categories.map(category => {
+    return chartCategories.map(category => {
       const currentBestRate = userCards.length > 0 
         ? Math.max(...userCards.map(card => 
             card.rewardRates[category as CategoryKey] || 0))
@@ -305,6 +349,8 @@ export default function Home() {
                 placeholder="0.00"
                 required
                 disabled={loading}
+                step="0.01"
+                min="0"
               />
             </div>
             <div>
@@ -346,7 +392,7 @@ export default function Home() {
                     <div>
                       <span className="font-medium capitalize">{expense.category}</span>
                       <span className="text-gray-500 ml-2">
-                        {new Date(expense.date).toLocaleDateString()}
+                        {expense.date.toLocaleDateString()}
                       </span>
                     </div>
                     <span className="font-medium">
@@ -437,7 +483,7 @@ export default function Home() {
 
         {/* Credit Score */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">What's your credit score range?</h2>
+          <h2 className="text-xl font-semibold mb-4">What&apos;s your credit score range?</h2>
           <select
             value={creditScore}
             onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
@@ -515,4 +561,4 @@ export default function Home() {
       </main>
     </div>
   );
-}
+}  

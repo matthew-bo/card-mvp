@@ -21,10 +21,9 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
-    } catch (err: any) {
-      setError('Failed to sign in: ' + err.message);
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) {
+      const error = err as { message: string };
+      setError('Failed to sign in: ' + error.message);
     }
   };
 

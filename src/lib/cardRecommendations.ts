@@ -50,7 +50,7 @@ const CREDIT_SCORE_MAP = {
   excellent: 4
 } as const;
 
-function validateAndParseDate(date: any): number {
+function validateAndParseDate(date: Date | { seconds: number } | string): number {
   try {
     if (date instanceof Date) {
       const timestamp = date.getTime();
@@ -196,7 +196,7 @@ export function getCardRecommendations(params: {
 
     const scoredCards: ScoredCard[] = availableCards.map(card => {
       let score = 0;
-      let reasons: string[] = [];
+      const reasons: string[] = [];
       let matchFactors = 0;
 
       // Credit Score Check

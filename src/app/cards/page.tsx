@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { db } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { creditCards } from '@/lib/cardDatabase';
