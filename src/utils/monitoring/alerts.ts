@@ -5,7 +5,7 @@ type MonitoringEvent = {
   level: 'info' | 'warning' | 'error' | 'critical';
   message: string;
   timestamp: Date;
-  data?: any;
+  data?: Record<string, unknown>;  // Changed from any
 };
 
 export const AlertThresholds = {
