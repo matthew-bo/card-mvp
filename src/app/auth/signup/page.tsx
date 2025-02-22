@@ -26,7 +26,7 @@ export default function SignUpPage() {
 
     try {
       await signUp(email, password);
-      router.push('/dashboard');
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
     } finally {
@@ -102,7 +102,7 @@ export default function SignUpPage() {
           </button>
 
           <div className="text-sm text-center">
-            <Link href="/login" className="text-blue-600 hover:text-blue-500">
+            <Link href="/auth/login" className="text-blue-600 hover:text-blue-500">
               Already have an account? Sign in
             </Link>
           </div>

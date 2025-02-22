@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Monitor } from '@/utils/monitoring/monitor';
 
 interface MetricData {
   responseTime: number[];

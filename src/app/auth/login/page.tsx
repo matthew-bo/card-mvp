@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from '@/utils/auth/authService';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,10 +19,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      router.push('/dashboard');
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+      setError('Failed to sign in: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -31,7 +32,7 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div>
-          <h2 className="text-3xl font-bold text-center">Sign in to Card Picker</h2>
+          <h2 className="text-3xl font-bold text-center">Sign In</h2>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -76,11 +77,11 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
           <div className="text-sm text-center">
-            <Link href="/signup" className="text-blue-600 hover:text-blue-500">
+            <Link href="/auth/signup" className="text-blue-600 hover:text-blue-500">
               Don&apos;t have an account? Sign up
             </Link>
           </div>

@@ -17,9 +17,11 @@ export class UserMetrics {
       start: fiveMinutesAgo,
       end: new Date()
     });
-
-    const uniqueUsers = new Set(metrics.map(m => m.metadata.userId)).size;
-
+  
+    const uniqueUsers = new Set(
+      metrics.map(m => m.metadata?.userId).filter(userId => userId !== undefined)
+    ).size;
+  
     await MetricsCollector.recordMetric({
       name: 'active_users',
       value: uniqueUsers,
