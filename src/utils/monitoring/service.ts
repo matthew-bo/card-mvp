@@ -1,9 +1,22 @@
-import * as Sentry from '@sentry/nextjs';
+import { SimpleMonitor } from './simpleMonitor';
 
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: 1.0,
-  environment: process.env.NODE_ENV,
-});
+interface MonitoringEvent {
+  type: string;
+  severity: 'info' | 'warning' | 'error';
+  message: string;
+  metadata?: Record<string, any>;
+}
 
-export default Sentry;
+export class MonitoringService {
+  static async logEvent(event: MonitoringEvent) {
+    SimpleMonitor.logEvent(event.type, event.message, event.metadata);
+  }
+
+  static async trackError(error: Error, context?: any) {
+    SimpleMonitor.trackError(error);
+  }
+
+  static async trackPerformance(operation: string, durationMs: number) {
+    SimpleMonitor.trackPerformance(operation, durationMs);
+  }
+}
