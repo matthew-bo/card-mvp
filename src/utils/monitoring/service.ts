@@ -4,7 +4,7 @@ interface MonitoringEvent {
   type: string;
   severity: 'info' | 'warning' | 'error';
   message: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class MonitoringService {
@@ -12,7 +12,7 @@ export class MonitoringService {
     SimpleMonitor.logEvent(event.type, event.message, event.metadata);
   }
 
-  static async trackError(error: Error, context?: any) {
+  static async trackError(error: Error) {
     SimpleMonitor.trackError(error);
   }
 

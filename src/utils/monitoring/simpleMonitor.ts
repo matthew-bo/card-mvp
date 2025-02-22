@@ -1,5 +1,5 @@
 export class SimpleMonitor {
-    static logEvent(type: string, message: string, data?: any) {
+    static logEvent(type: string, message: string, data?: Record<string, unknown>) {
       if (process.env.NODE_ENV === 'production') {
         // In production, we can add proper logging service later
         console.log({

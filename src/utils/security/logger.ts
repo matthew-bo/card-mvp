@@ -1,7 +1,7 @@
-type LogLevel = 'info' | 'warn' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-export class SecurityLogger {
-  static log(level: LogLevel, message: string, data?: any) {
+export class Logger {
+  static log(level: LogLevel, message: string, data?: Record<string, unknown>) {
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
@@ -10,23 +10,24 @@ export class SecurityLogger {
       data
     };
 
-    // In production, you'd want to send this to a logging service
-    console.log(JSON.stringify(logEntry));
-
-    if (level === 'error') {
-      // Add error reporting service here
+    if (process.env.NODE_ENV === 'development') {
+      console.log(JSON.stringify(logEntry));
+    } else {
+      // In production, implement proper logging service
+      // For now, just use console
+      console.log(JSON.stringify(logEntry));
     }
   }
 
-  static error(message: string, error?: any) {
-    this.log('error', message, error);
+  static debug(message: string, data?: Record<string, unknown>) {
+    this.log('debug', message, data);
   }
 
-  static warn(message: string, data?: any) {
-    this.log('warn', message, data);
-  }
-
-  static info(message: string, data?: any) {
+  static info(message: string, data?: Record<string, unknown>) {
     this.log('info', message, data);
+  }
+
+  static error(message: string, data?: Record<string, unknown>) {
+    this.log('error', message, data);
   }
 }

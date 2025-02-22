@@ -38,7 +38,7 @@ export class Monitor {
     });
   }
 
-  static async trackError(error: Error, context?: any) {
+  static async trackError(error: Error, context?: Record<string, unknown>) {
     await this.logEvent(
       'error',
       error.message,

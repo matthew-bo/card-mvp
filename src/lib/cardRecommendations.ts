@@ -33,15 +33,6 @@ interface ScoredCard {
   potentialAnnualValue: number;
 }
 
-interface CreditScoreRequirement {
-  creditScoreRequired: keyof typeof CREDIT_SCORE_MAP;
-}
-
-type ValidationError = {
-  message: string;
-  details?: Record<string, unknown>;
-};
-
 type CreditScoreType = 'poor' | 'fair' | 'good' | 'excellent';
 const CREDIT_SCORE_MAP = {
   poor: 1,
