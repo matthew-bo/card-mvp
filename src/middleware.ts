@@ -43,9 +43,24 @@ export async function middleware(request: NextRequest) {
       duration
     );
 
+    // Check thresholds
+    await AlertManager.checkThresholds('responseTime', duration);
+
     return response;
-  } catch (error) {
-    await Monitor.trackError(error as Error);
-    throw error;
+  } catch (err: unknown) {
+    const error = err as Error;
+    await Monitor.trackError(error);
+    
+    // Log the error but don't throw it to prevent breaking the request
+    console.error('Middleware error:', error);
+    
+    // Return a basic response to keep the application running
+    return NextResponse.next();
   }
 }
+
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+};

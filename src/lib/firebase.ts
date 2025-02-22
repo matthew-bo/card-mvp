@@ -1,9 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
-// import { MonitoringService } from '@/utils/monitoring/service';
-// import { PerformanceMonitor } from '@/utils/monitoring/performance';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,18 +12,37 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getFirestore(app);
-const auth = getAuth(app);
-const storage = getStorage(app);
+// Initialize Firebase only if it hasn't been initialized
+let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+let auth = getAuth(app);
+let db = getFirestore(app);
+let storage = getStorage(app);
 
-// Make sure this condition matches your development environment
-if (process.env.NODE_ENV === 'development') {
-  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, 'localhost', 8080);
-  connectStorageEmulator(storage, 'localhost', 9199);
+// Development environment setup
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  try {
+    // Import emulators dynamically to avoid Edge Runtime issues
+    const { connectAuthEmulator } = require('firebase/auth');
+    const { connectFirestoreEmulator } = require('firebase/firestore');
+    const { connectStorageEmulator } = require('firebase/storage');
+
+    // Connect to emulators
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectStorageEmulator(storage, 'localhost', 9199);
+
+    console.log('Firebase Emulators Connected');
+  } catch (err) {
+    console.error('Error connecting to Firebase emulators:', err);
+  }
 }
+
+// Error handling for initialization
+if (!app) throw new Error('Firebase app initialization failed');
+if (!auth) throw new Error('Firebase auth initialization failed');
+if (!db) throw new Error('Firebase Firestore initialization failed');
+if (!storage) throw new Error('Firebase storage initialization failed');
+
 
 
 // Monitoring setup
