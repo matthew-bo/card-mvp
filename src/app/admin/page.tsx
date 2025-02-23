@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
+import { isAdmin } from '@/utils/adminConfig';
+
 
 interface UserPreference {
   id: string;
@@ -160,6 +164,23 @@ const UserManagement = () => {
 
 // Main AdminDashboard Component
 export default function AdminDashboard() {
+    const { user } = useAuth();
+    const router = useRouter();
+  
+    useEffect(() => {
+      // If not logged in or not admin, redirect to home
+      if (!user) {
+        router.push('/');
+        return;
+      }
+  
+      if (!isAdmin(user.email)) {
+        console.log('Not an admin:', user.email);
+        router.push('/');
+        return;
+      }
+    }, [user, router]); 
+    
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalExpenses: 0,
