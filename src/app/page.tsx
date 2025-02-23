@@ -9,7 +9,7 @@ import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
+import FeatureTable from '@/components/FeatureTable';
 
 interface FirestoreExpense {
   amount: number;
@@ -654,24 +654,6 @@ export default function Home() {
           </select>
         </div>
 
-        {/* Rewards Comparison Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Rewards Rate Comparison</h2>
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={getComparisonData()}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="category" />
-                <YAxis label={{ value: 'Reward Rate (%)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Current Best Rate" fill="#4B5563" />
-                <Bar dataKey="Recommended Best Rate" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Card Recommendations */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">Recommended Cards</h2>
@@ -741,6 +723,31 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Rewards Comparison Chart */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h2 className="text-xl font-semibold mb-4">Rewards Rate Comparison</h2>
+          <div className="w-full h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={getComparisonData()}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="category" />
+                <YAxis label={{ value: 'Reward Rate (%)', angle: -90, position: 'insideLeft' }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Current Best Rate" fill="#4B5563" />
+                <Bar dataKey="Recommended Best Rate" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/*Feature Table*/}
+        <FeatureTable 
+          currentCards={userCards}
+          recommendedCards={recommendations}
+        />
+
       </main>
     </div>
   );
