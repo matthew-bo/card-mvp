@@ -10,6 +10,7 @@ import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FeatureTable from '@/components/FeatureTable';
+import CardDisplay from '@/components/CardDisplay';
 
 interface FirestoreExpense {
   amount: number;
@@ -542,81 +543,16 @@ export default function Home() {
 {/* Current Cards */}
 <div className="bg-white p-6 rounded-lg shadow-md mb-6">
   <h2 className="text-xl font-semibold mb-4">Your Current Cards</h2>
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {userCards.length === 0 ? (
       <p className="text-gray-500 col-span-3">No cards added yet</p>
     ) : (
       userCards.map((card) => (
-        <div key={card.id} className="border rounded-lg p-4 relative hover:shadow-lg transition-shadow">
-          {/* Delete Button */}
-          <button
-            onClick={() => handleDeleteCard(card.id)}
-            className="absolute top-2 right-2 text-gray-400 hover:text-red-600 p-1.5 rounded-full hover:bg-red-50 transition-colors"
-            aria-label="Delete card"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" 
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18"></path>
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-            </svg>
-          </button>
-
-          {/* Card Header */}
-          <div className="mb-4">
-            <h3 className="font-semibold text-lg text-blue-900 mb-1">{card.name}</h3>
-            <p className="text-sm text-gray-500">
-              {card.issuer} • ${card.annualFee}/year
-            </p>
-          </div>
-
-          {/* Reward Rates */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700">Best Rewards:</span>
-            </div>
-            <div className="space-y-2">
-              {Object.entries(card.rewardRates)
-                .filter(([, rate]) => rate > 0)
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 3)
-                .map(([category, rate]) => (
-                  <div key={category} className="flex items-center text-sm">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
-                    <span className="text-gray-600 capitalize">{category}:</span>
-                    <span className="ml-auto font-medium text-blue-600">{rate}%</span>
-                  </div>
-                ))}
-            </div>
-          </div>
-
-          {/* Additional Benefits */}
-          {card.signupBonus && (
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              <p className="text-sm text-emerald-600 font-medium">
-                Signup Bonus: {card.signupBonus.amount} {card.signupBonus.type}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Spend ${card.signupBonus.spendRequired} in {card.signupBonus.timeframe} months
-              </p>
-            </div>
-          )}
-
-          {/* Card Footer */}
-          <div className="mt-4 pt-3 border-t border-gray-100">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-500">Required Score:</span>
-              <span className={`text-xs font-medium ${
-                card.creditScoreRequired === 'excellent' ? 'text-emerald-600' :
-                card.creditScoreRequired === 'good' ? 'text-blue-600' :
-                card.creditScoreRequired === 'fair' ? 'text-yellow-600' :
-                'text-red-600'
-              }`}>
-                {card.creditScoreRequired.charAt(0).toUpperCase() + card.creditScoreRequired.slice(1)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <CardDisplay 
+          key={card.id} 
+          card={card} 
+          onDelete={handleDeleteCard}
+        />
       ))
     )}
   </div>
@@ -660,70 +596,21 @@ export default function Home() {
           {loading ? (
             <div className="text-center py-4">Loading recommendations...</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendations.map(({ card, reason }) => (
-                <div key={card.id} className="border rounded-lg p-4 relative hover:shadow-lg transition-shadow">
-                  {/* Card Header */}
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-lg text-blue-900 mb-1">{card.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {card.issuer} • ${card.annualFee}/year
-                    </p>
-                    <p className="text-sm text-emerald-600 mt-2">{reason}</p>
+                <div key={card.id} className="relative">
+                  <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center">
+                    {reason}
                   </div>
-
-                  {/* Reward Rates */}
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-700">Best Rewards:</span>
-                    </div>
-                    <div className="space-y-2">
-                      {Object.entries(card.rewardRates)
-                        .filter(([, rate]) => rate > 0)
-                        .sort(([, a], [, b]) => b - a)
-                        .slice(0, 3)
-                        .map(([category, rate]) => (
-                          <div key={category} className="flex items-center text-sm">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
-                            <span className="text-gray-600 capitalize">{category}:</span>
-                            <span className="ml-auto font-medium text-blue-600">{rate}%</span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Additional Benefits */}
-                  {card.signupBonus && (
-                    <div className="mt-4 pt-3 border-t border-gray-100">
-                      <p className="text-sm text-emerald-600 font-medium">
-                        Signup Bonus: {card.signupBonus.amount} {card.signupBonus.type}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Spend ${card.signupBonus.spendRequired} in {card.signupBonus.timeframe} months
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Card Footer */}
-                  <div className="mt-4 pt-3 border-t border-gray-100">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-500">Required Score:</span>
-                      <span className={`text-xs font-medium ${
-                        card.creditScoreRequired === 'excellent' ? 'text-emerald-600' :
-                        card.creditScoreRequired === 'good' ? 'text-blue-600' :
-                        card.creditScoreRequired === 'fair' ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {card.creditScoreRequired.charAt(0).toUpperCase() + card.creditScoreRequired.slice(1)}
-                      </span>
-                    </div>
+                  <div className="pt-4">
+                    <CardDisplay card={card} />
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-
+        
         {/*Feature Table*/}
         <FeatureTable 
           currentCards={userCards}
