@@ -12,7 +12,7 @@ interface FeatureTableProps {
 }
 
 const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommendedCards = [] }) => {
-  // Total Rewards Value calculations (you can adjust these values)
+  // Total Rewards Value calculations
   const currentRewardsValue = currentCards.length > 0 ? 1245 : 0;
   const recommendedRewardsValue = 1875;
 
@@ -27,6 +27,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
   const currentNetValue = currentRewardsValue - currentAnnualFees;
   const recommendedNetValue = recommendedRewardsValue - recommendedAnnualFees;
 
+  // Feature check functions
   const hasTravelProtection = (cards: CreditCardDetails[]) => 
     cards.some(card => card.perks?.some(perk => perk.toLowerCase().includes('travel')));
 
@@ -73,7 +74,65 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
               <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">${recommendedNetValue}/year</td>
             </tr>
 
-            {/* Rest of your rows remain the same */}
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Travel Protection</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {hasTravelProtection(currentCards) ? 'Included' : 'Not Available'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                {hasTravelProtection(recommendedCards.map(rec => rec.card)) ? 'Included' : 'Not Available'}
+              </td>
+            </tr>
+
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Airport Lounges</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {hasAirportLounges(currentCards) ? 'Available' : 'Not Available'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                {hasAirportLounges(recommendedCards.map(rec => rec.card)) ? 'Available' : 'Not Available'}
+              </td>
+            </tr>
+
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Purchase Protection</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {hasPurchaseProtection(currentCards) ? 'Included' : 'Not Available'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                {hasPurchaseProtection(recommendedCards.map(rec => rec.card)) ? 'Included' : 'Not Available'}
+              </td>
+            </tr>
+
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Foreign Transaction Fees</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {currentCards.some(card => !card.foreignTransactionFee) ? 'Some cards with no fees' : 'All cards have fees'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                {recommendedCards.some(rec => !rec.card.foreignTransactionFee) ? 'Some cards with no fees' : 'All cards have fees'}
+              </td>
+            </tr>
+
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Card Networks</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {[...new Set(currentCards.map(card => card.issuer))].join(', ') || 'None'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                {[...new Set(recommendedCards.map(rec => rec.card.issuer))].join(', ')}
+              </td>
+            </tr>
+
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Credit Score Range</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {[...new Set(currentCards.map(card => card.creditScoreRequired))].sort().join(' to ') || 'N/A'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                {[...new Set(recommendedCards.map(rec => rec.card.creditScoreRequired))].sort().join(' to ')}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
