@@ -724,6 +724,12 @@ export default function Home() {
           )}
         </div>
 
+        {/*Feature Table*/}
+        <FeatureTable 
+          currentCards={userCards}
+          recommendedCards={recommendations}
+        />
+
         {/* Rewards Comparison Chart */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">Rewards Rate Comparison</h2>
@@ -741,12 +747,6 @@ export default function Home() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/*Feature Table*/}
-        <FeatureTable 
-          currentCards={userCards}
-          recommendedCards={recommendations}
-        />
 
       </main>
     </div>
