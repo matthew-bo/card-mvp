@@ -453,20 +453,110 @@ export default function Home() {
             <p className="text-sm text-gray-600 mb-4">
               * Track your monthly expenses for personalized recommendations
             </p>
-            {/* Your existing expense form */}
+            <form onSubmit={handleAddExpense} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Amount</label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="0.00"
+                  required
+                  disabled={loading}
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                  disabled={loading}
+                >
+                  <option value="">Select category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {loading ? 'Adding...' : 'Add Expense'}
+              </button>
+            </form>
+
+            {/* Expenses List */}
+            <div className="mt-6 border-t pt-6">
+              <h3 className="text-lg font-medium mb-4">Your Expenses</h3>
+              {expenses.length === 0 ? (
+                <p className="text-gray-500">No expenses added yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {expenses.map((expense) => (
+                    <div key={expense.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span className="font-medium capitalize text-gray-700">{expense.category}</span>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <span className="font-medium text-blue-900">
+                          ${expense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          className="text-gray-400 hover:text-red-600 p-1.5 rounded-full hover:bg-red-50 transition-colors"
+                          aria-label="Delete expense"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Add Card Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Card</h2>
-            {/* Your existing add card form with updated button style */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Adding...' : 'Add Card'}
-            </button>
+            <form onSubmit={handleAddCard} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Select Card</label>
+                <select
+                  value={selectedCard}
+                  onChange={(e) => setSelectedCard(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                  disabled={loading}
+                >
+                  <option value="">Select a card</option>
+                  {creditCards.map((card) => (
+                    <option key={card.id} value={card.id}>
+                      {card.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Adding...' : 'Add Card'}
+              </button>
+            </form>
           </div>
 
           {/* Optimization Settings */}
