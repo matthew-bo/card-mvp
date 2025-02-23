@@ -9,7 +9,6 @@ import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { SimpleMonitor } from '@/utils/monitoring/simpleMonitor';
 
 interface FirestoreExpense {
   amount: number;
