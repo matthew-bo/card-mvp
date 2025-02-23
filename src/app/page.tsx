@@ -121,6 +121,7 @@ export default function Home() {
               date: data.date.toDate()
             } as LoadedExpense;
           });
+
           setExpenses(loadedExpenses);
           console.log('Expenses loaded successfully:', loadedExpenses.length);
         } catch (expError) {
