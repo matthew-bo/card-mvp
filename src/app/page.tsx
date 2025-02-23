@@ -105,62 +105,81 @@ export default function Home() {
       setError(null);
   
       try {
-        console.log('User ID:', user.uid);
-  
-        const expensesSnap = await getDocs(
-          query(collection(db, 'expenses'), 
-          where('userId', '==', user.uid),
-          orderBy('date', 'desc'))
-        );
-        
-        console.log('Expenses loaded:', expensesSnap.size);
-  
-        const loadedExpenses = expensesSnap.docs.map(doc => {
-          const data = doc.data() as FirestoreExpense;
-          return {
-            id: doc.id,
-            ...data,
-            date: data.date.toDate()
-          } as LoadedExpense;
-        });
-        setExpenses(loadedExpenses);
-  
-        console.log('Loading user cards...');
-        const cardsSnap = await getDocs(
-          query(collection(db, 'user_cards'), 
-          where('userId', '==', user.uid))
-        );
-        
-        console.log('Cards loaded:', cardsSnap.size);
-        const userCardIds = cardsSnap.docs.map(doc => doc.data().cardId);
-        const loadedCards = creditCards.filter(card => userCardIds.includes(card.id));
-        setUserCards(loadedCards);
-  
-        console.log('Loading user preferences...');
-        const prefsDoc = await getDocs(
-          query(collection(db, 'user_preferences'),
-          where('userId', '==', user.uid))
-        );
-        
-        if (!prefsDoc.empty) {
-          const prefs = prefsDoc.docs[0].data();
-          setOptimizationPreference(prefs.optimizationPreference);
-          setCreditScore(prefs.creditScore);
+        // Try loading expenses first
+        try {
+          const expensesSnap = await getDocs(
+            query(collection(db, 'expenses'), 
+            where('userId', '==', user.uid),
+            orderBy('date', 'desc'))
+          );
+          
+          const loadedExpenses = expensesSnap.docs.map(doc => {
+            const data = doc.data() as FirestoreExpense;
+            return {
+              id: doc.id,
+              ...data,
+              date: data.date.toDate()
+            } as LoadedExpense;
+          });
+          setExpenses(loadedExpenses);
+          console.log('Expenses loaded successfully:', loadedExpenses.length);
+        } catch (expError) {
+          console.error('Error loading expenses:', expError);
+          throw expError;
         }
-        console.log('All data loaded successfully');
+  
+        // Try loading cards
+        try {
+          const cardsSnap = await getDocs(
+            query(collection(db, 'user_cards'), 
+            where('userId', '==', user.uid))
+          );
+          
+          const userCardIds = cardsSnap.docs.map(doc => doc.data().cardId);
+          const loadedCards = creditCards.filter(card => userCardIds.includes(card.id));
+          setUserCards(loadedCards);
+          console.log('Cards loaded successfully:', loadedCards.length);
+        } catch (cardError) {
+          console.error('Error loading cards:', cardError);
+          throw cardError;
+        }
+  
+        // Try loading preferences
+        try {
+          const prefsDoc = await getDocs(
+            query(collection(db, 'user_preferences'),
+            where('userId', '==', user.uid))
+          );
+          
+          if (!prefsDoc.empty) {
+            const prefs = prefsDoc.docs[0].data();
+            setOptimizationPreference(prefs.optimizationPreference);
+            setCreditScore(prefs.creditScore);
+            console.log('Preferences loaded successfully');
+          } else {
+            console.log('No preferences found for user');
+          }
+        } catch (prefError) {
+          console.error('Error loading preferences:', prefError);
+          throw prefError;
+        }
   
       } catch (err) {
         const error = err as Error;
         console.error('Error loading user data:', error);
         console.error('Error stack:', error.stack);
-        setError('Failed to load your data. Please try again.');
+        setError(`Failed to load your data: ${error.message}`);
       } finally {
-        console.log('Finished loading attempt, setting loading to false');
         setLoading(false);
       }
     };
   
-    loadUserData();
+    if (user) {
+      console.log('User authenticated, loading data...');
+      loadUserData();
+    } else {
+      console.log('No user logged in');
+    }
   }, [user]);
 
   useEffect(() => {
