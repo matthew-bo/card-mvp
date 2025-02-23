@@ -101,16 +101,21 @@ export default function Home() {
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) return;
+      console.log('Starting to load user data...');
       setLoading(true);
       setError(null);
-
+  
       try {
+        console.log('User ID:', user.uid);
+  
         const expensesSnap = await getDocs(
           query(collection(db, 'expenses'), 
           where('userId', '==', user.uid),
           orderBy('date', 'desc'))
         );
         
+        console.log('Expenses loaded:', expensesSnap.size);
+  
         const loadedExpenses = expensesSnap.docs.map(doc => {
           const data = doc.data() as FirestoreExpense;
           return {
@@ -120,16 +125,19 @@ export default function Home() {
           } as LoadedExpense;
         });
         setExpenses(loadedExpenses);
-
+  
+        console.log('Loading user cards...');
         const cardsSnap = await getDocs(
           query(collection(db, 'user_cards'), 
           where('userId', '==', user.uid))
         );
         
+        console.log('Cards loaded:', cardsSnap.size);
         const userCardIds = cardsSnap.docs.map(doc => doc.data().cardId);
         const loadedCards = creditCards.filter(card => userCardIds.includes(card.id));
         setUserCards(loadedCards);
-
+  
+        console.log('Loading user preferences...');
         const prefsDoc = await getDocs(
           query(collection(db, 'user_preferences'),
           where('userId', '==', user.uid))
@@ -140,17 +148,26 @@ export default function Home() {
           setOptimizationPreference(prefs.optimizationPreference);
           setCreditScore(prefs.creditScore);
         }
+        console.log('All data loaded successfully');
+  
       } catch (err) {
         const error = err as Error;
         console.error('Error loading user data:', error);
         console.error('Error stack:', error.stack);
         setError('Failed to load your data. Please try again.');
-        SimpleMonitor.trackError(error);
+      } finally {
+        console.log('Finished loading attempt, setting loading to false');
+        setLoading(false);
       }
     };
-
+  
     loadUserData();
   }, [user]);
+
+  useEffect(() => {
+    console.log('Loading state changed:', loading);
+  }, [loading]);
+
   // Automatically save data for logged-in users
   useEffect(() => {
     const saveUserData = async () => {
@@ -372,7 +389,8 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              onClick={() => console.log('Button clicked, loading:', loading)}
             >
               {loading ? 'Adding...' : 'Add Expense'}
             </button>

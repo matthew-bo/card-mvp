@@ -16,20 +16,31 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
+  
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       await signUp(email, password);
       router.push('/');
     } catch (err: unknown) {
-      const error = err as { message: string };
-      setError('Failed to sign up: ' + error.message);
+      const error = err as Error;
+      console.error('Signup error:', error);
+      
+      // More specific error messages
+      if (error.message.includes('email-already-in-use')) {
+        setError('An account already exists with this email address');
+      } else if (error.message.includes('weak-password')) {
+        setError('Password is too weak. Please use at least 6 characters');
+      } else {
+        setError('Failed to sign up: ' + error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
