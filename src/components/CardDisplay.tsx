@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAuth } from '@/components/AuthProvider';
+// import { useAuth } from '@/components/AuthProvider';
 
 // Add CreditCardDetails interface
 interface CreditCardDetails {
