@@ -57,32 +57,31 @@ const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete, isRecommended
   
     return (
         <div className="relative group">
-          <div className={`border rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200 
-            ${isRecommended ? 'border-blue-200 bg-blue-50' : ''}`}>
-          {/* Card Initials Circle */}
-          <div className={`absolute top-4 right-4 w-12 h-12 rounded-full ${colors.bg} bg-opacity-10 flex items-center justify-center z-10`}>
+        <div className="border rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+            {/* Card Initials Circle */}
+            <div className={`absolute top-4 right-4 w-12 h-12 rounded-full ${colors.bg} bg-opacity-10 flex items-center justify-center z-10`}>
             <span className={`text-xs font-semibold ${colors.text}`}>
-              {card.issuer.split(' ').map((word: string) => word[0]).join('')}
+                {card.issuer.split(' ').map((word: string) => word[0]).join('')}
             </span>
-          </div>
+            </div>
 
         {/* Delete Button - Enhanced visibility and conditional rendering */}
         {onDelete && user && (
-          <button
-            onClick={() => onDelete(card.id)}
-            className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-sm border border-gray-200 
-                     text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 
-                     transition-all duration-200 z-20"
-            aria-label="Delete card"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
-                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
-                 strokeLinejoin="round">
-              <path d="M3 6h18"></path>
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-            </svg>
-          </button>
+            <button
+                onClick={() => onDelete(card.id)}
+                className="absolute top-2 left-2 p-2 rounded-full bg-white shadow-sm border border-gray-200 
+                        text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 
+                        transition-all duration-200 z-20"
+                aria-label="Delete card"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
+                    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
+                    strokeLinejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+            </button>
         )}
 
         {/* Card Content - Fixed overflow issues */}

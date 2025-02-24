@@ -431,9 +431,9 @@ export default function Home() {
       )}
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Input Sections */}
-        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
+        <div className="lg:col-span-1 space-y-6">
           {/* Profile Summary */}
           <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-lg shadow-sm p-6 text-white">
             <h2 className="text-lg font-semibold mb-2">Portfolio Summary</h2>
@@ -613,7 +613,7 @@ export default function Home() {
           </div>
 
         {/* Main Content Area - Results */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="lg:col-span-2 space-y-6">
         {/* Current Cards */}
         <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
           <div className="flex justify-between items-center mb-4">
