@@ -28,6 +28,11 @@ export interface CreditCardDetails {
   description: string;
 }
 
+export type OptimizationSettings = {
+  preference: OptimizationPreference;
+  zeroAnnualFee: boolean;
+};
+
 export interface Recommendation {
   card: CreditCardDetails;
   reason: string;

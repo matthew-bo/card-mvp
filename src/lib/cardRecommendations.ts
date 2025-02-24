@@ -1,5 +1,6 @@
-import { CreditCardDetails, OptimizationPreference } from '@/types/cards';
+import { CreditCardDetails } from '@/types/cards';
 import { creditCards } from '@/lib/cardDatabase';
+import { OptimizationPreference, OptimizationSettings } from '@/types/cards';
 
 interface SpendingAnalysis {
   totalSpend: number;
@@ -167,14 +168,16 @@ function analyzeSpending(expenses: Expense[]): SpendingAnalysis {
   }
 }
 
-export function getCardRecommendations(params: {
+interface RecommendationParams {
   expenses: Expense[];
   currentCards: CreditCardDetails[];
-  optimizationPreference: OptimizationPreference;
+  optimizationSettings: OptimizationSettings;
   creditScore?: CreditScoreType;
-}): ScoredCard[] {
+}
+
+export function getCardRecommendations(params: RecommendationParams): ScoredCard[] {
   try {
-    const { expenses, currentCards, optimizationPreference, creditScore } = params;
+    const { expenses, currentCards, optimizationSettings, creditScore } = params;
     const spendingAnalysis = analyzeSpending(expenses);
 
     if (!Array.isArray(currentCards)) {
@@ -182,7 +185,9 @@ export function getCardRecommendations(params: {
     }
 
     const availableCards = creditCards.filter(card => 
-      !currentCards.some(userCard => userCard.id === card.id)
+      !currentCards.some(userCard => userCard.id === card.id) &&
+      // Filter out cards with annual fees if user prefers no annual fee
+      (!optimizationSettings.zeroAnnualFee || card.annualFee === 0)
     );
 
     const scoredCards: ScoredCard[] = availableCards.map(card => {
@@ -192,7 +197,7 @@ export function getCardRecommendations(params: {
 
       // Credit Score Check
       if (creditScore) {
-        const requiredScore = CREDIT_SCORE_MAP[card.creditScoreRequired as keyof typeof CREDIT_SCORE_MAP];
+        const requiredScore = CREDIT_SCORE_MAP[card.creditScoreRequired];
         const userScoreValue = CREDIT_SCORE_MAP[creditScore];
         if (userScoreValue < requiredScore) {
           return {
@@ -205,14 +210,42 @@ export function getCardRecommendations(params: {
         }
       }
 
-      // Optimization Preference Matching (30%)
-      if (card.categories.includes(optimizationPreference)) {
-        score += 30;
+      // Optimization Preference Matching (adjusted weights based on preference)
+      type PreferenceWeights = {
+        [key in OptimizationPreference]: {
+          rewards: number;
+          perks: number;
+          value: number;
+          signup: number;
+        }
+      };
+      
+      const preferenceWeights: PreferenceWeights = {
+        points: { rewards: 40, perks: 20, value: 30, signup: 10 },
+        cashback: { rewards: 50, perks: 10, value: 30, signup: 10 },
+        perks: { rewards: 20, perks: 50, value: 20, signup: 10 },
+        creditScore: { rewards: 30, perks: 20, value: 40, signup: 10 }
+      };
+
+      const weights = preferenceWeights[optimizationSettings.preference];
+
+      // Card matches optimization preference
+      if (card.categories.includes(optimizationSettings.preference)) {
+        score += weights.rewards;
         matchFactors++;
-        reasons.push(`Optimizes for ${optimizationPreference}`);
+        reasons.push(`Optimizes for ${optimizationSettings.preference}`);
       }
 
-      // Spending Pattern Analysis (40%)
+      // Perks Scoring (enhanced for perks preference)
+      if (optimizationSettings.preference === 'perks') {
+        const perkScore = card.perks.length * 5; // More weight to number of perks
+        score += Math.min(perkScore, 50); // Cap at 50 points
+        if (card.perks.length > 3) {
+          reasons.push(`Strong perks package with ${card.perks.length} benefits`);
+        }
+      }
+
+      // Spending Pattern Analysis (weighted by preference)
       const categoryMatches = spendingAnalysis.highSpendCategories
         .filter(category => {
           const rewardRate = card.rewardRates[category as keyof typeof card.rewardRates];
@@ -220,12 +253,13 @@ export function getCardRecommendations(params: {
         });
 
       if (categoryMatches.length > 0) {
-        score += 40 * (categoryMatches.length / spendingAnalysis.highSpendCategories.length);
+        const spendingScore = (categoryMatches.length / spendingAnalysis.highSpendCategories.length) * weights.rewards;
+        score += spendingScore;
         matchFactors++;
         reasons.push(`Strong rewards in ${categoryMatches.length} of your top spending categories`);
       }
 
-      // Value Proposition (20%)
+      // Value Proposition (adjusted for preference)
       const potentialAnnualRewards = Object.entries(spendingAnalysis.categoryPercentages)
         .reduce((sum, [category, percentage]) => {
           const spend = (spendingAnalysis.monthlyAverage * 12) * (percentage / 100);
@@ -233,24 +267,25 @@ export function getCardRecommendations(params: {
           return sum + (spend * (rate / 100));
         }, 0);
 
+      const valueScore = card.annualFee === 0 ? weights.value : 
+        (potentialAnnualRewards > card.annualFee * 2) ? weights.value : 
+        (potentialAnnualRewards > card.annualFee) ? weights.value / 2 : 0;
+
+      score += valueScore;
       if (card.annualFee === 0) {
-        score += 20;
-        matchFactors++;
         reasons.push("No annual fee");
       } else if (potentialAnnualRewards > card.annualFee * 2) {
-        score += 20;
-        matchFactors++;
-        reasons.push(`${potentialAnnualRewards.toFixed(0)} annual rewards value exceeds ${card.annualFee} annual fee`);
+        reasons.push(`${potentialAnnualRewards.toFixed(0)} rewards value exceeds ${card.annualFee} annual fee`);
       }
 
-      // Sign-up Bonus Value (10%)
+      // Sign-up Bonus Value (weighted less for perks focus)
       if (card.signupBonus && spendingAnalysis.canMeetSignupBonus) {
         const bonusValue = card.signupBonus.type === 'points' ? 
           card.signupBonus.amount * 0.015 : 
           card.signupBonus.amount;
         
         if (bonusValue > 500) {
-          score += 10;
+          score += weights.signup;
           matchFactors++;
           reasons.push(`Valuable sign-up bonus worth $${bonusValue.toFixed(0)}`);
         }
@@ -271,9 +306,8 @@ export function getCardRecommendations(params: {
       .sort((a: ScoredCard, b: ScoredCard) => b.score - a.score)
       .slice(0, 3);
 
-    } catch (err: unknown) {
-      const error = err as Error;
-      console.error('Recommendation generation error:', error.message);
-      return [];
-    }
+  } catch (err) {
+    console.error('Recommendation generation error:', err);
+    return [];
+  }
 }

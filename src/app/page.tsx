@@ -47,6 +47,7 @@ export default function Home() {
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
+  const [zeroAnnualFee, setZeroAnnualFee] = useState<boolean>(false);
   
   // State for UI
   const [loading, setLoading] = useState(false);
@@ -217,7 +218,10 @@ export default function Home() {
       const newRecommendations = getCardRecommendations({
         expenses,
         currentCards: userCards,
-        optimizationPreference,
+        optimizationSettings: {
+          preference: optimizationPreference,
+          zeroAnnualFee
+        },
         creditScore
       });
       setRecommendations(newRecommendations);
@@ -226,7 +230,7 @@ export default function Home() {
       console.error('Error updating recommendations:', error);
       setError('Failed to update recommendations. Please try again.');
     }
-  }, [expenses, userCards, optimizationPreference, creditScore]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee]);
 
   // Handle adding expense
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -446,76 +450,89 @@ export default function Home() {
               </div>
             </div>
           </div>
+          </div>
 
-        {/* Add Expense Section */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            * Track your monthly expenses for personalized recommendations
-          </p>
-          <form onSubmit={handleAddExpense} className="space-y-4 w-full max-w-md">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="0.00"
-                required
+          {/* Add Expense Section */}
+          <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
+            <p className="text-sm text-gray-800 mb-4">
+              * Track your monthly expenses for personalized recommendations
+            </p>
+            
+            {/* Form */}
+            <form onSubmit={handleAddExpense} className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Amount</label>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+                    placeholder="0.00"
+                    required
+                    disabled={loading}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base bg-white appearance-none"
+                    required
+                    disabled={loading}
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 1rem center',
+                      backgroundSize: '1em'
+                    }}
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
                 disabled={loading}
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                required
-                disabled={loading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                <option value="">Select category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? 'Adding...' : 'Add Expense'}
-            </button>
-          </form>
-        </div>
+                {loading ? 'Adding...' : 'Add Expense'}
+              </button>
+            </form>
 
-        {/* Expenses List */}
-            <div className="mt-6 border-t pt-6">
-              <h3 className="text-lg font-medium mb-4">Your Expenses</h3>
+            {/* Expenses List */}
+            <div className="mt-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Your Expenses</h3>
               {expenses.length === 0 ? (
-                <p className="text-gray-500">No expenses added yet</p>
+                <p className="text-gray-700">No expenses added yet</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {expenses.map((expense) => (
-                    <div key={expense.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div key={expense.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <span className="font-medium capitalize text-gray-700">{expense.category}</span>
+                        <span className="font-medium capitalize text-gray-900">{expense.category}</span>
                       </div>
                       <div className="flex items-center space-x-4">
-                        <span className="font-medium text-blue-900">
+                        <span className="font-medium text-gray-900">
                           ${expense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         <button
                           onClick={() => handleDeleteExpense(expense.id)}
-                          className="text-gray-400 hover:text-red-600 p-1.5 rounded-full hover:bg-red-50 transition-colors"
+                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                           aria-label="Delete expense"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" 
+                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18"></path>
                             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -527,6 +544,7 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
 
           {/* Add Card Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -559,44 +577,40 @@ export default function Home() {
             </form>
           </div>
 
-          {/* Optimization Settings */}
-          <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Optimization Goal
-              </label>
-              <select
-                value={optimizationPreference}
-                onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="points">Maximize Points</option>
-                <option value="creditScore">Build Credit Score</option>
-                <option value="cashback">Maximize Cash Back</option>
-                <option value="perks">Best Perks</option>
-              </select>
-            </div>
+        {/* Optimization Settings */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  What would you like to optimize for?
+                </label>
+                <select
+                  value={optimizationPreference}
+                  onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="points">Maximize Points</option>
+                  <option value="creditScore">Build Credit Score</option>
+                  <option value="cashback">Maximize Cash Back</option>
+                  <option value="perks">Best Perks</option>
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Credit Score Range
-              </label>
-              <select
-                value={creditScore}
-                onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="excellent">Excellent (720+)</option>
-                <option value="good">Good (690-719)</option>
-                <option value="fair">Fair (630-689)</option>
-                <option value="poor">Poor (Below 630)</option>
-              </select>
+              {/* Add Annual Fee Preference */}
+              <div className="mt-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={zeroAnnualFee}
+                    onChange={(e) => setZeroAnnualFee(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700">Only show cards with no annual fee</span>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
-        </div>
 
         {/* Main Content Area - Results */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
@@ -615,6 +629,7 @@ export default function Home() {
                   key={card.id} 
                   card={card} 
                   onDelete={handleDeleteCard}
+                  isRecommended={false}
                 />
               ))
             )}
@@ -636,9 +651,11 @@ export default function Home() {
                   <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center">
                     {reason}
                   </div>
-                  <div className="pt-4">
-                    <CardDisplay card={card} />
-                  </div>
+                    <CardDisplay 
+                      key={card.id} 
+                      card={card} 
+                      isRecommended={true}
+                    />
                 </div>
               ))}
             </div>
@@ -667,41 +684,41 @@ export default function Home() {
 
           {/* Rewards Rate Chart */}
           <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Rewards Rate Comparison</h2>
-            <div className="h-60 sm:h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={getComparisonData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis 
-                    dataKey="category" 
-                    tick={{ fill: '#4B5563' }}
-                    height={60}
-                    interval={0}
-                    angle={-45}
-                    textAnchor="end"
-                  />
-                  <YAxis 
-                    label={{ 
-                      value: 'Reward Rate (%)', 
-                      angle: -90, 
-                      position: 'insideLeft',
-                      fill: '#4B5563'
-                    }}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: '#FFF',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '6px'
-                    }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-                  <Bar dataKey="Current Best Rate" fill="#93C5FD" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Recommended Best Rate" fill="#2563EB" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Rewards Rate Comparison</h2>
+          <div className="h-60 sm:h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={getComparisonData()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis 
+                  dataKey="category" 
+                  tick={{ fill: '#4B5563' }}
+                  height={60}
+                  interval={0}
+                  angle={-45}
+                  textAnchor="end"
+                />
+                <YAxis 
+                  label={{ 
+                    value: 'Reward Rate (%)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    fill: '#4B5563'
+                  }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#FFF',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '6px'
+                  }}
+                />
+                <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                <Bar dataKey="Current Best Rate" fill="#93C5FD" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Recommended Best Rate" fill="#2563EB" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+        </div>
         </div>
       </div>
     </main>
