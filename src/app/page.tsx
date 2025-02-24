@@ -421,7 +421,6 @@ export default function Home() {
 
     {/* Main Content */}
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Error Display */}
       {error && (
         <div className="mb-6">
@@ -429,135 +428,68 @@ export default function Home() {
             {error}
           </div>
         </div>
-    )}
+      )}
 
-      {/* Content Grid */}
+      {/* Content Grid - Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Input Sections */}
-         <div className="lg:col-span-1 space-y-6">
-          {/* Profile Summary */}
-          <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-lg shadow-sm p-6 text-white">
-            <h2 className="text-lg font-semibold mb-2">Portfolio Summary</h2>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-blue-100">Total Cards</span>
-                <span className="font-semibold">{userCards.length}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-blue-100">Monthly Expenses</span>
-                <span className="font-semibold">
-                  ${expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>        
-
+        {/* Left Sidebar - All Input Sections */}
+        <div className="lg:col-span-1 space-y-6">
           {/* Add Expense Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-           <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
-            <p className="text-sm text-gray-800 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
+            <p className="text-sm text-gray-600 mb-4">
               * Track your monthly expenses for personalized recommendations
             </p>
-            
-            {/* Form */}
             <form onSubmit={handleAddExpense} className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Amount</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
-                    placeholder="0.00"
-                    required
-                    disabled={loading}
-                    step="0.01"
-                    min="0"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Category</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base bg-white appearance-none"
-                    required
-                    disabled={loading}
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 1rem center',
-                      backgroundSize: '1em'
-                    }}
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                </div>
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Amount</label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="0.00"
+                  required
+                  disabled={loading}
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                  disabled={loading}
+                >
+                  <option value="">Select category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 {loading ? 'Adding...' : 'Add Expense'}
               </button>
             </form>
           </div>
-          </div>
-
-            {/* Expenses List */}
-            <div className="mt-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Your Expenses</h3>
-              {expenses.length === 0 ? (
-                <p className="text-gray-700">No expenses added yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {expenses.map((expense) => (
-                    <div key={expense.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <span className="font-medium capitalize text-gray-900">{expense.category}</span>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <span className="font-medium text-gray-900">
-                          ${expense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                          aria-label="Delete expense"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" 
-                              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Add Card Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-           <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Card</h2>
-            <form onSubmit={handleAddCard} className="space-y-4 w-full max-w-md">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Your Current Cards</h2>
+            <form onSubmit={handleAddCard} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Card</label>
+                <label className="block text-sm font-medium text-gray-700">Select Card</label>
                 <select
                   value={selectedCard}
                   onChange={(e) => setSelectedCard(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                   disabled={loading}
                 >
@@ -572,123 +504,98 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
                 {loading ? 'Adding...' : 'Add Card'}
               </button>
             </form>
           </div>
 
-        {/* Optimization Settings */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  What would you like to optimize for?
-                </label>
-                <select
-                  value={optimizationPreference}
-                  onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  <option value="points">Maximize Points</option>
-                  <option value="creditScore">Build Credit Score</option>
-                  <option value="cashback">Maximize Cash Back</option>
-                  <option value="perks">Best Perks</option>
-                </select>
-              </div>
-        {/* Credit Score */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">What&apos;s your credit score range?</h2>
-          <select
-            value={creditScore}
-            onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            disabled={loading}
-          >
-            <option value="excellent">Excellent (720+)</option>
-            <option value="good">Good (690-719)</option>
-            <option value="fair">Fair (630-689)</option>
-            <option value="poor">Poor (Below 630)</option>
-          </select>
-        </div>
+          {/* Optimization Settings */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">What would you like to optimize for?</h2>
+            <select
+              value={optimizationPreference}
+              onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              disabled={loading}
+            >
+              <option value="points">Maximize Points</option>
+              <option value="creditScore">Build Credit Score</option>
+              <option value="cashback">Maximize Cash Back</option>
+              <option value="perks">Best Perks</option>
+            </select>
 
-              {/* Add Annual Fee Preference */}
-              <div className="mt-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={zeroAnnualFee}
-                    onChange={(e) => setZeroAnnualFee(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Only show cards with no annual fee</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-        {/* Main Content Area - Results */}
-        <div className="lg:col-span-2 space-y-6">
-        {/* Current Cards */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Current Portfolio</h2>
-            <span className="text-sm text-gray-500">{userCards.length} cards</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {userCards.length === 0 ? (
-              <p className="text-gray-500 col-span-full">No cards added yet</p>
-            ) : (
-              userCards.map((card) => (
-                <CardDisplay 
-                  key={card.id} 
-                  card={card} 
-                  onDelete={handleDeleteCard}
+            {/* Annual Fee Preference */}
+            <div className="mt-4">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={zeroAnnualFee}
+                  onChange={(e) => setZeroAnnualFee(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-              ))
-            )}
+                <span className="text-sm text-gray-700">Only show cards with no annual fee</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Credit Score */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">What&apos;s your credit score range?</h2>
+            <select
+              value={creditScore}
+              onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              disabled={loading}
+            >
+              <option value="excellent">Excellent (720+)</option>
+              <option value="good">Good (690-719)</option>
+              <option value="fair">Fair (630-689)</option>
+              <option value="poor">Poor (Below 630)</option>
+            </select>
           </div>
         </div>
 
-        {/* Recommended Cards */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recommended Cards</h2>
-            <span className="text-sm text-blue-600">Best matches</span>
+        {/* Right Column - Results Area */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Current Cards */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-xl font-semibold mb-4">Your Current Cards</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {userCards.length === 0 ? (
+                <p className="text-gray-500 col-span-2">No cards added yet</p>
+              ) : (
+                userCards.map((card) => (
+                  <CardDisplay 
+                    key={card.id} 
+                    card={card} 
+                    onDelete={handleDeleteCard}
+                  />
+                ))
+              )}
+            </div>
           </div>
-          {loading ? (
-            <div className="text-center py-4">Loading recommendations...</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recommendations.map(({ card, reason }) => (
-                <div key={card.id} className="relative">
-                  <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center">
-                    {reason}
+
+          {/* Recommended Cards */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-xl font-semibold mb-4">Recommended Cards</h2>
+            {loading ? (
+              <div className="text-center py-4">Loading recommendations...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {recommendations.map(({ card, reason }) => (
+                  <div key={card.id} className="relative">
+                    <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center">
+                      {reason}
+                    </div>
+                    <div className="pt-4">
+                      <CardDisplay card={card} />
+                    </div>
                   </div>
-                    <CardDisplay 
-                      key={card.id} 
-                      card={card} 
-                    />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-          {/* Portfolio Analysis */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-gradient-to-br from-emerald-900 to-emerald-800 rounded-lg shadow-sm p-6 text-white">
-              <h3 className="text-lg font-semibold mb-2">Current Rewards</h3>
-              <div className="text-3xl font-bold mb-2">${userCards.length > 0 ? '1,245' : '0'}</div>
-              <p className="text-emerald-100 text-sm">Estimated annual rewards value</p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-lg shadow-sm p-6 text-white">
-              <h3 className="text-lg font-semibold mb-2">Potential Rewards</h3>
-              <div className="text-3xl font-bold mb-2">$1,875</div>
-              <p className="text-blue-100 text-sm">Estimated with recommended cards</p>
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Portfolio Comparison */}
@@ -697,43 +604,23 @@ export default function Home() {
             recommendedCards={recommendations}
           />
 
-          {/* Rewards Rate Chart */}
-          <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Rewards Rate Comparison</h2>
-          <div className="h-60 sm:h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={getComparisonData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis 
-                  dataKey="category" 
-                  tick={{ fill: '#4B5563' }}
-                  height={60}
-                  interval={0}
-                  angle={-45}
-                  textAnchor="end"
-                />
-                <YAxis 
-                  label={{ 
-                    value: 'Reward Rate (%)', 
-                    angle: -90, 
-                    position: 'insideLeft',
-                    fill: '#4B5563'
-                  }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#FFF',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '6px'
-                  }}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-                <Bar dataKey="Current Best Rate" fill="#93C5FD" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Recommended Best Rate" fill="#2563EB" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Rewards Comparison Chart */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-xl font-semibold mb-4">Rewards Rate Comparison</h2>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={getComparisonData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis label={{ value: 'Reward Rate (%)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="Current Best Rate" fill="#4B5563" />
+                  <Bar dataKey="Recommended Best Rate" fill="#3B82F6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </main>
