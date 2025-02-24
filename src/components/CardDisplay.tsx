@@ -51,7 +51,7 @@ interface CardDisplayProps {
 
 
 const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete }) => {
-    const { user } = useAuth();
+    // const { user } = useAuth();
     const colors = getIssuerColors(card.issuer);
   
     return (
