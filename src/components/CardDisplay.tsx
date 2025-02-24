@@ -64,11 +64,11 @@ const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete }) => {
             </span>
             </div>
 
-        {/* Delete Button - Enhanced visibility and conditional rendering */}
-        {onDelete && user && (
+            {/* Delete Button - Always show if onDelete is provided */}
+            {onDelete && (
             <button
                 onClick={() => onDelete(card.id)}
-                className="absolute top-2 left-2 p-2 rounded-full bg-white shadow-sm border border-gray-200 
+                className="absolute top-4 left-4 p-2 rounded-full bg-white shadow-sm border border-gray-200 
                         text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 
                         transition-all duration-200 z-20"
                 aria-label="Delete card"
@@ -81,10 +81,11 @@ const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete }) => {
                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                 </svg>
             </button>
-        )}
+            )}
 
         {/* Card Content - Fixed overflow issues */}
-        <div className="space-y-4 pr-14"> {/* Added right padding to prevent text overlap */}
+        <div className="pt-2 pl-12">
+         <h3 className={`text-lg font-semibold ${colors.text} mb-1`}>{card.name}</h3>
           {/* Card Name and Annual Fee */}
           <div>
             <h3 className={`text-lg font-semibold ${colors.text} mb-1 truncate`}>{card.name}</h3>

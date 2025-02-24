@@ -421,6 +421,7 @@ export default function Home() {
 
     {/* Main Content */}
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Error Display */}
       {error && (
         <div className="mb-6">
@@ -428,12 +429,12 @@ export default function Home() {
             {error}
           </div>
         </div>
-      )}
+    )}
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Input Sections */}
-        <div className="lg:col-span-1 space-y-6">
+         <div className="lg:col-span-1 space-y-6">
           {/* Profile Summary */}
           <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-lg shadow-sm p-6 text-white">
             <h2 className="text-lg font-semibold mb-2">Portfolio Summary</h2>
@@ -449,12 +450,11 @@ export default function Home() {
                 </span>
               </div>
             </div>
-          </div>
-          </div>
+          </div>        
 
           {/* Add Expense Section */}
-          <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+           <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
             <p className="text-sm text-gray-800 mb-4">
               * Track your monthly expenses for personalized recommendations
             </p>
@@ -498,7 +498,7 @@ export default function Home() {
                     ))}
                   </select>
                 </div>
-              </div>
+                </div>
 
               <button
                 type="submit"
@@ -508,6 +508,8 @@ export default function Home() {
                 {loading ? 'Adding...' : 'Add Expense'}
               </button>
             </form>
+          </div>
+          </div>
 
             {/* Expenses List */}
             <div className="mt-8">
@@ -548,7 +550,7 @@ export default function Home() {
 
           {/* Add Card Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Card</h2>
+           <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Card</h2>
             <form onSubmit={handleAddCard} className="space-y-4 w-full max-w-md">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Select Card</label>
@@ -578,8 +580,8 @@ export default function Home() {
           </div>
 
         {/* Optimization Settings */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -596,6 +598,21 @@ export default function Home() {
                   <option value="perks">Best Perks</option>
                 </select>
               </div>
+        {/* Credit Score */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">What&apos;s your credit score range?</h2>
+          <select
+            value={creditScore}
+            onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            disabled={loading}
+          >
+            <option value="excellent">Excellent (720+)</option>
+            <option value="good">Good (690-719)</option>
+            <option value="fair">Fair (630-689)</option>
+            <option value="poor">Poor (Below 630)</option>
+          </select>
+        </div>
 
               {/* Add Annual Fee Preference */}
               <div className="mt-4">
