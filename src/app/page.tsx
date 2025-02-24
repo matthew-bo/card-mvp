@@ -559,6 +559,50 @@ export default function Home() {
 
         {/* Right Column - Results Area */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Expenses List */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-medium mb-4">Your Expenses</h3>
+            {expenses.length === 0 ? (
+              <p className="text-gray-500">No expenses added yet</p>
+            ) : (
+              <div className="space-y-2">
+                {expenses.map((expense) => (
+                  <div key={expense.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <span className="font-medium capitalize text-gray-700">{expense.category}</span>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <span className="font-medium text-blue-900">
+                        ${expense.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteExpense(expense.id)}
+                        className="text-gray-400 hover:text-red-600 p-1.5 rounded-full hover:bg-red-50 transition-colors"
+                        aria-label="Delete expense"
+                      >
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          width="16" 
+                          height="16" 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 6h18"></path>
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Current Cards */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold mb-4">Your Current Cards</h2>
