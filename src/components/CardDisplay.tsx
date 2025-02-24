@@ -88,7 +88,6 @@ const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete }) => {
          <h3 className={`text-lg font-semibold ${colors.text} mb-1`}>{card.name}</h3>
           {/* Card Name and Annual Fee */}
           <div>
-            <h3 className={`text-lg font-semibold ${colors.text} mb-1 truncate`}>{card.name}</h3>
             <p className="text-sm text-gray-700">
               Annual Fee: ${card.annualFee}/year
             </p>
