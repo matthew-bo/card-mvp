@@ -56,8 +56,9 @@ const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete, isRecommended
     const colors = getIssuerColors(card.issuer);
   
     return (
-      <div className="relative group">
-        <div className="border rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div className="relative group">
+          <div className={`border rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200 
+            ${isRecommended ? 'border-blue-200 bg-blue-50' : ''}`}>
           {/* Card Initials Circle */}
           <div className={`absolute top-4 right-4 w-12 h-12 rounded-full ${colors.bg} bg-opacity-10 flex items-center justify-center z-10`}>
             <span className={`text-xs font-semibold ${colors.text}`}>
