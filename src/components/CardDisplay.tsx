@@ -47,11 +47,10 @@ const getIssuerColors = (issuer: string) => {
 interface CardDisplayProps {
   card: CreditCardDetails;
   onDelete?: (cardId: string) => void;
-  isRecommended?: boolean;
 }
 
 
-const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete, isRecommended = false }) => {
+const CardDisplay: React.FC<CardDisplayProps> = ({ card, onDelete }) => {
     const { user } = useAuth();
     const colors = getIssuerColors(card.issuer);
   

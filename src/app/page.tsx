@@ -629,7 +629,6 @@ export default function Home() {
                   key={card.id} 
                   card={card} 
                   onDelete={handleDeleteCard}
-                  isRecommended={false}
                 />
               ))
             )}
@@ -654,7 +653,6 @@ export default function Home() {
                     <CardDisplay 
                       key={card.id} 
                       card={card} 
-                      isRecommended={true}
                     />
                 </div>
               ))}
