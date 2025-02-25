@@ -780,6 +780,7 @@ export default function Home() {
                         {reason}
                       </div>
                       <div className="pt-4">
+                         <CardDisplay card={card} />
                       </div> 
                     </div>
                   ))}
