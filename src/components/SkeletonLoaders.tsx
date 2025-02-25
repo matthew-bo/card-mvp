@@ -120,9 +120,11 @@ export const ChartSkeleton: React.FC = () => (
   </div>
 );
 
-export default {
+const SkeletonLoaders = {
   Card: CardSkeleton,
   Table: TableSkeleton,
   Expenses: ExpensesSkeleton,
   Chart: ChartSkeleton,
 };
+
+export default SkeletonLoaders;

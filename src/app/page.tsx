@@ -11,7 +11,6 @@ import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FeatureTable from '@/components/FeatureTable';
 import CardDisplay from '@/components/CardDisplay';
-import { getPointValue } from '@/utils/pointsConverter';
 
 interface FirestoreExpense {
   amount: number;

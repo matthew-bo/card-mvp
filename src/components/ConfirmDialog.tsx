@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -14,17 +14,26 @@ interface ConfirmDialogProps {
 }
 
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  title,
-  message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  variant = 'danger'
-}) => {
-  const [isClosing, setIsClosing] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
+    isOpen,
+    onClose,
+    onConfirm,
+    title,
+    message,
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    variant = 'danger'
+  }) => {
+    const [isClosing, setIsClosing] = useState(false);
+    const dialogRef = useRef<HTMLDivElement>(null);
+
+    // Handle close with animation
+    const handleClose = useCallback(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+          setIsClosing(false);
+          onClose();
+        }, 200);
+      }, [onClose]);    
 
   // Handle escape key press
   useEffect(() => {
@@ -33,12 +42,12 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         handleClose();
       }
     };
-
+  
     document.addEventListener('keydown', handleEscapeKey);
     return () => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   // Handle clicking outside the dialog
   useEffect(() => {
@@ -47,12 +56,12 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         handleClose();
       }
     };
-
+  
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   // Prevent scrolling when dialog is open
   useEffect(() => {
@@ -65,15 +74,6 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-
-  // Handle close with animation
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onClose();
-    }, 200);
-  };
 
   // Handle confirm with animation
   const handleConfirm = () => {
