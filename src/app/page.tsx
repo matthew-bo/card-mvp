@@ -614,7 +614,7 @@ export default function Home() {
 
               {/* Credit Score Selection */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">What's your credit score range?</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What&apos;s your credit score range?</label>
                 <select
                   value={creditScore}
                   onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
