@@ -74,7 +74,7 @@ export default function LandingPage() {
                 combination for each individual.
               </p>
               <p className="mt-4 text-gray-600">
-                Unlike other comparison sites, we don't just show you the highest commission cards. We focus on 
+                Unlike other comparison sites, we don&apos;t just show you the highest commission cards. We focus on 
                 finding the right cards for your unique situation, optimizing for long-term value and complementary benefits.
               </p>
             </div>
