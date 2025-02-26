@@ -7,7 +7,6 @@ interface CardDisplayProps {
   card: CreditCardDetails;
   onDelete?: (cardId: string) => void;
   highlight?: boolean;
-  showDetailedView?: boolean;
 }
 
 // Get issuer colors function with improved color palette
@@ -31,15 +30,6 @@ const getPointValue = (amount: number, type: "points" | "cashback"): { value: nu
     return { value: amount, display: `$${amount}` };
   }
   
-  // Different issuers have different point values
-  const pointMultipliers: Record<string, number> = {
-    'Chase': 0.015,      // Chase Ultimate Rewards
-    'American Express': 0.01,  // Amex Membership Rewards
-    'Capital One': 0.01,  // Capital One Miles
-    'Citi': 0.01,        // Citi ThankYou Points
-    'default': 0.01      // Default value
-  };
-  
   return { 
     value: amount * 0.015, 
     display: `${amount.toLocaleString()} pts (~$${(amount * 0.015).toFixed(0)})`
@@ -50,7 +40,6 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
   card, 
   onDelete, 
   highlight = false,
-  showDetailedView = false
   
 }) => {
   const [expanded, setExpanded] = useState(false);
