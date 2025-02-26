@@ -11,6 +11,7 @@ import { creditCards } from '@/lib/cardDatabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FeatureTable from '@/components/FeatureTable';
 import CardDisplay from '@/components/CardDisplay';
+import NotInterestedList from '@/components/NotInterestedList';
 
 interface FirestoreExpense {
   amount: number;
@@ -44,6 +45,8 @@ export default function RecommenderPage() {
   const [category, setCategory] = useState('');
   const [selectedCard, setSelectedCard] = useState('');
   const [zeroAnnualFee, setZeroAnnualFee] = useState<boolean>(false);
+  const [notInterestedCards, setNotInterestedCards] = useState<string[]>([]);
+  const [showNotInterestedList, setShowNotInterestedList] = useState(false);
   
   // Data
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
@@ -91,6 +94,27 @@ export default function RecommenderPage() {
       }
     }
   }, [user]);
+
+  // Not Interested Cards
+  useEffect(() => {
+    try {
+      const newRecommendations = getCardRecommendations({
+        expenses,
+        currentCards: userCards,
+        optimizationSettings: {
+          preference: optimizationPreference,
+          zeroAnnualFee
+        },
+        creditScore
+      }).filter(rec => !notInterestedCards.includes(rec.card.id));
+      
+      setRecommendations(newRecommendations);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error updating recommendations:', error);
+      setError('Failed to update recommendations.');
+    }
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards]);
 
   // Save data for non-logged in users
   useEffect(() => {
@@ -370,6 +394,15 @@ export default function RecommenderPage() {
       console.error('Error deleting card:', error);
       setError('Failed to delete card. Please try again.');
     }
+  };
+
+  //Handle Not Interested Reccommended Card
+  const handleNotInterested = (cardId: string) => {
+    setNotInterestedCards(prev => [...prev, cardId]);
+  };
+  
+  const handleRemoveFromNotInterested = (cardId: string) => {
+    setNotInterestedCards(prev => prev.filter(id => id !== cardId));
   };
 
   // =========== DATA PROCESSING ===========
@@ -763,14 +796,40 @@ export default function RecommenderPage() {
 
             {/* Recommended Cards */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <h2 className="text-xl font-semibold mb-4">Recommended Cards</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Recommended Cards</h2>
+                {notInterestedCards.length > 0 && (
+                  <button
+                    onClick={() => setShowNotInterestedList(true)}
+                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                  >
+                    <span>Not Interested ({notInterestedCards.length})</span>
+                    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              
               {loading ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
               ) : recommendations.length === 0 ? (
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
-                  <p className="text-gray-500">Add expenses and cards to get personalized recommendations</p>
+                  <p className="text-gray-500">
+                    {notInterestedCards.length > 0 
+                      ? "No more recommendations available. Try reconsidering some cards."
+                      : "Add expenses and cards to get personalized recommendations"}
+                  </p>
+                  {notInterestedCards.length > 0 && (
+                    <button
+                      onClick={() => setShowNotInterestedList(true)}
+                      className="mt-3 text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      View Not Interested Cards
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -780,8 +839,12 @@ export default function RecommenderPage() {
                         {reason}
                       </div>
                       <div className="pt-4">
-                         <CardDisplay card={card} />
-                      </div> 
+                        <CardDisplay 
+                          card={card} 
+                          highlight={true} 
+                          onNotInterested={handleNotInterested}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -824,6 +887,14 @@ export default function RecommenderPage() {
           </div>
         </div>
       </footer>
+
+      {showNotInterestedList && (
+        <NotInterestedList
+          notInterestedIds={notInterestedCards}
+          onRemove={handleRemoveFromNotInterested}
+          onClose={() => setShowNotInterestedList(false)}
+        />
+      )}
     </div>
   );
 }

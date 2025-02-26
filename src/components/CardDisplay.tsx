@@ -6,6 +6,7 @@ import { CreditCardDetails } from '@/types/cards';
 interface CardDisplayProps {
   card: CreditCardDetails;
   onDelete?: (cardId: string) => void;
+  onNotInterested?: (cardId: string) => void;
   highlight?: boolean;
 }
 
@@ -39,6 +40,7 @@ const getPointValue = (amount: number, type: "points" | "cashback"): { value: nu
 const CardDisplay: React.FC<CardDisplayProps> = ({ 
   card, 
   onDelete, 
+  onNotInterested,
   highlight = false
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -200,6 +202,46 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
             </button>
           </div>
         )}
+
+          {/* Action Buttons */}
+          {onDelete && (
+            <div className="absolute top-2 left-2 z-10">
+              <button
+                onClick={handleDelete}
+                className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
+                  hover:text-red-600 hover:bg-red-50 hover:border-red-200 
+                  transition-all duration-200"
+                aria-label="Delete card"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
+                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
+                  strokeLinejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          )}
+          
+          {onNotInterested && (
+            <div className="absolute top-2 left-2 z-10">
+              <button
+                onClick={() => onNotInterested(card.id)}
+                className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
+                  hover:text-orange-600 hover:bg-orange-50 hover:border-orange-200 
+                  transition-all duration-200"
+                aria-label="Not interested in this card"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
+                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
+                  strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          )}
       </div>
     </div>
   );
