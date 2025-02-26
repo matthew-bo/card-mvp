@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import { Inter } from 'next/font/google';
 import "./globals.css";
-import { AuthProvider } from '@/components/AuthProvider';
+
+// Initialize Inter font
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
-  title: "Card Picker MVP",
-  description: "Credit card recommendation system",
+  title: "Stoid - Credit Card Recommendation System",
+  description: "Find the perfect credit cards to maximize your rewards",
 };
 
 export default function RootLayout({
@@ -13,11 +19,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="en" className={`${inter.variable}`}>
+      <body className="bg-gray-50 min-h-screen font-sans antialiased">
+        {children}
       </body>
     </html>
   );
