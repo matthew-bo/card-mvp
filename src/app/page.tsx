@@ -28,7 +28,7 @@ export default function LandingPage() {
             Find your perfect credit card match
           </h1>
           <p className="mt-6 text-xl text-gray-600">
-            Stoid analyzes your spending patterns to recommend the optimal credit cards for maximizing rewards and benefits.
+            <p>Our algorithm analyzes the user&apos;s spending patterns to recommend the optimal credit cards for maximizing rewards and benefits.</p>
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <motion.div
