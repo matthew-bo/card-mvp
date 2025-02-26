@@ -83,7 +83,7 @@ function calculateComplementScore(
   
   // Calculate complement score based on spending-weighted category improvements
   let totalCategoryImprovement = 0;
-  let significantImprovements = 0;
+  //let significantImprovements = 0;
   
   for (const { category, percentage } of spendingAnalysis.categoryRank) {
     const currentBestRate = portfolioBestRates[category] || 0;
@@ -98,7 +98,7 @@ function calculateComplementScore(
       if (improvement > 0.5) {
         const diff = (newRate - currentBestRate).toFixed(1);
         contributions.push(`Improves ${category} rewards by ${diff}%`);
-        significantImprovements++;
+      //  significantImprovements++;
       }
     }
   }
@@ -162,7 +162,7 @@ function calculateLongTermValue(
   
   // Calculate signup bonus value spread over 4 years (diminishing value)
   let signupBonusValue = 0;
-  let signupDescription = '';
+  //let signupDescription = '';
   
   if (card.signupBonus && spendingAnalysis.canMeetSignupBonus) {
     const bonusType = card.signupBonus.type;
@@ -180,7 +180,7 @@ function calculateLongTermValue(
     // Year 1: 70% of value, Year 2: 15%, Year 3: 10%, Year 4: 5%
     signupBonusValue = totalBonusValue * 0.25; // Average over 4 years
     
-    signupDescription = `Signup bonus worth ~$${totalBonusValue.toFixed(0)}`;
+    //signupDescription = `Signup bonus worth ~$${totalBonusValue.toFixed(0)}`;
   }
   
   // Calculate credits/perks value
