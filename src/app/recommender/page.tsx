@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, setDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy } from 'firebase/firestore';
 import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
 import { creditCards } from '@/lib/cardDatabase';
