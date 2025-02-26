@@ -204,3 +204,5 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
     </div>
   );
 };
+
+export default CardDisplay;
