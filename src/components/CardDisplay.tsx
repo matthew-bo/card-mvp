@@ -64,7 +64,7 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
     card.creditScoreRequired === 'fair' ? 'bg-yellow-100 text-yellow-800' :
     'bg-red-100 text-red-800';
   
-  // Simplified delete handler - removed the confirmation step
+  // Delete handler
   const handleDelete = () => {
     if (onDelete) {
       onDelete(card.id);
@@ -81,23 +81,71 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
         className={`h-full border rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 flex flex-col`}
       >
         {/* Card Header with gradient background */}
-        <div className={`bg-gradient-to-r ${colors.gradient} p-4 text-white relative`}>
-          {/* Card Issuer - Simplified without the initials circle */}
+        <div className={`bg-gradient-to-r ${colors.gradient} p-4 pb-10 text-white relative`}>
+          {/* Card Issuer */}
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs uppercase tracking-wider opacity-80">{card.issuer}</span>
           </div>
           
-          {/* Card Name - Fixed to handle long names better */}
-          <h3 className="font-semibold text-lg leading-tight mr-10 break-words" title={card.name}>
+          {/* Card Name - With proper spacing and margins */}
+          <h3 className="font-semibold text-lg leading-tight pr-4 break-words" title={card.name}>
             {card.name}
           </h3>
+        </div>
+        
+        {/* Action Buttons - Repositioned to the bottom of the header */}
+        <div className="absolute top-14 right-4 flex space-x-2">
+          {onDelete && (
+            <div className="group/tooltip">
+              <button
+                onClick={handleDelete}
+                className="p-1.5 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
+                  hover:text-red-600 hover:bg-red-50 hover:border-red-200 
+                  transition-all duration-200"
+                aria-label="Delete card"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" 
+                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
+                  strokeLinejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+              </button>
+              <div className="absolute right-0 -bottom-7 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                Remove card
+              </div>
+            </div>
+          )}
           
-          {/* Annual Fee Badge */}
-          <div className="absolute top-2 right-2">
-            <span className={`text-xs px-2 py-1 rounded-full bg-white bg-opacity-20 ${card.annualFee === 0 ? 'text-green-50' : 'text-white'}`}>
-              {card.annualFee === 0 ? 'No Annual Fee' : `$${card.annualFee}/yr`}
-            </span>
-          </div>
+          {onNotInterested && (
+            <div className="group/tooltip">
+              <button
+                onClick={() => onNotInterested(card.id)}
+                className="p-1.5 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
+                  hover:text-orange-500 hover:bg-orange-50 hover:border-orange-200 
+                  transition-all duration-200"
+                aria-label="Not interested in this card"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" 
+                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
+                  strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                </svg>
+              </button>
+              <div className="absolute right-0 -bottom-7 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                Not interested
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Annual Fee Badge */}
+        <div className="absolute top-2 right-2">
+          <span className={`text-xs px-2 py-1 rounded-full bg-white bg-opacity-20 ${card.annualFee === 0 ? 'text-green-50' : 'text-white'}`}>
+            {card.annualFee === 0 ? 'No Annual Fee' : `$${card.annualFee}/yr`}
+          </span>
         </div>
         
         {/* Card Content */}
@@ -181,74 +229,6 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
             </div>
           )}
         </div>
-        
-        {/* Delete Button - Repositioned to avoid conflict and simplified to remove confirmation */}
-        {onDelete && (
-          <div className="absolute top-2 left-2 z-10">
-            <button
-              onClick={handleDelete}
-              className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
-                hover:text-red-600 hover:bg-red-50 hover:border-red-200 
-                transition-all duration-200"
-              aria-label="Delete card"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
-                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
-                strokeLinejoin="round">
-                <path d="M3 6h18"></path>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-              </svg>
-            </button>
-          </div>
-        )}
-
-          {/* Action Buttons */}
-          {onDelete && (
-            <div className="absolute top-2 right-2 z-10 group">
-              <button
-                onClick={handleDelete}
-                className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
-                  hover:text-red-600 hover:bg-red-50 hover:border-red-200 
-                  transition-all duration-200"
-                aria-label="Delete card"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
-                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
-                  strokeLinejoin="round">
-                  <path d="M3 6h18"></path>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                </svg>
-              </button>
-              <div className="absolute right-0 top-full mt-1 w-24 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                Delete card
-              </div>
-            </div>
-          )}
-
-          {onNotInterested && (
-            <div className="absolute top-2 right-2 z-10 group">
-              <button
-                onClick={() => onNotInterested(card.id)}
-                className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
-                  hover:text-orange-600 hover:bg-orange-50 hover:border-orange-200 
-                  transition-all duration-200"
-                aria-label="Not interested in this card"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
-                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
-                  strokeLinejoin="round">
-                  <path d="M16 8.00004C16 8.00004 14.5 10 12 10C9.5 10 8 8.00004 8 8.00004"></path>
-                  <line x1="12" y1="16" x2="12" y2="16.01"></line>
-                  <circle cx="12" cy="12" r="10"></circle>
-                </svg>
-              </button>
-              <div className="absolute right-0 top-full mt-1 w-32 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                Not interested
-              </div>
-            </div>
-          )}
       </div>
     </div>
   );
