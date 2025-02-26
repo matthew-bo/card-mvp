@@ -426,6 +426,7 @@ interface RecommendationParams {
   currentCards: CreditCardDetails[];
   optimizationSettings: OptimizationSettings;
   creditScore?: CreditScoreType;
+  excludeCardIds?: string[]; 
 }
 
 function generateCardReason(
@@ -476,7 +477,7 @@ function generateCardReason(
 
 export function getCardRecommendations(params: RecommendationParams): ScoredCard[] {
   try {
-    const { expenses, currentCards, optimizationSettings, creditScore = 'good' } = params;
+    const { expenses, currentCards, optimizationSettings, creditScore = 'good', excludeCardIds = [] } = params;
     const spendingAnalysis = analyzeSpending(expenses);
     const portfolioAnalysis = analyzeCardPortfolio(currentCards);
 
@@ -484,10 +485,15 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       throw new Error('Invalid current cards array');
     }
 
-    // Filter available cards based on annual fee preference and credit score
+    // When filtering available cards:
     const availableCards = creditCards.filter(card => {
       // Filter out cards user already has
       if (currentCards.some(userCard => userCard.id === card.id)) {
+        return false;
+      }
+      
+      // Filter out not interested cards
+      if (excludeCardIds.includes(card.id)) {
         return false;
       }
       
@@ -498,7 +504,7 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
         return false;
       }
       
-      // Annual fee check if user prefers no annual fee
+      // Annual fee check
       if (optimizationSettings.zeroAnnualFee && card.annualFee > 0) {
         return false;
       }

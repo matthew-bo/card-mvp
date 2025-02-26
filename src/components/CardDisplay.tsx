@@ -205,7 +205,7 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
 
           {/* Action Buttons */}
           {onDelete && (
-            <div className="absolute top-2 left-2 z-10">
+            <div className="absolute top-2 right-2 z-10 group">
               <button
                 onClick={handleDelete}
                 className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
@@ -221,11 +221,14 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                 </svg>
               </button>
+              <div className="absolute right-0 top-full mt-1 w-24 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                Delete card
+              </div>
             </div>
           )}
-          
+
           {onNotInterested && (
-            <div className="absolute top-2 left-2 z-10">
+            <div className="absolute top-2 right-2 z-10 group">
               <button
                 onClick={() => onNotInterested(card.id)}
                 className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
@@ -236,10 +239,14 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
                   fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
                   strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                  <path d="M16 8.00004C16 8.00004 14.5 10 12 10C9.5 10 8 8.00004 8 8.00004"></path>
+                  <line x1="12" y1="16" x2="12" y2="16.01"></line>
+                  <circle cx="12" cy="12" r="10"></circle>
                 </svg>
               </button>
+              <div className="absolute right-0 top-full mt-1 w-32 bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                Not interested
+              </div>
             </div>
           )}
       </div>

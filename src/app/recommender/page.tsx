@@ -87,9 +87,9 @@ export default function RecommenderPage() {
           setZeroAnnualFee(data.zeroAnnualFee || false);
           setExpenses(data.expenses || []);
           setUserCards(data.userCards || []);
+          setNotInterestedCards(data.notInterestedCards || []);
         } catch (err) {
           console.error('Error loading saved data:', err);
-          showNotification('Error loading saved data. Starting fresh.', 'error');
         }
       }
     }
@@ -217,30 +217,21 @@ export default function RecommenderPage() {
 
   // =========== AUTO-SAVE USER PREFERENCES ===========
   useEffect(() => {
-    const saveUserData = async () => {
-      if (!user) return;
-      
-      try {
-        await setDoc(doc(db, 'user_preferences', user.uid), {
-          userId: user.uid,
+    try {
+      // Make sure to save notInterestedCards to localStorage for non-logged in users
+      if (!user) {
+        const dataToSave = {
           optimizationPreference,
           creditScore,
           zeroAnnualFee,
-          updatedAt: new Date()
-        });
-      } catch (err) {
-        const error = err as Error;
-        console.error('Error saving preferences:', error);
-        setError('Failed to save your preferences.');
+          expenses,
+          userCards,
+          notInterestedCards // Save this to localStorage
+        };
+        localStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
       }
-    };
-
-    saveUserData();
-  }, [user, optimizationPreference, creditScore, zeroAnnualFee]);
-
-  // =========== UPDATE RECOMMENDATIONS ===========
-  useEffect(() => {
-    try {
+      
+      // Get recommendations and filter out not interested cards
       const newRecommendations = getCardRecommendations({
         expenses,
         currentCards: userCards,
@@ -248,15 +239,16 @@ export default function RecommenderPage() {
           preference: optimizationPreference,
           zeroAnnualFee
         },
-        creditScore
+        creditScore,
+        excludeCardIds: notInterestedCards // Pass to recommendation function
       });
+      
       setRecommendations(newRecommendations);
     } catch (err) {
-      const error = err as Error;
-      console.error('Error updating recommendations:', error);
+      console.error('Error updating recommendations:', err);
       setError('Failed to update recommendations.');
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards]);
 
   // =========== EVENT HANDLERS ===========
   // Show notification
@@ -402,7 +394,20 @@ export default function RecommenderPage() {
   };
   
   const handleRemoveFromNotInterested = (cardId: string) => {
-    setNotInterestedCards(prev => prev.filter(id => id !== cardId));
+    // First update the state
+    setNotInterestedCards(prev => {
+      const updatedList = prev.filter(id => id !== cardId);
+      
+      // Then check if we should close the modal
+      if (updatedList.length === 0) {
+        // Use setTimeout to avoid state update conflicts
+        setTimeout(() => {
+          setShowNotInterestedList(false);
+        }, 100);
+      }
+      
+      return updatedList;
+    });
   };
 
   // =========== DATA PROCESSING ===========
@@ -841,7 +846,6 @@ export default function RecommenderPage() {
                       <div className="pt-4">
                         <CardDisplay 
                           card={card} 
-                          highlight={true} 
                           onNotInterested={handleNotInterested}
                         />
                       </div>
