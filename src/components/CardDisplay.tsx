@@ -39,11 +39,9 @@ const getPointValue = (amount: number, type: "points" | "cashback"): { value: nu
 const CardDisplay: React.FC<CardDisplayProps> = ({ 
   card, 
   onDelete, 
-  highlight = false,
-  
+  highlight = false
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const colors = getIssuerColors(card.issuer);
   
   // Format reward rates for easy display
@@ -64,13 +62,8 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
     card.creditScoreRequired === 'fair' ? 'bg-yellow-100 text-yellow-800' :
     'bg-red-100 text-red-800';
   
-  // Handle delete with confirmation
+  // Simplified delete handler - removed the confirmation step
   const handleDelete = () => {
-    if (!isDeleting) {
-      setIsDeleting(true);
-      return;
-    }
-    
     if (onDelete) {
       onDelete(card.id);
     }
@@ -87,23 +80,18 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
       >
         {/* Card Header with gradient background */}
         <div className={`bg-gradient-to-r ${colors.gradient} p-4 text-white relative`}>
-        {/* Card Issuer */}
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs uppercase tracking-wider opacity-80">{card.issuer}</span>
-          <div className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
-            <span className="text-xs font-semibold text-white">
-              {card.issuer.split(' ').map(word => word[0]).join('')}
-            </span>
+          {/* Card Issuer - Simplified without the initials circle */}
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs uppercase tracking-wider opacity-80">{card.issuer}</span>
           </div>
-        </div>
           
-          {/* Card Name - Truncated with tooltip for long names */}
+          {/* Card Name - Fixed to handle long names better */}
           <h3 className="font-semibold text-lg leading-tight mr-10 break-words" title={card.name}>
             {card.name}
           </h3>
           
           {/* Annual Fee Badge */}
-          <div className="absolute top-2 right-2 mt-8">
+          <div className="absolute top-2 right-2">
             <span className={`text-xs px-2 py-1 rounded-full bg-white bg-opacity-20 ${card.annualFee === 0 ? 'text-green-50' : 'text-white'}`}>
               {card.annualFee === 0 ? 'No Annual Fee' : `$${card.annualFee}/yr`}
             </span>
@@ -192,17 +180,15 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
           )}
         </div>
         
-        {/* Delete Button with Confirmation */}
+        {/* Delete Button - Repositioned to avoid conflict and simplified to remove confirmation */}
         {onDelete && (
           <div className="absolute top-2 left-2 z-10">
             <button
               onClick={handleDelete}
-              className={`
-                p-2 rounded-full ${isDeleting ? 'bg-red-500 text-white' : 'bg-white shadow-sm border border-gray-200 text-gray-400'} 
+              className="p-2 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
                 hover:text-red-600 hover:bg-red-50 hover:border-red-200 
-                transition-all duration-200
-              `}
-              aria-label={isDeleting ? "Confirm delete card" : "Delete card"}
+                transition-all duration-200"
+              aria-label="Delete card"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" 
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" 
@@ -218,5 +204,3 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
     </div>
   );
 };
-
-export default CardDisplay;
