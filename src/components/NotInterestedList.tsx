@@ -35,7 +35,7 @@ const NotInterestedList: React.FC<NotInterestedListProps> = ({
               </svg>
             </button>
           </div>
-          <p className="text-gray-600">You haven't marked any cards as "Not Interested" yet.</p>
+          <p className="text-gray-600">You haven&apos;t marked any cards as &quot;Not Interested&quot; yet.</p>
           <div className="mt-4 flex justify-end">
             <button
               onClick={onClose}
@@ -64,7 +64,7 @@ const NotInterestedList: React.FC<NotInterestedListProps> = ({
           </button>
         </div>
         <p className="text-gray-600 mb-4">
-          These cards won't appear in your recommendations. Click "Reconsider" to add them back to potential recommendations.
+          These cards won&apos;t appear in your recommendations. Click &quot;Reconsider&quot; to add them back to potential recommendations.
         </p>
         <div className="space-y-3">
           {notInterestedCards.map(card => (
