@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy } from 'firebase/firestore';
 import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
@@ -114,7 +113,7 @@ export default function RecommenderPage() {
       console.error('Error updating recommendations:', error);
       setError('Failed to update recommendations.');
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, user]);
 
   // Save data for non-logged in users
   useEffect(() => {
@@ -248,7 +247,7 @@ export default function RecommenderPage() {
       console.error('Error updating recommendations:', err);
       setError('Failed to update recommendations.');
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, user]);
 
   // =========== EVENT HANDLERS ===========
   // Show notification
@@ -441,6 +440,49 @@ export default function RecommenderPage() {
   // =========== RENDER ===========
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* Notification Banner */}
+      {notification && (
+        <div 
+          className={`fixed top-16 left-0 right-0 z-50 p-4 flex items-center justify-between transition-all transform ${
+            notification.type === 'success' ? 'bg-green-100 text-green-800' :
+            notification.type === 'error' ? 'bg-red-100 text-red-800' :
+            'bg-blue-100 text-blue-800'
+          }`}
+        >
+          <p>{notification.message}</p>
+          <button 
+            onClick={() => setNotification(null)}
+            className="ml-4 text-gray-400 hover:text-gray-600"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+          <div className="bg-red-50 text-red-700 p-4 rounded-md shadow-sm border border-red-200">
+            <div className="flex items-start">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
