@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/components/AuthProvider'; // Add this import
+import { auth } from '@/lib/firebase'; // Add this import
 
 interface NavigationProps {
   currentPath: string;
@@ -11,6 +13,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ currentPath }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth(); // Add this to access user authentication state
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,6 +30,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentPath }) => {
     { href: '/blog', label: 'Blog', active: currentPath === '/blog' },
     { href: '/contact', label: 'Contact', active: currentPath === '/contact' }
   ];
+
+  // Function to handle sign out
+  const handleSignOut = () => {
+    auth.signOut();
+  };
 
   return (
     <nav className={`sticky top-0 z-50 px-6 py-5 transition-all duration-200 ${isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
@@ -48,19 +56,32 @@ const Navigation: React.FC<NavigationProps> = ({ currentPath }) => {
               {link.label}
             </Link>
           ))}
+          
+          {/* Authentication Buttons */}
           <div className="flex items-center space-x-4">
-            <Link 
-              href="/login" 
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Log in
-            </Link>
-            <Link 
-              href="/signup" 
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Sign up
-            </Link>
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <>
+                <Link 
+                  href="/auth/login" 
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Log in
+                </Link>
+                <Link 
+                  href="/auth/signup" 
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
           </div>
         </div>
         
@@ -114,20 +135,34 @@ const Navigation: React.FC<NavigationProps> = ({ currentPath }) => {
                 </Link>
               ))}
               <div className="pt-4 border-t border-gray-100">
-                <Link 
-                  href="/login" 
-                  className="block py-2 text-lg text-gray-600"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Log in
-                </Link>
-                <Link 
-                  href="/signup" 
-                  className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Sign up
-                </Link>
+                {user ? (
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block py-2 text-lg text-gray-600"
+                  >
+                    Sign Out
+                  </button>
+                ) : (
+                  <>
+                    <Link 
+                      href="/auth/login" 
+                      className="block py-2 text-lg text-gray-600"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Log in
+                    </Link>
+                    <Link 
+                      href="/auth/signup" 
+                      className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Sign up
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
