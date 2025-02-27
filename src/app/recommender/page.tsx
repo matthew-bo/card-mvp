@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy } from 'firebase/firestore';
 import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
-import { creditCards } from '@/lib/cardDatabase';
+// Remove this import since we're now using the hook
+// import { creditCards } from '@/lib/cardDatabase';
+import { useCards } from '@/hooks/useCards'; // Add this import
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FeatureTable from '@/components/FeatureTable';
 import CardDisplay from '@/components/CardDisplay';
 import NotInterestedList from '@/components/NotInterestedList';
-import { useCards } from '@/hooks/useCards';
 
 interface FirestoreExpense {
   amount: number;
@@ -37,6 +38,9 @@ interface RecommendedCard {
 export default function RecommenderPage() {
   const { user } = useAuth();
   
+  // Use the cards hook instead of static import
+  const { cards: creditCards, loading: cardsLoading } = useCards();
+  
   // =========== STATE MANAGEMENT ===========
   // User inputs
   const [optimizationPreference, setOptimizationPreference] = useState<OptimizationPreference>('points');
@@ -52,7 +56,6 @@ export default function RecommenderPage() {
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
-  const { cards: creditCards, loading: cardsLoading, error: cardsError } = useCards();
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -75,22 +78,8 @@ export default function RecommenderPage() {
     { id: 'other', name: 'Other' }
   ] as const;
 
-
-  if (cardsLoading) {
-    return <div>Loading card database...</div>;
-  }
-
-  // Show error state if there was an error
-  if (cardsError) {
-    return (
-      <div className="p-4 bg-red-50 text-red-700 rounded-md">
-        Error loading card database. Please try again later.
-      </div>
-    );
-  }
-
   // =========== LOCAL STORAGE DATA PERSISTENCE ===========
-  // Load saved data for non-logged in users
+  // Move useEffect to top level and put condition inside
   useEffect(() => {
     if (!user) {
       const savedData = localStorage.getItem('cardPickerUserData');
@@ -110,26 +99,29 @@ export default function RecommenderPage() {
     }
   }, [user]);
 
-  // Not Interested Cards
+  // Calculate recommendations whenever dependencies change
   useEffect(() => {
     try {
-      const newRecommendations = getCardRecommendations({
-        expenses,
-        currentCards: userCards,
-        optimizationSettings: {
-          preference: optimizationPreference,
-          zeroAnnualFee
-        },
-        creditScore
-      }).filter(rec => !notInterestedCards.includes(rec.card.id));
-      
-      setRecommendations(newRecommendations);
+      if (creditCards && creditCards.length > 0) {
+        const newRecommendations = getCardRecommendations({
+          expenses,
+          currentCards: userCards,
+          optimizationSettings: {
+            preference: optimizationPreference,
+            zeroAnnualFee
+          },
+          creditScore,
+          excludeCardIds: notInterestedCards
+        });
+        
+        setRecommendations(newRecommendations);
+      }
     } catch (err) {
       const error = err as Error;
       console.error('Error updating recommendations:', error);
       setError('Failed to update recommendations.');
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, user]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, creditCards]);
 
   // Save data for non-logged in users
   useEffect(() => {
@@ -139,7 +131,8 @@ export default function RecommenderPage() {
         creditScore,
         zeroAnnualFee,
         expenses,
-        userCards
+        userCards,
+        notInterestedCards
       };
       try {
         localStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
@@ -148,7 +141,7 @@ export default function RecommenderPage() {
         showNotification('Error saving your data locally.', 'error');
       }
     }
-  }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user]);
+  }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards]);
 
   // =========== FIREBASE DATA LOADING ===========
   // Load user data from Firebase for logged-in users
@@ -191,8 +184,12 @@ export default function RecommenderPage() {
           );
           
           const userCardIds = cardsSnap.docs.map(doc => doc.data().cardId);
-          const loadedCards = creditCards.filter(card => userCardIds.includes(card.id));
-          setUserCards(loadedCards);
+          
+          // Use our dynamic card data source
+          if (creditCards && creditCards.length > 0) {
+            const loadedCards = creditCards.filter(card => userCardIds.includes(card.id));
+            setUserCards(loadedCards);
+          }
         } catch (cardError) {
           console.error('Error loading cards:', cardError);
           throw cardError;
@@ -228,46 +225,11 @@ export default function RecommenderPage() {
     if (user) {
       loadUserData();
     }
-  }, [user]);
-
-  // =========== AUTO-SAVE USER PREFERENCES ===========
-  useEffect(() => {
-    try {
-      // Make sure to save notInterestedCards to localStorage for non-logged in users
-      if (!user) {
-        const dataToSave = {
-          optimizationPreference,
-          creditScore,
-          zeroAnnualFee,
-          expenses,
-          userCards,
-          notInterestedCards // Save this to localStorage
-        };
-        localStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
-      }
-      
-      // Get recommendations and filter out not interested cards
-      const newRecommendations = getCardRecommendations({
-        expenses,
-        currentCards: userCards,
-        optimizationSettings: {
-          preference: optimizationPreference,
-          zeroAnnualFee
-        },
-        creditScore,
-        excludeCardIds: notInterestedCards // Pass to recommendation function
-      });
-      
-      setRecommendations(newRecommendations);
-    } catch (err) {
-      console.error('Error updating recommendations:', err);
-      setError('Failed to update recommendations.');
-    }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, user]);
+  }, [user, creditCards]);
 
   // =========== EVENT HANDLERS ===========
   // Show notification
-  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     const id = Date.now();
     setNotification({ message, type, id });
     
@@ -275,7 +237,7 @@ export default function RecommenderPage() {
     setTimeout(() => {
       setNotification(current => current?.id === id ? null : current);
     }, 4000);
-  };
+  }, []);
 
   // Handle adding expense
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -334,6 +296,10 @@ export default function RecommenderPage() {
     setError(null);
 
     try {
+      if (!creditCards) {
+        throw new Error('Card database not loaded');
+      }
+
       const newCard = creditCards.find(c => c.id === selectedCard);
       if (!newCard) throw new Error('Card not found');
 
@@ -403,19 +369,16 @@ export default function RecommenderPage() {
     }
   };
 
-  //Handle Not Interested Reccommended Card
+  // Handle Not Interested Recommended Card
   const handleNotInterested = (cardId: string) => {
     setNotInterestedCards(prev => [...prev, cardId]);
   };
   
   const handleRemoveFromNotInterested = (cardId: string) => {
-    // First update the state
     setNotInterestedCards(prev => {
       const updatedList = prev.filter(id => id !== cardId);
       
-      // Then check if we should close the modal
       if (updatedList.length === 0) {
-        // Use setTimeout to avoid state update conflicts
         setTimeout(() => {
           setShowNotInterestedList(false);
         }, 100);
@@ -454,6 +417,16 @@ export default function RecommenderPage() {
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   // =========== RENDER ===========
+  // Check if we're still loading card data
+  if (cardsLoading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+        <p className="text-gray-600">Loading card database...</p>
+      </div>
+    </div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
 

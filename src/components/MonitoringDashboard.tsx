@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { SimpleMonitor } from '@/utils/monitoring/simpleMonitor';
 
@@ -18,97 +18,75 @@ interface MetricData {
   };
 }
 
-const DEMO_DATA = {
-  responseTime: [125, 150, 132, 148, 160, 175, 140],
-  errorRate: 0.01,
-  rateLimitBreaches: 2,
-  activeUsers: 10,
-  lastDayEvents: [
-    { name: 'API Calls', value: 850 },
-    { name: 'Card Recommendations', value: 320 },
-    { name: 'User Logins', value: 75 },
-    { name: 'New Signups', value: 12 },
-    { name: 'Expenses Added', value: 230 }
-  ],
-  eventTimeline: [
-    { timestamp: '00:00', events: 12 },
-    { timestamp: '02:00', events: 8 },
-    { timestamp: '04:00', events: 5 },
-    { timestamp: '06:00', events: 10 },
-    { timestamp: '08:00', events: 25 },
-    { timestamp: '10:00', events: 45 },
-    { timestamp: '12:00', events: 50 },
-    { timestamp: '14:00', events: 60 },
-    { timestamp: '16:00', events: 48 },
-    { timestamp: '18:00', events: 35 },
-    { timestamp: '20:00', events: 30 },
-    { timestamp: '22:00', events: 18 }
-  ],
-  resourceUsage: {
-    cpu: 35,
-    memory: 48,
-    storage: 22
-  }
-};
-
 export default function MonitoringDashboard() {
-  const [metrics, setMetrics] = useState<MetricData>(DEMO_DATA);
-  const [loading, setLoading] = useState(false);
+  const [metrics, setMetrics] = useState<MetricData>({
+    responseTime: [],
+    errorRate: 0,
+    rateLimitBreaches: 0,
+    activeUsers: 0,
+    lastDayEvents: [],
+    eventTimeline: [],
+    resourceUsage: {
+      cpu: 0,
+      memory: 0,
+      storage: 0
+    }
+  });
+  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Fetch metrics data from the API
+  const fetchMetrics = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Make API request to your monitoring service
+      const response = await fetch(`/api/monitoring/metrics?range=${timeRange}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metrics: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update metrics with real data
+      setMetrics({
+        responseTime: data.responseTime || [],
+        errorRate: data.errorRate || 0,
+        rateLimitBreaches: data.rateLimitBreaches || 0,
+        activeUsers: data.activeUsers || 0,
+        lastDayEvents: data.events || [],
+        eventTimeline: data.timeline || [],
+        resourceUsage: {
+          cpu: data.resourceUsage?.cpu || 0,
+          memory: data.resourceUsage?.memory || 0,
+          storage: data.resourceUsage?.storage || 0
+        }
+      });
+      
+      // Log successful metrics fetch
+      SimpleMonitor.logEvent(
+        'monitoring_metrics_fetched',
+        'Successfully fetched monitoring metrics',
+        { timeRange }
+      );
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+      SimpleMonitor.trackError(error as Error);
+      
+      // If the API fails, show a notification or handle the error appropriately
+      // You could implement a fallback mechanism here if needed
+    } finally {
+      setLoading(false);
+    }
+  }, [timeRange]);
 
   useEffect(() => {
     fetchMetrics();
     // Update metrics every 30 seconds
     const interval = setInterval(fetchMetrics, 30000);
     return () => clearInterval(interval);
-  }, [timeRange, refreshKey]);
-
-  const fetchMetrics = async () => {
-    setLoading(true);
-    try {
-      // In production, this would fetch from your monitoring service
-      // For now, we'll use our demo data with minor variations
-      setTimeout(() => {
-        const variationFactor = Math.random() * 0.2 + 0.9; // 0.9 to 1.1
-        
-        const newMetrics = {
-          ...DEMO_DATA,
-          responseTime: DEMO_DATA.responseTime.map(val => Math.round(val * variationFactor)),
-          errorRate: DEMO_DATA.errorRate * variationFactor,
-          activeUsers: Math.round(DEMO_DATA.activeUsers * variationFactor),
-          rateLimitBreaches: Math.round(DEMO_DATA.rateLimitBreaches * variationFactor),
-          lastDayEvents: DEMO_DATA.lastDayEvents.map(item => ({
-            ...item,
-            value: Math.round(item.value * variationFactor)
-          })),
-          eventTimeline: DEMO_DATA.eventTimeline.map(item => ({
-            ...item,
-            events: Math.round(item.events * variationFactor)
-          })),
-          resourceUsage: {
-            cpu: Math.round(DEMO_DATA.resourceUsage.cpu * variationFactor),
-            memory: Math.round(DEMO_DATA.resourceUsage.memory * variationFactor),
-            storage: Math.round(DEMO_DATA.resourceUsage.storage * variationFactor)
-          }
-        };
-        
-        setMetrics(newMetrics);
-        setLoading(false);
-        
-        // Log this monitoring refresh
-        SimpleMonitor.logEvent(
-          'monitoring_refresh',
-          'Admin dashboard metrics refreshed',
-          { timeRange }
-        );
-      }, 500); // Simulate network delay
-    } catch (error) {
-      console.error('Error fetching metrics:', error);
-      SimpleMonitor.trackError(error as Error);
-      setLoading(false);
-    }
-  };
+  }, [fetchMetrics, refreshKey]);
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
@@ -120,7 +98,11 @@ export default function MonitoringDashboard() {
     return 'text-emerald-600';
   };
 
-  const responseTimeColor = getStatusColor(metrics.responseTime[metrics.responseTime.length - 1], {warning: 150, critical: 200});
+  const latestResponseTime = metrics.responseTime.length > 0 
+    ? metrics.responseTime[metrics.responseTime.length - 1] 
+    : 0;
+  
+  const responseTimeColor = getStatusColor(latestResponseTime, {warning: 150, critical: 200});
   const errorRateColor = getStatusColor(metrics.errorRate * 100, {warning: 1, critical: 5});
 
   return (
@@ -138,7 +120,7 @@ export default function MonitoringDashboard() {
             </span>
           </div>
           <p className={`text-2xl font-bold ${responseTimeColor}`}>
-            {metrics.responseTime[metrics.responseTime.length - 1]}ms
+            {latestResponseTime}ms
           </p>
           <p className="text-xs text-gray-500 mt-1">Average API response time</p>
         </div>
@@ -217,99 +199,121 @@ export default function MonitoringDashboard() {
         </button>
       </div>
 
-      {/* Event Timeline */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Event Timeline</h3>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={metrics.eventTimeline}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="timestamp" />
-              <YAxis />
-              <Tooltip formatter={(value) => [`${value} events`, 'Count']} />
-              <Legend />
-              <Line type="monotone" dataKey="events" stroke="#3B82F6" activeDot={{ r: 8 }} name="Events" />
-            </LineChart>
-          </ResponsiveContainer>
+      {/* Loading state for charts */}
+      {loading && metrics.eventTimeline.length === 0 ? (
+        <div className="bg-white p-6 rounded-lg shadow text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading monitoring data...</p>
         </div>
-      </div>
-
-      {/* Two-column section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Events By Type */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Events By Type</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.lastDayEvents}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#3B82F6" name="Count" />
-              </BarChart>
-            </ResponsiveContainer>
+      ) : (
+        <>
+          {/* Event Timeline */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Event Timeline</h3>
+            {metrics.eventTimeline.length > 0 ? (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={metrics.eventTimeline}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="timestamp" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`${value} events`, 'Count']} />
+                    <Legend />
+                    <Line type="monotone" dataKey="events" stroke="#3B82F6" activeDot={{ r: 8 }} name="Events" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-72 flex items-center justify-center">
+                <p className="text-gray-500">No timeline data available</p>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* System Resource Usage */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">System Resource Usage</h3>
-          <div className="space-y-6">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">CPU Usage</span>
-                <span className="text-gray-900 font-medium">{metrics.resourceUsage.cpu}%</span>
-              </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full ${
-                    metrics.resourceUsage.cpu > 80 ? 'bg-red-500' : 
-                    metrics.resourceUsage.cpu > 60 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`} 
-                  style={{ width: `${metrics.resourceUsage.cpu}%` }}
-                ></div>
-              </div>
+          {/* Two-column section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Events By Type */}
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Events By Type</h3>
+              {metrics.lastDayEvents.length > 0 ? (
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={metrics.lastDayEvents}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="value" fill="#3B82F6" name="Count" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-72 flex items-center justify-center">
+                  <p className="text-gray-500">No event data available</p>
+                </div>
+              )}
             </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Memory Usage</span>
-                <span className="text-gray-900 font-medium">{metrics.resourceUsage.memory}%</span>
-              </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full ${
-                    metrics.resourceUsage.memory > 80 ? 'bg-red-500' : 
-                    metrics.resourceUsage.memory > 60 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`} 
-                  style={{ width: `${metrics.resourceUsage.memory}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Storage Usage</span>
-                <span className="text-gray-900 font-medium">{metrics.resourceUsage.storage}%</span>
-              </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full ${
-                    metrics.resourceUsage.storage > 80 ? 'bg-red-500' : 
-                    metrics.resourceUsage.storage > 60 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`} 
-                  style={{ width: `${metrics.resourceUsage.storage}%` }}
-                ></div>
+
+            {/* System Resource Usage */}
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">System Resource Usage</h3>
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">CPU Usage</span>
+                    <span className="text-gray-900 font-medium">{metrics.resourceUsage.cpu}%</span>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        metrics.resourceUsage.cpu > 80 ? 'bg-red-500' : 
+                        metrics.resourceUsage.cpu > 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`} 
+                      style={{ width: `${metrics.resourceUsage.cpu}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Memory Usage</span>
+                    <span className="text-gray-900 font-medium">{metrics.resourceUsage.memory}%</span>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        metrics.resourceUsage.memory > 80 ? 'bg-red-500' : 
+                        metrics.resourceUsage.memory > 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`} 
+                      style={{ width: `${metrics.resourceUsage.memory}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Storage Usage</span>
+                    <span className="text-gray-900 font-medium">{metrics.resourceUsage.storage}%</span>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        metrics.resourceUsage.storage > 80 ? 'bg-red-500' : 
+                        metrics.resourceUsage.storage > 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`} 
+                      style={{ width: `${metrics.resourceUsage.storage}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
