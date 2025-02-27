@@ -3,7 +3,7 @@ import { getCacheTimestamp } from '@/utils/server/cardCache';
 
 export async function GET() {
   try {
-    const timestamp = getCacheTimestamp();
+    const timestamp = await getCacheTimestamp();
     
     return NextResponse.json({
       success: true,
