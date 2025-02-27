@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { fetchAllCards, fetchCardById } from '@/services/cardApiService';
 import { getCachedCards, setCachedCards, getCacheTimestamp } from '@/utils/server/cardCache';
