@@ -11,6 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import FeatureTable from '@/components/FeatureTable';
 import CardDisplay from '@/components/CardDisplay';
 import NotInterestedList from '@/components/NotInterestedList';
+import { useCards } from '@/hooks/useCards';
 
 interface FirestoreExpense {
   amount: number;
@@ -51,6 +52,7 @@ export default function RecommenderPage() {
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
+  const { cards: creditCards, loading: cardsLoading, error: cardsError } = useCards();
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -72,6 +74,20 @@ export default function RecommenderPage() {
     { id: 'rent', name: 'Rent' },
     { id: 'other', name: 'Other' }
   ] as const;
+
+
+  if (cardsLoading) {
+    return <div>Loading card database...</div>;
+  }
+
+  // Show error state if there was an error
+  if (cardsError) {
+    return (
+      <div className="p-4 bg-red-50 text-red-700 rounded-md">
+        Error loading card database. Please try again later.
+      </div>
+    );
+  }
 
   // =========== LOCAL STORAGE DATA PERSISTENCE ===========
   // Load saved data for non-logged in users

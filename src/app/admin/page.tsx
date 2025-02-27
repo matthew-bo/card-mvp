@@ -164,23 +164,10 @@ const UserManagement = () => {
 
 // Main AdminDashboard Component
 export default function AdminDashboard() {
-    const { user } = useAuth();
-    const router = useRouter();
+  const { user } = useAuth();
+  const router = useRouter();
+  const [cacheTimestamp, setCacheTimestamp] = useState<Date | null>(null);
   
-    useEffect(() => {
-      // If not logged in or not admin, redirect to home
-      if (!user) {
-        router.push('/');
-        return;
-      }
-  
-      if (!isAdmin(user.email)) {
-        console.log('Not an admin:', user.email);
-        router.push('/');
-        return;
-      }
-    }, [user, router]); 
-    
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalExpenses: 0,
@@ -190,6 +177,56 @@ export default function AdminDashboard() {
   });
 
   const [loading, setLoading] = useState(true);
+  
+  // Add the fetchCacheInfo function here
+  const fetchCacheInfo = async () => {
+    try {
+      const response = await fetch('/api/cards/cache-info');
+      if (response.ok) {
+        const data = await response.json();
+        setCacheTimestamp(data.timestamp ? new Date(data.timestamp) : null);
+      }
+    } catch (error) {
+      console.error('Error fetching cache info:', error);
+    }
+  };
+  
+  const handleRefreshCardData = async () => {
+    try {
+      const response = await fetch('/api/cards/refresh', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Card database refreshed successfully! ${data.cardCount} cards loaded.`);
+        // Update the cache timestamp
+        fetchCacheInfo();
+      } else {
+        alert('Failed to refresh card database. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error refreshing card database:', error);
+      alert('Failed to refresh card database. Please try again.');
+    }
+  };
+
+  useEffect(() => {
+    // If not logged in or not admin, redirect to home
+    if (!user) {
+      router.push('/');
+      return;
+    }
+
+    if (!isAdmin(user.email)) {
+      console.log('Not an admin:', user.email);
+      router.push('/');
+      return;
+    }
+    
+    // Call fetchCacheInfo
+    fetchCacheInfo();
+  }, [user, router]);
 
   useEffect(() => {
     async function loadStats() {
@@ -240,6 +277,25 @@ export default function AdminDashboard() {
             <p className="mt-2 text-3xl font-semibold text-blue-600">
               {loading ? '...' : `$${stats.averageExpense.toFixed(2)}`}
             </p>
+          </div>
+        </div>
+        
+        {/* Database Management Section */}
+        <div className="mb-8 bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Database Management</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600">Refresh the credit card database from the API</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Last updated: {cacheTimestamp ? cacheTimestamp.toLocaleString() : 'Never'}
+              </p>
+            </div>
+            <button 
+              onClick={handleRefreshCardData}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Refresh Card Database
+            </button>
           </div>
         </div>
 

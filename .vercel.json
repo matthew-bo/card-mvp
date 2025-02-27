@@ -1,15 +1,8 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "next.config.ts",
-        "use": "@vercel/next"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "/"
-      }
-    ]
-  }
+  "crons": [
+    {
+      "path": "/api/cron/refresh-cards",
+      "schedule": "0 0 * * *"  
+    }
+  ]
+}
