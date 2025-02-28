@@ -12,6 +12,7 @@ interface ApiCardBasic {
   cardKey: string;
   cardName: string;
   cardIssuer: string;
+  isActive?: number;
 }
 
 // Path to our card database file

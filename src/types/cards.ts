@@ -116,3 +116,23 @@ export interface UserCardReference {
   userId: string;
   dateAdded: Date;
 }
+
+
+export interface ApiStatusCode {
+  statusCode: number;
+  apiCalls: number;
+  apiCallsLimit: number;
+  apiCallsRemaining: number;
+  lastUpdated: string;
+}
+
+export interface ApiUsageMonth {
+  yearMonth: string;
+  statusCode: ApiStatusCode[];
+}
+
+export interface ApiUsageResponse {
+  success: boolean;
+  data: ApiUsageMonth[];
+  error?: string;
+}

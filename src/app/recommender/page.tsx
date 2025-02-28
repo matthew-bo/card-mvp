@@ -666,14 +666,14 @@ useEffect(() => {
                 </button>
               </form>
             </div>
-
-            // Add cards UI
+            
+            {/* Add cards UI */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Add Your Current Cards
               </label>
               <CardSearch 
-                onCardSelect={(cardKey) => {
+                onCardSelect={(cardKey, _cardName, _cardIssuer) => {
                   // Handle card selection
                   setSelectedCard(cardKey);
                       

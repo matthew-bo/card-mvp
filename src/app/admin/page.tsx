@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdmin } from '@/utils/adminConfig';
+import ApiUsageStats from '@/components/ApiUsageStats';
 
 
 interface UserPreference {
@@ -136,6 +137,9 @@ const UserManagement = () => {
                   Credit Score
                 </th>
               </tr>
+              <div className="mb-8">
+                <ApiUsageStats />
+              </div>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map((user) => (

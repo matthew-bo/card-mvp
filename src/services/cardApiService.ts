@@ -64,6 +64,49 @@ export async function searchCardsByName(name: string): Promise<ApiCardBasic[]> {
   }
 }
 
+
+export async function getApiUsage(): Promise<any> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creditcard-apiusage/${API_KEY}`, {
+      headers: {
+        'X-RapidAPI-Key': API_KEY || '',
+        'X-RapidAPI-Host': API_HOST
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching API usage:', error);
+    throw error;
+  }
+}
+
+export class ApiRateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ApiRateLimitError';
+  }
+}
+
+// Update your fetch functions to handle rate limits properly
+export async function fetchWithRateLimitHandling(url: string, options: RequestInit) {
+  const response = await fetch(url, options);
+  
+  if (response.status === 429) {
+    throw new ApiRateLimitError('API rate limit exceeded');
+  }
+  
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  
+  return response;
+}
+
 // Get all cards
 export async function fetchAllCards(): Promise<CreditCardDetails[]> {
   try {

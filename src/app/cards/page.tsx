@@ -13,13 +13,13 @@ import { db } from '@/lib/firebase';
 export default function CardsPage() {
   const { user } = useAuth();
   const [selectedCardKey, setSelectedCardKey] = useState<string>('');
-  const [_selectedCardName, set_SelectedCardName] = useState<string>('');
-  const [_selectedCardIssuer, set_SelectedCardIssuer] = useState<string>('');
   const [cardDetails, setCardDetails] = useState<CreditCardDetails | null>(null);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
   const [availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [_selectedCardName, set_SelectedCardName] = useState<string>('');
+  const [_selectedCardIssuer, set_SelectedCardIssuer] = useState<string>('');
 
   // Load user's existing cards
   useEffect(() => {
