@@ -6,7 +6,7 @@ import { mapApiCardToAppFormat } from '@/services/cardApiService';
 import { SimpleMonitor } from '@/utils/monitoring/simpleMonitor';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes max for longer running operations
+export const maxDuration = 60; // Maximum allowed on hobby plan (60 seconds)
 
 interface ApiCardBasic {
   cardKey: string;
