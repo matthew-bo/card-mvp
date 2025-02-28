@@ -1,21 +1,23 @@
-// src/app/cards/page.tsx (updated)
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { storeCardData } from '@/utils/cardStorage';
 import { useAuth } from '@/components/AuthProvider';
-import CardSearch from '@/components/CardSearch';
 import { CreditCardDetails } from '@/types/cards';
 import { CardDisplay } from '@/components/CardDisplay';
+import CardSearch from '@/components/CardSearch';
+import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function CardsPage() {
   const { user } = useAuth();
   const [selectedCardKey, setSelectedCardKey] = useState<string>('');
-  const [selectedCardName, setSelectedCardName] = useState<string>('');
-  const [selectedCardIssuer, setSelectedCardIssuer] = useState<string>('');
+  const [_selectedCardName, set_SelectedCardName] = useState<string>('');
+  const [_selectedCardIssuer, set_SelectedCardIssuer] = useState<string>('');
   const [cardDetails, setCardDetails] = useState<CreditCardDetails | null>(null);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
+  const [availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +27,29 @@ export default function CardsPage() {
       if (!user) return;
       
       try {
-        // Fetch user's cards from Firebase
-        // This part remains similar to your existing code
+        const cardsQuery = query(
+          collection(db, 'user_cards'),
+          where('userId', '==', user.uid)
+        );
+        
+        const cardsSnap = await getDocs(cardsQuery);
+        const userCardIds = cardsSnap.docs.map(doc => doc.data().cardId);
+        
+        // Fetch all available cards
+        const response = await fetch('/api/cards/all');
+        if (!response.ok) {
+          throw new Error('Failed to load card database');
+        }
+        
+        const data = await response.json();
+        setAvailableCards(data.data);
+        
+        // Filter to get user's cards
+        const loadedCards = data.data.filter((card: CreditCardDetails) => 
+          userCardIds.includes(card.id)
+        );
+        
+        setUserCards(loadedCards);
       } catch (err) {
         console.error('Error loading user cards:', err);
         setError('Failed to load your cards');
@@ -67,10 +90,11 @@ export default function CardsPage() {
     fetchCardDetails();
   }, [selectedCardKey]);
 
-  const handleCardSelect = (cardKey: string, cardName: string, cardIssuer: string) => {
+  // Update this to use underscores for unused variables
+  const handleCardSelect = (cardKey: string, _cardName: string, _cardIssuer: string) => {
     setSelectedCardKey(cardKey);
-    setSelectedCardName(cardName);
-    setSelectedCardIssuer(cardIssuer);
+    set_SelectedCardName(_cardName);
+    set_SelectedCardIssuer(_cardIssuer);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +102,8 @@ export default function CardsPage() {
     if (!selectedCardKey) return;
   
     setLoading(true);
+    setError(null);
+
     try {
       const cardData = {
         cardId: selectedCardKey,
@@ -94,8 +120,8 @@ export default function CardsPage() {
       }
       
       setSelectedCardKey('');
-      setSelectedCardName('');
-      setSelectedCardIssuer('');
+      set_SelectedCardName('');
+      set_SelectedCardIssuer('');
       setCardDetails(null);
       
       alert('Card added successfully!');
@@ -120,71 +146,75 @@ export default function CardsPage() {
           </Link>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
-          <div>
-            <label htmlFor="card" className="block text-sm font-medium text-gray-700 mb-1">
-              Search for your card
-            </label>
+        <div className="space-y-6">
+          {/* Card Search Component */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Search for Your Cards</h2>
             <CardSearch 
               onCardSelect={handleCardSelect}
               excludeCardKeys={userCards.map(card => card.id)}
+              placeholder="Start typing your card name..."
             />
             {error && (
-              <p className="mt-1 text-sm text-red-600">{error}</p>
+              <p className="mt-2 text-sm text-red-600">{error}</p>
             )}
           </div>
 
+          {/* Selected Card Details */}
           {selectedCardKey && cardDetails && (
-            <div className="p-4 bg-gray-50 rounded-md">
-              <h3 className="font-medium mb-2">Card Details</h3>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Card:</span> {cardDetails.name}</p>
-                <p><span className="font-medium">Issuer:</span> {cardDetails.issuer}</p>
-                <p><span className="font-medium">Annual Fee:</span> ${cardDetails.annualFee}</p>
-                <div>
-                  <p className="font-medium">Reward Rates:</p>
-                  {Object.entries(cardDetails.rewardRates)
-                    .filter(([, rate]) => rate > 0)
-                    .map(([category, rate]) => (
-                      <p key={category} className="ml-4 capitalize">
-                        • {rate}% on {category}
-                      </p>
-                    ))}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Selected Card</h2>
+              <div className="p-4 bg-gray-50 rounded-md">
+                <h3 className="font-medium mb-2">Card Details</h3>
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-medium">Card:</span> {cardDetails.name}</p>
+                  <p><span className="font-medium">Issuer:</span> {cardDetails.issuer}</p>
+                  <p><span className="font-medium">Annual Fee:</span> ${cardDetails.annualFee}</p>
+                  <div>
+                    <p className="font-medium">Reward Rates:</p>
+                    {Object.entries(cardDetails.rewardRates)
+                      .filter(([, rate]) => rate > 0)
+                      .map(([category, rate]) => (
+                        <p key={category} className="ml-4 capitalize">
+                          • {rate}% on {category}
+                        </p>
+                      ))}
+                  </div>
+                  {cardDetails.signupBonus && (
+                    <p>
+                      <span className="font-medium">Sign-up Bonus:</span> {cardDetails.signupBonus.description}
+                    </p>
+                  )}
+                  <p><span className="font-medium">Required Score:</span> {cardDetails.creditScoreRequired}</p>
                 </div>
-                {cardDetails.signupBonus && (
-                  <p>
-                    <span className="font-medium">Sign-up Bonus:</span> {cardDetails.signupBonus.description}
-                  </p>
-                )}
-                <p><span className="font-medium">Required Score:</span> {cardDetails.creditScoreRequired}</p>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {loading ? 'Adding...' : 'Add This Card'}
+                </button>
               </div>
             </div>
           )}
-
-          <button
-            type="submit"
-            disabled={loading || !selectedCardKey}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {loading ? 'Adding...' : 'Add Card'}
-          </button>
-        </form>
-        
-        {/* Display User's Cards */}
-        {userCards.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Your Cards</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {userCards.map((card) => (
-                <CardDisplay 
-                  key={card.id} 
-                  card={card} 
-                  onDelete={() => {/* Handle delete */}}
-                />
-              ))}
+          
+          {/* Display User's Cards */}
+          {userCards.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Your Cards ({userCards.length})</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {userCards.map((card) => (
+                  <CardDisplay 
+                    key={card.id} 
+                    card={card} 
+                    onDelete={() => {/* Handle delete */}}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </main>
   );

@@ -8,6 +8,12 @@ import { SimpleMonitor } from '@/utils/monitoring/simpleMonitor';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max for longer running operations
 
+interface ApiCardBasic {
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
+}
+
 // Path to our card database file
 const DB_FILE_PATH = path.join(process.cwd(), 'data', 'card-database.json');
 
@@ -49,7 +55,7 @@ export async function GET(request: Request) {
     
     // Process 50 cards at a time to avoid overwhelming the API
     const allCards: CreditCardDetails[] = [];
-    const allCardBasics: any[] = [];
+    const allCardBasics: ApiCardBasic[] = [];
     
     // Collect all cards first
     for (const issuer of issuersWithCards) {

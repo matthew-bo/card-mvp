@@ -120,6 +120,19 @@ export default function RecommenderPage() {
     { id: 'other', name: 'Other' }
   ] as const;
 
+  // Show notification
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
+    const id = Date.now();
+    setNotification({ message, type, id });
+    
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      setNotification(current => current?.id === id ? null : current);
+    }, 4000);
+  }, []);
+
+
+
   // =========== LOCAL STORAGE DATA PERSISTENCE ===========
   // Move useEffect to top level and put condition inside
   useEffect(() => {
@@ -184,53 +197,53 @@ export default function RecommenderPage() {
       loadAllCards();
     }, []);
     
-    // When generating recommendations, use allCards parameter
-    useEffect(() => {
-      try {
-        if (!loadingAllCards && allCards.length > 0) {
-          const newRecommendations = getCardRecommendations({
-            expenses,
-            currentCards: userCards,
-            optimizationSettings: {
-              preference: optimizationPreference,
-              zeroAnnualFee
-            },
-            creditScore,
-            excludeCardIds: notInterestedCards,
-            availableCards: allCards // Pass all cards to the recommendation engine
-          });
-          
-          setRecommendations(newRecommendations);
-        }
-      } catch (err) {
-        console.error('Error updating recommendations:', err);
-        setError('Failed to update recommendations.');
-      }
-    }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);  
-
-  // Calculate recommendations whenever dependencies change
-  useEffect(() => {
-    try {
-      if (creditCards && creditCards.length > 0) {
-        const newRecommendations = getCardRecommendations({
-          expenses,
-          currentCards: userCards,
-          optimizationSettings: {
-            preference: optimizationPreference,
-            zeroAnnualFee
-          },
-          creditScore,
-          excludeCardIds: notInterestedCards
-        });
-        
-        setRecommendations(newRecommendations);
-      }
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error updating recommendations:', error);
-      setError('Failed to update recommendations.');
+// When generating recommendations, use allCards parameter 
+useEffect(() => {
+  try {
+    if (!loadingAllCards && allCards.length > 0) {
+      const newRecommendations = getCardRecommendations({
+        expenses,
+        currentCards: userCards,
+        optimizationSettings: {
+          preference: optimizationPreference,
+          zeroAnnualFee
+        },
+        creditScore,
+        excludeCardIds: notInterestedCards,
+        availableCards: allCards // Pass all cards to the recommendation engine
+      });
+            
+      setRecommendations(newRecommendations);
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, creditCards]);
+  } catch (err) {
+    console.error('Error updating recommendations:', err);
+    setError('Failed to update recommendations.');
+  }
+}, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);
+
+// Calculate recommendations whenever dependencies change
+useEffect(() => {
+  try {
+    if (creditCards && creditCards.length > 0) {
+      const newRecommendations = getCardRecommendations({
+        expenses,
+        currentCards: userCards,
+        optimizationSettings: {
+          preference: optimizationPreference,
+          zeroAnnualFee
+        },
+        creditScore,
+        excludeCardIds: notInterestedCards
+      });
+            
+      setRecommendations(newRecommendations);
+    }
+  } catch (err) {
+    const error = err as Error;
+    console.error('Error updating recommendations:', error);
+    setError('Failed to update recommendations.');
+  }
+}, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, creditCards, showNotification]);
 
   // Save data for non-logged in users
   useEffect(() => {
@@ -337,17 +350,6 @@ export default function RecommenderPage() {
   }, [user, creditCards]);
 
   // =========== EVENT HANDLERS ===========
-  // Show notification
-  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
-    const id = Date.now();
-    setNotification({ message, type, id });
-    
-    // Auto-dismiss after 4 seconds
-    setTimeout(() => {
-      setNotification(current => current?.id === id ? null : current);
-    }, 4000);
-  }, []);
-
   // Handle adding expense
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -671,12 +673,12 @@ export default function RecommenderPage() {
                 Add Your Current Cards
               </label>
               <CardSearch 
-                onCardSelect={(cardKey, cardName, cardIssuer) => {
+                onCardSelect={(cardKey) => {
                   // Handle card selection
                   setSelectedCard(cardKey);
-                  
+                      
                   // Fetch card details or use cached ones
-                  const card = allCards.find(c => c.id === cardKey);
+                  const card = availableCards.find(c => c.id === cardKey);
                   if (card) {
                     handleCardSelection(card);
                   }
