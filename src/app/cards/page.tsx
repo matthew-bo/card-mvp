@@ -7,7 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { CreditCardDetails } from '@/types/cards';
 import { CardDisplay } from '@/components/CardDisplay';
 import CardSearch from '@/components/CardSearch';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export default function CardsPage() {
@@ -15,9 +15,10 @@ export default function CardsPage() {
   const [selectedCardKey, setSelectedCardKey] = useState<string>('');
   const [cardDetails, setCardDetails] = useState<CreditCardDetails | null>(null);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
-  const [availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
+  const [_availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // These state variables are maintained for API compatibility with CardSearch component
   const [_selectedCardName, set_SelectedCardName] = useState<string>('');
   const [_selectedCardIssuer, set_SelectedCardIssuer] = useState<string>('');
 

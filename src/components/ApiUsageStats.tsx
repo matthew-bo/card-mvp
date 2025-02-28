@@ -3,8 +3,30 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+// Define types for API responses
+interface ApiStatusCode {
+  statusCode: number;
+  apiCalls: number;
+  apiCallsLimit: number;
+  apiCallsRemaining: number;
+  lastUpdated: string;
+}
+
+interface ApiUsageMonth {
+  yearMonth: string;
+  statusCode: ApiStatusCode[];
+}
+
+interface ProcessedUsageData {
+  month: string;
+  success: number;
+  error: number;
+  limit: number;
+  remaining: number;
+}
+
 export default function ApiUsageStats() {
-  const [usageData, setUsageData] = useState<any>(null);
+  const [usageData, setUsageData] = useState<ApiUsageMonth[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,18 +71,18 @@ export default function ApiUsageStats() {
   }
 
   // Process the data for the chart
-  const chartData = usageData.map((monthData: any) => {
-    const successCalls = monthData.statusCode.find((sc: any) => sc.statusCode === 200)?.apiCalls || 0;
+  const chartData: ProcessedUsageData[] = usageData.map((monthData: ApiUsageMonth) => {
+    const successCalls = monthData.statusCode.find((sc: ApiStatusCode) => sc.statusCode === 200)?.apiCalls || 0;
     const errorCalls = monthData.statusCode
-      .filter((sc: any) => sc.statusCode !== 200)
-      .reduce((sum: number, sc: any) => sum + sc.apiCalls, 0);
+      .filter((sc: ApiStatusCode) => sc.statusCode !== 200)
+      .reduce((sum: number, sc: ApiStatusCode) => sum + sc.apiCalls, 0);
     
     return {
       month: monthData.yearMonth,
       success: successCalls,
       error: errorCalls,
-      limit: monthData.statusCode.find((sc: any) => sc.statusCode === 200)?.apiCallsLimit || 0,
-      remaining: monthData.statusCode.find((sc: any) => sc.statusCode === 200)?.apiCallsRemaining || 0
+      limit: monthData.statusCode.find((sc: ApiStatusCode) => sc.statusCode === 200)?.apiCallsLimit || 0,
+      remaining: monthData.statusCode.find((sc: ApiStatusCode) => sc.statusCode === 200)?.apiCallsRemaining || 0
     };
   });
 
@@ -91,7 +113,7 @@ export default function ApiUsageStats() {
             <div className="bg-amber-50 p-4 rounded-lg">
               <p className="text-sm text-amber-600">Usage Trend</p>
               <p className="text-2xl font-bold">
-                {chartData.length > 1 ? 
+                {chartData.length > 1 && chartData[1].success > 0 ? 
                   `${((chartData[0].success / chartData[1].success) * 100 - 100).toFixed(1)}%` :
                   'N/A'}
               </p>
@@ -129,7 +151,7 @@ export default function ApiUsageStats() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {usageData[0]?.statusCode.map((sc: any) => (
+              {usageData[0]?.statusCode.map((sc: ApiStatusCode) => (
                 <tr key={sc.statusCode}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sc.statusCode}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sc.apiCalls}</td>
