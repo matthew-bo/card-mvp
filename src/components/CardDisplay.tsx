@@ -37,12 +37,13 @@ const getPointValue = (amount: number, type: "points" | "cashback"): { value: nu
   };
 };
 
-const CardDisplay: React.FC<CardDisplayProps> = ({ 
+export const CardDisplay: React.FC<CardDisplayProps> = ({ 
   card, 
   onDelete, 
   onNotInterested,
   highlight = false
 }) => {
+
   const [expanded, setExpanded] = useState(false);
   const colors = getIssuerColors(card.issuer);
   
@@ -72,22 +73,17 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
   };
 
   return (
-    <div 
-      className={`relative group h-full ${highlight ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
-      aria-expanded={expanded}
-    >
-      {/* Card container with fixed height for consistency */}
-      <div 
-        className={`h-full border rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 flex flex-col`}
-      >
-        {/* Card Header with gradient background */}
+    <div className="relative group h-full">
+      {/* Card container */}
+      <div className="h-full border rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+        {/* Card Header */}
         <div className={`bg-gradient-to-r ${colors.gradient} p-4 pb-10 text-white relative`}>
           {/* Card Issuer */}
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs uppercase tracking-wider opacity-80">{card.issuer}</span>
           </div>
           
-          {/* Card Name - With proper spacing and margins */}
+          {/* Card Name */}
           <h3 className="font-semibold text-lg leading-tight pr-4 break-words" title={card.name}>
             {card.name}
           </h3>
@@ -141,8 +137,8 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
           )}
         </div>
         
-        {/* Annual Fee Badge */}
-        <div className="absolute top-2 right-2">
+         {/* Annual Fee Badge */}
+         <div className="absolute top-2 right-2">
           <span className={`text-xs px-2 py-1 rounded-full bg-white bg-opacity-20 ${card.annualFee === 0 ? 'text-green-50' : 'text-white'}`}>
             {card.annualFee === 0 ? 'No Annual Fee' : `$${card.annualFee}/yr`}
           </span>
@@ -233,5 +229,3 @@ const CardDisplay: React.FC<CardDisplayProps> = ({
     </div>
   );
 };
-
-export default CardDisplay;

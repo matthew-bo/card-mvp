@@ -6,13 +6,12 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy } from 'firebase/firestore';
 import type { OptimizationPreference, CreditCardDetails } from '@/types/cards';
 import { getCardRecommendations } from '@/lib/cardRecommendations';
-// Remove this import since we're now using the hook
-// import { creditCards } from '@/lib/cardDatabase';
-import { useCards } from '@/hooks/useCards'; // Add this import
+import { useCards } from '@/hooks/useCards';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FeatureTable from '@/components/FeatureTable';
-import CardDisplay from '@/components/CardDisplay';
+import { CardDisplay } from '@/components/CardDisplay';
 import NotInterestedList from '@/components/NotInterestedList';
+import CardSearch from '@/components/CardSearch';
 
 interface FirestoreExpense {
   amount: number;
@@ -56,6 +55,9 @@ export default function RecommenderPage() {
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
+  const [allCards, setAllCards] = useState<CreditCardDetails[]>([]);
+  const [loadingAllCards, setLoadingAllCards] = useState(true);
+  const [availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -66,7 +68,47 @@ export default function RecommenderPage() {
     type: 'success' | 'error' | 'info';
     id: number;
   } | null>(null);
+
+  const handleAddCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCard) return;
   
+    setLoading(true);
+    setError(null);
+  
+    try {
+      // Find the card in the filtered card list
+      const selectedCardData = availableCards.find(c => c.id === selectedCard);
+      
+      if (!selectedCardData) {
+        throw new Error('Selected card not found');
+      }
+  
+      if (user) {
+        await addDoc(collection(db, 'user_cards'), {
+          cardId: selectedCard,
+          userId: user.uid,
+          dateAdded: new Date()
+        });
+      }
+  
+      setUserCards(prev => [...prev, selectedCardData]);
+      setSelectedCard('');
+      showNotification('Card added successfully!', 'success');
+      
+      // Switch to results tab on mobile after adding card
+      if (window.innerWidth < 768) {
+        setActiveTab('results');
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error adding card:', error);
+      setError('Failed to add card. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // =========== CATEGORIES ===========
   const categories = [
     { id: 'dining', name: 'Dining' },
@@ -98,6 +140,73 @@ export default function RecommenderPage() {
       }
     }
   }, [user]);
+
+  //add cards
+  useEffect(() => {
+    async function loadCards() {
+      try {
+        const response = await fetch('/api/cards/all');
+        if (!response.ok) {
+          throw new Error('Failed to load cards');
+        }
+        const data = await response.json();
+        setAvailableCards(data.data);
+      } catch (error) {
+        console.error('Error loading cards:', error);
+        setError('Failed to load card database');
+      }
+    }
+    
+    loadCards();
+  }, []);
+
+    // Add useEffect to load all cards
+    useEffect(() => {
+      const loadAllCards = async () => {
+        setLoadingAllCards(true);
+        try {
+          // Use a server endpoint that returns all cards
+          const response = await fetch('/api/cards/all');
+          if (!response.ok) {
+            throw new Error('Failed to load card database');
+          }
+          
+          const data = await response.json();
+          setAllCards(data.data);
+        } catch (error) {
+          console.error('Error loading all cards:', error);
+          setError('Failed to load card database');
+        } finally {
+          setLoadingAllCards(false);
+        }
+      };
+      
+      loadAllCards();
+    }, []);
+    
+    // When generating recommendations, use allCards parameter
+    useEffect(() => {
+      try {
+        if (!loadingAllCards && allCards.length > 0) {
+          const newRecommendations = getCardRecommendations({
+            expenses,
+            currentCards: userCards,
+            optimizationSettings: {
+              preference: optimizationPreference,
+              zeroAnnualFee
+            },
+            creditScore,
+            excludeCardIds: notInterestedCards,
+            availableCards: allCards // Pass all cards to the recommendation engine
+          });
+          
+          setRecommendations(newRecommendations);
+        }
+      } catch (err) {
+        console.error('Error updating recommendations:', err);
+        setError('Failed to update recommendations.');
+      }
+    }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);  
 
   // Calculate recommendations whenever dependencies change
   useEffect(() => {
@@ -287,47 +396,6 @@ export default function RecommenderPage() {
     }
   };
 
-  // Handle adding card
-  const handleAddCard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCard) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (!creditCards) {
-        throw new Error('Card database not loaded');
-      }
-
-      const newCard = creditCards.find(c => c.id === selectedCard);
-      if (!newCard) throw new Error('Card not found');
-
-      if (user) {
-        await addDoc(collection(db, 'user_cards'), {
-          cardId: selectedCard,
-          userId: user.uid,
-          dateAdded: new Date()
-        });
-      }
-
-      setUserCards(prev => [...prev, newCard]);
-      setSelectedCard('');
-      showNotification('Card added successfully!', 'success');
-      
-      // Switch to results tab on mobile after adding card
-      if (window.innerWidth < 768) {
-        setActiveTab('results');
-      }
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error adding card:', error);
-      setError('Failed to add card. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Handle deleting expense
   const handleDeleteExpense = async (expenseId: string) => {
     try {
@@ -386,6 +454,44 @@ export default function RecommenderPage() {
       
       return updatedList;
     });
+  };
+
+  // handle card selection from search
+  const handleCardSelection = (cardToAdd: CreditCardDetails) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (user) {
+        addDoc(collection(db, 'user_cards'), {
+          cardId: cardToAdd.id,
+          userId: user.uid,
+          dateAdded: new Date()
+        }).then(() => {
+          setUserCards(prev => [...prev, cardToAdd]);
+          showNotification('Card added successfully!', 'success');
+          
+          // Switch to results tab on mobile after adding card
+          if (window.innerWidth < 768) {
+            setActiveTab('results');
+          }
+        });
+      } else {
+        // For non-logged in users
+        setUserCards(prev => [...prev, cardToAdd]);
+        showNotification('Card added successfully!', 'success');
+        
+        if (window.innerWidth < 768) {
+          setActiveTab('results');
+        }
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error adding card:', error);
+      setError('Failed to add card. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // =========== DATA PROCESSING ===========
@@ -528,7 +634,7 @@ export default function RecommenderPage() {
             {/* Add Card Section */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Your Current Cards</h2>
-              <form onSubmit={handleAddCard} className="space-y-4">
+              <form onSubmit={handleAddCard} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Card</label>
                   <select
@@ -557,6 +663,27 @@ export default function RecommenderPage() {
                   {loading ? 'Adding...' : 'Add Card'}
                 </button>
               </form>
+            </div>
+
+            // Add cards UI
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Add Your Current Cards
+              </label>
+              <CardSearch 
+                onCardSelect={(cardKey, cardName, cardIssuer) => {
+                  // Handle card selection
+                  setSelectedCard(cardKey);
+                  
+                  // Fetch card details or use cached ones
+                  const card = allCards.find(c => c.id === cardKey);
+                  if (card) {
+                    handleCardSelection(card);
+                  }
+                }}
+                excludeCardKeys={userCards.map(card => card.id)}
+                placeholder="Search for your cards..."
+              />
             </div>
 
             {/* Optimization Settings */}
