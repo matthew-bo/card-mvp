@@ -69,47 +69,6 @@ export default function RecommenderPage() {
     id: number;
   } | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handleAddCard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCard) return;
-  
-    setLoading(true);
-    setError(null);
-  
-    try {
-      // Find the card in the filtered card list
-      const selectedCardData = availableCards.find(c => c.id === selectedCard);
-      
-      if (!selectedCardData) {
-        throw new Error('Selected card not found');
-      }
-  
-      if (user) {
-        await addDoc(collection(db, 'user_cards'), {
-          cardId: selectedCard,
-          userId: user.uid,
-          dateAdded: new Date()
-        });
-      }
-  
-      setUserCards(prev => [...prev, selectedCardData]);
-      setSelectedCard('');
-      showNotification('Card added successfully!', 'success');
-      
-      // Switch to results tab on mobile after adding card
-      if (window.innerWidth < 768) {
-        setActiveTab('results');
-      }
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error adding card:', error);
-      setError('Failed to add card. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // =========== CATEGORIES ===========
   const categories = [
     { id: 'dining', name: 'Dining' },
