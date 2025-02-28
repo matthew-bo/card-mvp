@@ -93,6 +93,31 @@ export async function getCardImage(cardKey: string): Promise<string> {
   }
 }
 
+
+export async function fetchAllCards(): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creditcard-cardlist`, {
+      headers: {
+        'X-RapidAPI-Key': API_KEY || '',
+        'X-RapidAPI-Host': API_HOST
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching all cards:', error);
+    throw error;
+  }
+}
+
+export async function fetchCardById(cardKey: string): Promise<any> {
+  return getCardDetails(cardKey); // Reuse your existing function
+}
+
 // Map API card data to your application's format
 export function mapApiCardToAppFormat(apiCard: any): CreditCardDetails {
   // Parse reward rates from spend bonus categories
