@@ -46,7 +46,6 @@ export default function RecommenderPage() {
   const [creditScore, setCreditScore] = useState<'poor' | 'fair' | 'good' | 'excellent'>('good');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
-  const [selectedCard, setSelectedCard] = useState('');
   const [zeroAnnualFee, setZeroAnnualFee] = useState<boolean>(false);
   const [notInterestedCards, setNotInterestedCards] = useState<string[]>([]);
   const [showNotInterestedList, setShowNotInterestedList] = useState(false);
@@ -58,6 +57,7 @@ export default function RecommenderPage() {
   const [allCards, setAllCards] = useState<CreditCardDetails[]>([]);
   const [loadingAllCards, setLoadingAllCards] = useState(true);
   const [availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
+  const [_selectedCard, setSelectedCard] = useState<string>('');
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -205,8 +205,7 @@ useEffect(() => {
   }
 }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, creditCards, showNotification]);
 
-  // Save data for non-logged in users
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Save data for non-logged in users  
   useEffect(() => {
     if (!user) {
       const dataToSave = {
@@ -224,7 +223,7 @@ useEffect(() => {
         showNotification('Error saving your data locally.', 'error');
       }
     }
-  }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards]);
+  }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification]);
 
   // =========== FIREBASE DATA LOADING ===========
   // Load user data from Firebase for logged-in users
