@@ -5,8 +5,46 @@ const API_KEY = process.env.REWARDS_API_KEY;
 const API_HOST = 'rewards-credit-card-api.p.rapidapi.com';
 const API_BASE_URL = 'https://rewards-credit-card-api.p.rapidapi.com';
 
+// Define interfaces for API responses
+interface ApiCardBasic {
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
+}
+
+interface ApiCardDetail {
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
+  annualFee?: number;
+  creditRange?: string;
+  baseSpendAmount?: number;
+  isSignupBonus?: number;
+  signupBonusAmount?: string;
+  signupBonusType?: string;
+  signupBonusSpend?: number;
+  signupBonusLength?: number;
+  signupBonusDesc?: string;
+  isFxFee?: number;
+  spendBonusCategory?: Array<{
+    spendBonusCategoryName: string;
+    earnMultiplier?: number;
+  }>;
+  benefit?: Array<{
+    benefitTitle: string;
+    benefitDesc?: string;
+  }>;
+  baseSpendEarnType?: string;
+}
+
+interface ApiCardImage {
+  cardKey: string;
+  cardName: string;
+  cardImageUrl: string;
+}
+
 // Search cards by name
-export async function searchCardsByName(name: string): Promise<{cardKey: string, cardName: string, cardIssuer: string}[]> {
+export async function searchCardsByName(name: string): Promise<ApiCardBasic[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/creditcard-detail-namesearch/${name}`, {
       headers: {
@@ -26,30 +64,8 @@ export async function searchCardsByName(name: string): Promise<{cardKey: string,
   }
 }
 
-// Get card details by cardKey
-export async function getCardDetails(cardKey: string): Promise<any> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/creditcard-detail-bycard/${cardKey}`, {
-      headers: {
-        'X-RapidAPI-Key': API_KEY || '',
-        'X-RapidAPI-Host': API_HOST
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data[0]; // API returns an array with a single object
-  } catch (error) {
-    console.error(`Error fetching card details for ${cardKey}:`, error);
-    throw error;
-  }
-}
-
-// Get all cards (limited version for testing)
-export async function getAllCards(): Promise<any[]> {
+// Get all cards
+export async function fetchAllCards(): Promise<CreditCardDetails[]> {
   try {
     // This API doesn't have a direct "get all cards" endpoint in your plan
     // So we'll use a common search term that will return some cards
@@ -64,62 +80,33 @@ export async function getAllCards(): Promise<any[]> {
       throw new Error(`API error: ${response.status}`);
     }
     
-    return await response.json();
+    const cards = await response.json();
+    const detailedCards: CreditCardDetails[] = [];
+    
+    // Get detailed information for each card (limit to 10 cards to avoid rate limits)
+    for (let i = 0; i < Math.min(cards.length, 10); i++) {
+      try {
+        const details = await getCardDetails(cards[i].cardKey);
+        detailedCards.push(details);
+      } catch (error) {
+        console.error(`Error fetching details for ${cards[i].cardName}:`, error);
+      }
+    }
+    
+    return detailedCards;
   } catch (error) {
     console.error('Error fetching all cards:', error);
     throw error;
   }
 }
 
-// Get card image
-export async function getCardImage(cardKey: string): Promise<string> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/creditcard-card-image/${cardKey}`, {
-      headers: {
-        'X-RapidAPI-Key': API_KEY || '',
-        'X-RapidAPI-Host': API_HOST
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data[0]?.cardImageUrl || '';
-  } catch (error) {
-    console.error(`Error fetching card image for ${cardKey}:`, error);
-    throw error;
-  }
-}
-
-
-export async function fetchAllCards(): Promise<any[]> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/creditcard-cardlist`, {
-      headers: {
-        'X-RapidAPI-Key': API_KEY || '',
-        'X-RapidAPI-Host': API_HOST
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching all cards:', error);
-    throw error;
-  }
-}
-
-export async function fetchCardById(cardKey: string): Promise<any> {
+// Get card details by cardKey
+export async function fetchCardById(cardKey: string): Promise<CreditCardDetails> {
   return getCardDetails(cardKey); // Reuse your existing function
 }
 
 // Map API card data to your application's format
-export function mapApiCardToAppFormat(apiCard: any): CreditCardDetails {
+export function mapApiCardToAppFormat(apiCard: ApiCardDetail): CreditCardDetails {
   // Parse reward rates from spend bonus categories
   const rewardRates: {
     dining: number;
@@ -140,25 +127,26 @@ export function mapApiCardToAppFormat(apiCard: any): CreditCardDetails {
   };
   
   if (apiCard.spendBonusCategory && Array.isArray(apiCard.spendBonusCategory)) {
-    apiCard.spendBonusCategory.forEach((category: any) => {
+    apiCard.spendBonusCategory.forEach((category) => {
       const categoryName = category.spendBonusCategoryName?.toLowerCase() || '';
+      const earnMultiplier = category.earnMultiplier || 1;
       
       // Map API categories to our categories
       if (categoryName.includes('dining') || categoryName.includes('restaurant')) {
-        rewardRates.dining = Math.max(rewardRates.dining, category.earnMultiplier || 1);
+        rewardRates.dining = Math.max(rewardRates.dining, earnMultiplier);
       }
       if (categoryName.includes('travel') || categoryName.includes('airline') || 
           categoryName.includes('hotel') || categoryName.includes('airfare')) {
-        rewardRates.travel = Math.max(rewardRates.travel, category.earnMultiplier || 1);
+        rewardRates.travel = Math.max(rewardRates.travel, earnMultiplier);
       }
       if (categoryName.includes('grocery') || categoryName.includes('supermarket')) {
-        rewardRates.grocery = Math.max(rewardRates.grocery, category.earnMultiplier || 1);
+        rewardRates.grocery = Math.max(rewardRates.grocery, earnMultiplier);
       }
       if (categoryName.includes('gas') || categoryName.includes('fuel')) {
-        rewardRates.gas = Math.max(rewardRates.gas, category.earnMultiplier || 1);
+        rewardRates.gas = Math.max(rewardRates.gas, earnMultiplier);
       }
       if (categoryName.includes('entertainment')) {
-        rewardRates.entertainment = Math.max(rewardRates.entertainment, category.earnMultiplier || 1);
+        rewardRates.entertainment = Math.max(rewardRates.entertainment, earnMultiplier);
       }
     });
   }
@@ -174,11 +162,12 @@ export function mapApiCardToAppFormat(apiCard: any): CreditCardDetails {
   // Map credit score
   let creditScore: "poor" | "fair" | "good" | "excellent" = "good";
   if (apiCard.creditRange) {
-    if (apiCard.creditRange.toLowerCase().includes('excellent')) {
+    const creditRangeLower = apiCard.creditRange.toLowerCase();
+    if (creditRangeLower.includes('excellent')) {
       creditScore = "excellent";
-    } else if (apiCard.creditRange.toLowerCase().includes('good')) {
+    } else if (creditRangeLower.includes('good')) {
       creditScore = "good";
-    } else if (apiCard.creditRange.toLowerCase().includes('fair')) {
+    } else if (creditRangeLower.includes('fair')) {
       creditScore = "fair";
     } else {
       creditScore = "poor";
@@ -188,7 +177,7 @@ export function mapApiCardToAppFormat(apiCard: any): CreditCardDetails {
   // Extract perks
   const perks: string[] = [];
   if (apiCard.benefit && Array.isArray(apiCard.benefit)) {
-    apiCard.benefit.forEach((benefit: any) => {
+    apiCard.benefit.forEach((benefit) => {
       if (benefit.benefitTitle) {
         perks.push(benefit.benefitTitle);
       }
@@ -238,4 +227,52 @@ export function mapApiCardToAppFormat(apiCard: any): CreditCardDetails {
     categories: categories.length > 0 ? categories : ['other'],
     description: apiCard.signupBonusDesc || `A ${apiCard.cardName} card from ${apiCard.cardIssuer}`
   };
+}
+
+// Get card details by cardKey
+export async function getCardDetails(cardKey: string): Promise<CreditCardDetails> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creditcard-detail-bycard/${cardKey}`, {
+      headers: {
+        'X-RapidAPI-Key': API_KEY || '',
+        'X-RapidAPI-Host': API_HOST
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('Invalid API response format');
+    }
+    
+    return mapApiCardToAppFormat(data[0] as ApiCardDetail);
+  } catch (error) {
+    console.error(`Error fetching card details for ${cardKey}:`, error);
+    throw error;
+  }
+}
+
+// Get card image
+export async function getCardImage(cardKey: string): Promise<string> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creditcard-card-image/${cardKey}`, {
+      headers: {
+        'X-RapidAPI-Key': API_KEY || '',
+        'X-RapidAPI-Host': API_HOST
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json() as ApiCardImage[];
+    return data[0]?.cardImageUrl || '';
+  } catch (error) {
+    console.error(`Error fetching card image for ${cardKey}:`, error);
+    throw error;
+  }
 }

@@ -41,7 +41,6 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
   card, 
   onDelete, 
   onNotInterested,
-  highlight = false
 }) => {
 
   const [expanded, setExpanded] = useState(false);
