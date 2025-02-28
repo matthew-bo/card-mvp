@@ -1,7 +1,6 @@
-import { collection, addDoc, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { fetchAllCards } from '@/services/cardApiService';
-import { CreditCardDetails } from '@/types/cards';
 
 const CARDS_COLLECTION = 'credit_cards';
 

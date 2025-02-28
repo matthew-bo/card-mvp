@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { populateFirestoreWithCards } from '@/utils/populateFirestoreCards';
-import { isAdmin } from '@/utils/adminConfig';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { creditCards as fallbackCards } from '@/lib/cardDatabase';
 import { fetchAllCards } from '@/services/cardApiService';

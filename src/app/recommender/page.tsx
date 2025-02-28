@@ -69,7 +69,8 @@ export default function RecommenderPage() {
     id: number;
   } | null>(null);
 
-  const handleAddCard = async (e: React.FormEvent) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCard) return;
   
