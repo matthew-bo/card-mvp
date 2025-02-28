@@ -210,7 +210,7 @@ useEffect(() => {
         },
         creditScore,
         excludeCardIds: notInterestedCards,
-        availableCards: allCards // Pass all cards to the recommendation engine
+        availableCards: allCards
       });
             
       setRecommendations(newRecommendations);
@@ -630,40 +630,6 @@ useEffect(() => {
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   {loading ? 'Adding...' : 'Add Expense'}
-                </button>
-              </form>
-            </div>
-
-            {/* Add Card Section */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Your Current Cards</h2>
-              <form onSubmit={handleAddCard} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Card</label>
-                  <select
-                    value={selectedCard}
-                    onChange={(e) => setSelectedCard(e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    disabled={loading}
-                  >
-                    <option value="">Select a card</option>
-                    {creditCards
-                      .filter(card => !userCards.some(c => c.id === card.id))
-                      .map((card) => (
-                        <option key={card.id} value={card.id}>
-                          {card.name}
-                        </option>
-                      ))
-                    }
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading || !selectedCard}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Adding...' : 'Add Card'}
                 </button>
               </form>
             </div>

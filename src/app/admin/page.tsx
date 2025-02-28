@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdmin } from '@/utils/adminConfig';
 import ApiUsageStats from '@/components/ApiUsageStats';
+import AdminCardManager from '@/components/AdminCardManager';
 
 
 interface UserPreference {
@@ -139,6 +140,9 @@ const UserManagement = () => {
               </tr>
               <div className="mb-8">
                 <ApiUsageStats />
+              </div>
+              <div className="mb-8">
+                <AdminCardManager />
               </div>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">

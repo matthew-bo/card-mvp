@@ -1,22 +1,12 @@
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Maximum allowed on hobby plan
+
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { CreditCardDetails } from '@/types/cards';
 import { mapApiCardToAppFormat } from '@/services/cardApiService';
 import { SimpleMonitor } from '@/utils/monitoring/simpleMonitor';
-
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Maximum allowed on hobby plan (60 seconds)
-
-interface ApiCardBasic {
-  cardKey: string;
-  cardName: string;
-  cardIssuer: string;
-  isActive?: number;
-}
-
-// Path to our card database file
-const DB_FILE_PATH = path.join(process.cwd(), 'data', 'card-database.json');
 
 export async function GET(request: Request) {
   try {
@@ -44,18 +34,27 @@ export async function GET(request: Request) {
     };
     
     // Fetch issuers with cards from the API
-    const response = await fetch(`${API_BASE_URL}/creditcard-cardlist`, {
+    const issuersResponse = await fetch(`${API_BASE_URL}/creditcard-cardlist`, {
       headers: apiHeaders
     });
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    if (!issuersResponse.ok) {
+      throw new Error(`API error: ${issuersResponse.status}`);
     }
     
-    const issuersWithCards = await response.json();
+    const issuersWithCards = await issuersResponse.json();
     
     // Process 50 cards at a time to avoid overwhelming the API
     const allCards: CreditCardDetails[] = [];
+    
+    // Define the type for card basics
+    interface ApiCardBasic {
+      cardKey: string;
+      cardName: string;
+      cardIssuer: string;
+      isActive?: number;
+    }
+    
     const allCardBasics: ApiCardBasic[] = [];
     
     // Collect all cards first
@@ -104,6 +103,9 @@ export async function GET(request: Request) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
+    
+    // Database file path to save the cards to
+    const DB_FILE_PATH = path.join(process.cwd(), 'data', 'card-database.json');
     
     // Save to file
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify({

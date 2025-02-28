@@ -37,6 +37,12 @@ if (!auth) throw new Error('Firebase auth initialization failed');
 if (!db) throw new Error('Firebase Firestore initialization failed');
 if (!storage) throw new Error('Firebase storage initialization failed');
 
+export const FIREBASE_COLLECTIONS = {
+  CREDIT_CARDS: 'credit_cards',
+  USER_CARDS: 'user_cards',
+  USER_PREFERENCES: 'user_preferences',
+  EXPENSES: 'expenses'
+};
 
 
 // Monitoring setup

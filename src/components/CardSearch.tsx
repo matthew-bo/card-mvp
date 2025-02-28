@@ -1,4 +1,3 @@
-// src/components/CardSearch.tsx
 import React, { useState, useEffect, useRef } from 'react';
 
 interface CardSearchProps {
@@ -37,11 +36,13 @@ export default function CardSearch({
       clearTimeout(debounceTimeout.current);
     }
     
+    // Add the async keyword here to make this an async function
     debounceTimeout.current = setTimeout(async () => {
       setLoading(true);
       setError(null);
       
       try {
+        // Use the search API that should query Firestore
         const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
         
         if (!response.ok) {

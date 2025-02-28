@@ -1,11 +1,9 @@
+// src/app/api/cards/search/route.ts
 import { NextResponse } from 'next/server';
-import { searchCardsByName } from '@/services/cardApiService';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export const dynamic = 'force-dynamic';
-
-// Cache search results for 1 day (very unlikely for card names to change)
-const CACHE = new Map();
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function GET(request: Request) {
   try {
@@ -19,31 +17,29 @@ export async function GET(request: Request) {
       );
     }
     
-    // Check cache
-    const cacheKey = `search_${searchTerm.toLowerCase()}`;
-    const cachedData = CACHE.get(cacheKey);
+    // Query Firestore for cards matching the search term
+    const cardsRef = collection(db, 'credit_cards');
     
-    if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
-      return NextResponse.json({
-        success: true,
-        data: cachedData.data,
-        cached: true
-      });
-    }
+    // This is a simple search - you may need to implement more sophisticated searching
+    // based on your data structure and Firebase plan
+    const q = query(
+      cardsRef,
+      where('name', '>=', searchTerm),
+      where('name', '<=', searchTerm + '\uf8ff'),
+      limit(20)
+    );
     
-    // Fetch from API
-    const cards = await searchCardsByName(searchTerm);
+    const snapshot = await getDocs(q);
     
-    // Update cache
-    CACHE.set(cacheKey, {
-      timestamp: Date.now(),
-      data: cards
-    });
+    const results = snapshot.docs.map(doc => ({
+      cardKey: doc.id,
+      cardName: doc.data().name,
+      cardIssuer: doc.data().issuer
+    }));
     
     return NextResponse.json({
       success: true,
-      data: cards,
-      cached: false
+      data: results
     });
   } catch (error) {
     console.error('Error in card search API route:', error);
