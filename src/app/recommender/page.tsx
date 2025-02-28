@@ -246,6 +246,7 @@ useEffect(() => {
 }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, creditCards, showNotification]);
 
   // Save data for non-logged in users
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!user) {
       const dataToSave = {
@@ -673,7 +674,12 @@ useEffect(() => {
                 Add Your Current Cards
               </label>
               <CardSearch 
-                onCardSelect={(cardKey, _cardName, _cardIssuer) => { // Parameters required by component interface
+                onCardSelect={(cardKey, 
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  _cardName, 
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  _cardIssuer
+                ) => {
                   // Handle card selection
                   setSelectedCard(cardKey);
                       

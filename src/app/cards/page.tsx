@@ -15,11 +15,14 @@ export default function CardsPage() {
   const [selectedCardKey, setSelectedCardKey] = useState<string>('');
   const [cardDetails, setCardDetails] = useState<CreditCardDetails | null>(null);
   const [userCards, setUserCards] = useState<CreditCardDetails[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // These state variables are maintained for API compatibility with CardSearch component
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCardName, set_SelectedCardName] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCardIssuer, set_SelectedCardIssuer] = useState<string>('');
 
   // Load user's existing cards
