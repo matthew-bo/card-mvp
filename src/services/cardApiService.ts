@@ -1,4 +1,5 @@
 import { CreditCardDetails } from '@/types/cards';
+import { ApiUsageMonth } from '@/types/cards';
 
 // Make sure these are accessible as environment variables
 const API_KEY = process.env.REWARDS_API_KEY;
@@ -65,7 +66,7 @@ export async function searchCardsByName(name: string): Promise<ApiCardBasic[]> {
 }
 
 
-export async function getApiUsage(): Promise<any> {
+export async function getApiUsage(): Promise<ApiUsageMonth[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/creditcard-apiusage/${API_KEY}`, {
       headers: {
