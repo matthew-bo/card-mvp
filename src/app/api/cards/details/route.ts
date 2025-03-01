@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getCardDetails } from '@/services/cardApiService';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export const dynamic = 'force-dynamic';
-
-// Cache card details for 1 week (they rarely change)
-const CACHE = new Map();
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export async function GET(request: Request) {
   try {
@@ -19,36 +16,46 @@ export async function GET(request: Request) {
       );
     }
     
-    // Check cache
-    const cacheKey = `details_${cardKey}`;
-    const cachedData = CACHE.get(cacheKey);
+    // Get all cards from Firebase
+    const cardsRef = collection(db, 'credit_cards');
+    const snapshot = await getDocs(cardsRef);
     
-    if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
-      return NextResponse.json({
-        success: true,
-        data: cachedData.data,
-        cached: true
-      });
+    // Find the card with the matching ID field
+    const cardDoc = snapshot.docs.find(doc => {
+      const data = doc.data();
+      return data.id === cardKey;
+    });
+    
+    if (!cardDoc) {
+      return NextResponse.json(
+        { success: false, error: 'Card not found' },
+        { status: 404 }
+      );
     }
     
-    // Fetch from API
-    const cardDetails = await getCardDetails(cardKey);
+    const data = cardDoc.data();
     
-    // Update cache
-    CACHE.set(cacheKey, {
-      timestamp: Date.now(),
-      data: cardDetails
-    });
-    
+    // Return the card in the expected format
     return NextResponse.json({
       success: true,
-      data: cardDetails,
-      cached: false
+      data: {
+        id: data.id,
+        name: data.name || '',
+        issuer: data.issuer || '',
+        rewardRates: data.rewardRates || {},
+        annualFee: data.annualFee || 0,
+        creditScoreRequired: data.creditScoreRequired || 'good',
+        perks: data.perks || [],
+        foreignTransactionFee: data.foreignTransactionFee === false ? false : true,
+        categories: data.categories || [],
+        description: data.description || '',
+        signupBonus: data.signupBonus || null
+      }
     });
   } catch (error) {
-    console.error('Error in card details API route:', error);
+    console.error('Error getting card details:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch card details' },
+      { success: false, error: 'Failed to get card details' },
       { status: 500 }
     );
   }

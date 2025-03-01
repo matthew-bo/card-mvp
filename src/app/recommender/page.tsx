@@ -310,6 +310,14 @@ useEffect(() => {
     }
   }, [user, creditCards]);
 
+  useEffect(() => {
+    console.log("Recommendations updated:", recommendations);
+  }, [recommendations]);
+  
+  useEffect(() => {
+    console.log("Not interested list updated:", notInterestedCards);
+  }, [notInterestedCards]);
+
   // =========== EVENT HANDLERS ===========
   // Handle adding expense
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -403,6 +411,16 @@ useEffect(() => {
   // Handle Not Interested Recommended Card
   const handleNotInterested = (cardId: string) => {
     setNotInterestedCards(prev => [...prev, cardId]);
+      // Only add to not interested if not already there
+  setNotInterestedCards(prev => {
+    if (prev.includes(cardId)) {
+      return prev; // Card already in list, don't add it again
+    }
+    return [...prev, cardId];
+  });
+  
+  // Remove from current recommendations
+  setRecommendations(prev => prev.filter(rec => rec.card.id !== cardId));
   };
   
   const handleRemoveFromNotInterested = (cardId: string) => {
@@ -604,14 +622,19 @@ useEffect(() => {
                 onCardSelect={(cardKey, _cardName, _cardIssuer) => {
                   console.log(`Card selected with key: ${cardKey}`);
                   
-                  // Find the card by ID in the available cards
-                  const card = availableCards.find(c => c.id === cardKey);
-    
-                  if (card) {
-                    handleCardSelection(card);
-                  } else {
-                    console.error(`Card not found with key: ${cardKey}`);
-                  }
+                  // Fetch the specific card from API instead of using availableCards
+                  fetch(`/api/cards/details?cardKey=${cardKey}`)
+                    .then(response => response.json())
+                    .then(data => {
+                      if (data.success && data.data) {
+                        handleCardSelection(data.data);
+                      } else {
+                        console.error('Failed to get card details');
+                      }
+                    })
+                    .catch(error => {
+                      console.error('Error fetching card details:', error);
+                    });
                 }}
                 excludeCardKeys={userCards.map(card => card.id)}
                 placeholder="Search for your cards..."

@@ -705,8 +705,12 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
     
     // Ensure we have enough cards to recommend
     recommendationCount = Math.min(recommendationCount, rankedCards.length);
+
+    const uniqueRecommendations = Array.from(
+      new Map(rankedCards.map(card => [card.card.id, card])).values()
+    );
     
-    return rankedCards.slice(0, recommendationCount);
+    return uniqueRecommendations.slice(0, recommendationCount);
   } catch (err) {
     console.error('Recommendation generation error:', err);
     return [];
