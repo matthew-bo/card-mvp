@@ -141,7 +141,11 @@ export async function fetchAllCards(): Promise<CreditCardDetails[]> {
     
     // For debugging, return just the basic cards without details
     // to see if at least this part is working
-    return cards.map((card: any) => ({
+    return cards.map((card: {
+      cardKey: string;
+      cardName: string;
+      cardIssuer: string;
+    }) => ({
       id: card.cardKey,
       name: card.cardName,
       issuer: card.cardIssuer,
@@ -155,7 +159,7 @@ export async function fetchAllCards(): Promise<CreditCardDetails[]> {
         other: 1
       },
       annualFee: 0,
-      creditScoreRequired: "good",
+      creditScoreRequired: "good" as const,
       perks: [],
       foreignTransactionFee: false,
       categories: ["temp"],
