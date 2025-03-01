@@ -602,18 +602,26 @@ useEffect(() => {
                 onCardSelect={(cardKey, _cardName, _cardIssuer) => {
                   console.log(`Card selected with key: ${cardKey}`);
                   
-                  // Fetch the specific card from API instead of using availableCards
+                  // Fetch card details
                   fetch(`/api/cards/details?cardKey=${cardKey}`)
-                    .then(response => response.json())
+                    .then(response => {
+                      if (!response.ok) {
+                        throw new Error(`Failed to fetch card details: ${response.status}`);
+                      }
+                      return response.json();
+                    })
                     .then(data => {
                       if (data.success && data.data) {
+                        console.log('Card details fetched:', data.data);
                         handleCardSelection(data.data);
                       } else {
-                        console.error('Failed to get card details');
+                        console.error('Card details response error:', data);
+                        setError('Failed to get card details');
                       }
                     })
                     .catch(error => {
                       console.error('Error fetching card details:', error);
+                      setError(`Failed to get card details: ${error.message}`);
                     });
                 }}
                 excludeCardKeys={userCards.map(card => card.id)}

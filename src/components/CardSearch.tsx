@@ -23,12 +23,13 @@ export default function CardSearch({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  
+  const [debug, setDebug] = useState(false);  
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     if (searchTerm.length < 3) {
       setResults([]);
+      setIsOpen(false);
       return;
     }
     
@@ -42,7 +43,7 @@ export default function CardSearch({
       setError(null);
       
       try {
-        console.log(`Searching for: ${searchTerm}`);
+        console.log(`Searching for: "${searchTerm}"`);
         
         const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
         
@@ -53,28 +54,25 @@ export default function CardSearch({
         const data = await response.json();
         console.log('Search response:', data);
         
-        if (!data.data || data.data.length === 0) {
-          console.log('No search results returned');
+        if (data.success && data.data && data.data.length > 0) {
+          // Filter out cards that are in the exclude list
+          const filteredResults = data.data.filter(
+            (card: SearchResult) => !excludeCardKeys.includes(card.cardKey)
+          );
+          
+          console.log(`Found ${filteredResults.length} results after filtering`);
+          setResults(filteredResults);
+          setIsOpen(true);
+        } else {
+          console.log('No search results found');
           setResults([]);
           setIsOpen(false);
-          return;
         }
-        
-        // Filter out cards that are in the exclude list
-        // Properly typed with SearchResult interface
-        const filteredResults = data.data.filter(
-          (card: SearchResult) => !excludeCardKeys.includes(card.cardKey)
-        );
-        
-        console.log(`Found ${filteredResults.length} results after filtering`);
-        console.log('Filtered results:', filteredResults);
-        
-        setResults(filteredResults);
-        setIsOpen(filteredResults.length > 0);
       } catch (err) {
         console.error('Error searching cards:', err);
         setError('Failed to search for cards');
         setResults([]);
+        setIsOpen(false);
       } finally {
         setLoading(false);
       }
@@ -97,14 +95,23 @@ export default function CardSearch({
   return (
     <div className="relative">
       <div className="relative">
-        <input
-          type="text"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder={placeholder}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onFocus={() => results.length > 0 && setIsOpen(true)}
-        />
+      <input
+        type="text"
+        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder={placeholder}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        onFocus={() => {
+            // Show results dropdown when input is focused if there are results
+            if (results.length > 0) {
+            setIsOpen(true);
+            }
+        }}
+        onBlur={() => {
+            // Delay hiding the dropdown to allow for clicking on results
+            setTimeout(() => setIsOpen(false), 200);
+        }}
+      />
         {loading && (
           <div className="absolute right-3 top-2.5">
             <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
@@ -119,25 +126,49 @@ export default function CardSearch({
       )}
       
       {isOpen && results.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-          {results.map((card) => (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {results.map((card) => (
             <div
-              key={card.cardKey}
-              className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelectCard(card)}
+                key={card.cardKey}
+                className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSelectCard(card)}
             >
-              <div className="font-medium">{card.cardName}</div>
-              <div className="text-sm text-gray-500">{card.cardIssuer}</div>
+                <div className="font-medium">{card.cardName}</div>
+                <div className="text-sm text-gray-500">{card.cardIssuer}</div>
             </div>
-          ))}
+            ))}
         </div>
-      )}
-      
+        )}
+
       {searchTerm.length >= 3 && results.length === 0 && !loading && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
           No cards found matching &quot;{searchTerm}&quot;
         </div>
       )}
+      {searchTerm.length >= 3 && (
+        <div className="mt-2 text-xs">
+            <button 
+            onClick={() => setDebug(!debug)} 
+            className="text-gray-500 underline"
+            >
+            {debug ? 'Hide Debug' : 'Show Debug'}
+            </button>
+            
+            {debug && (
+            <div className="mt-1 bg-gray-50 p-2 rounded border text-gray-600">
+                <p>Term: "{searchTerm}"</p>
+                <p>Results: {results.length}</p>
+                <p>Status: {loading ? 'Loading' : isOpen ? 'Open' : 'Closed'}</p>
+                {error && <p className="text-red-500">Error: {error}</p>}
+                {results.length > 0 && (
+                <pre className="mt-1 text-xs overflow-auto max-h-24">
+                    {JSON.stringify(results[0], null, 2)}
+                </pre>
+                )}
+            </div>
+            )}
+        </div>
+        )}
     </div>
   );
 }
