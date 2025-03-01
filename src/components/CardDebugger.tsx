@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 // Define types for the data structures
 interface SampleCard {
   documentId: string;
-  fields: Record<string, any>;
+  fields: Record<string, unknown>;
 }
 
 interface DebugInfo {
