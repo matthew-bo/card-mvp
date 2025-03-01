@@ -57,6 +57,7 @@ export default function RecommenderPage() {
   const [allCards, setAllCards] = useState<CreditCardDetails[]>([]);
   const [loadingAllCards, setLoadingAllCards] = useState(true);
   const [availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCard, setSelectedCard] = useState<string>('');
   
   // UI States
