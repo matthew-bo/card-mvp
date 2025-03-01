@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const searchTerm = url.searchParams.get('q');
     
-    console.log(`Card search request for term: "${searchTerm}"`);
+    console.log(`Search request for: "${searchTerm}"`);
     
     if (!searchTerm || searchTerm.length < 3) {
       return NextResponse.json(
@@ -18,13 +18,13 @@ export async function GET(request: Request) {
       );
     }
     
-    // Fetch all cards from Firebase
+    // Get all cards from Firebase
     const cardsRef = collection(db, 'credit_cards');
     const snapshot = await getDocs(cardsRef);
     
-    console.log(`Searching through ${snapshot.size} cards for: "${searchTerm}"`);
+    console.log(`Searching ${snapshot.size} cards`);
     
-    // Perform a case-insensitive search
+    // Find matches
     const matches = snapshot.docs.filter(doc => {
       const data = doc.data();
       const name = data.name || '';
@@ -35,18 +35,15 @@ export async function GET(request: Request) {
              issuer.toLowerCase().includes(searchLower);
     });
     
-    console.log(`Found ${matches.length} matching cards`);
+    console.log(`Found ${matches.length} matches`);
     
-    // Map to the structure expected by CardSearch component
+    // Transform to expected format for CardSearch component
     const results = matches.map(doc => {
       const data = doc.data();
-      // Log the exact structure to help debugging
-      if (matches.length > 0 && doc === matches[0]) {
-        console.log('Sample match data:', data);
-      }
       
+      // Important: Map the id field to cardKey
       return {
-        cardKey: data.id,  // IMPORTANT: Using data.id field, not doc.id
+        cardKey: data.id, // This is the critical mapping
         cardName: data.name || '',
         cardIssuer: data.issuer || ''
       };
@@ -57,7 +54,7 @@ export async function GET(request: Request) {
       data: results
     });
   } catch (error) {
-    console.error('Error in card search:', error);
+    console.error('Search error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to search cards' },
       { status: 500 }

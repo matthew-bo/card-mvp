@@ -9,7 +9,7 @@ export async function GET() {
   try {
     console.log('Fetching all cards');
     
-    // Fetch all cards from Firebase
+    // Get all cards from Firebase
     const cardsRef = collection(db, 'credit_cards');
     const snapshot = await getDocs(cardsRef);
     
@@ -24,18 +24,13 @@ export async function GET() {
       });
     }
     
-    // Map documents to card objects
+    // Transform to expected format for app
     const cards = snapshot.docs.map(doc => {
       const data = doc.data();
       
-      // Log the first card to debug
-      if (doc === snapshot.docs[0]) {
-        console.log('First card data:', data);
-      }
-      
-      // Return a properly formatted card object
+      // Return data with id field as the card ID
       return {
-        id: data.id, // Using field, not document ID
+        id: data.id,  // Keep the id field from the document
         name: data.name || '',
         issuer: data.issuer || '',
         rewardRates: data.rewardRates || {},
