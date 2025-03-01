@@ -156,7 +156,7 @@ export default function CardSearch({
             
             {debug && (
             <div className="mt-1 bg-gray-50 p-2 rounded border text-gray-600">
-                <p>Term: "{searchTerm}"</p>
+                <p>Term: &quot;{searchTerm}&quot;</p>
                 <p>Results: {results.length}</p>
                 <p>Status: {loading ? 'Loading' : isOpen ? 'Open' : 'Closed'}</p>
                 {error && <p className="text-red-500">Error: {error}</p>}
