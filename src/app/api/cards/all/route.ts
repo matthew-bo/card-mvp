@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { creditCards as fallbackCards } from '@/lib/cardDatabase';
-import { fetchAllCards } from '@/services/cardApiService';
-import { CreditCardDetails } from '@/types/cards';
 
 export const dynamic = 'force-dynamic';
 

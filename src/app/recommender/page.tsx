@@ -600,6 +600,7 @@ useEffect(() => {
                 Add Your Current Cards
               </label>
               <CardSearch 
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 onCardSelect={(cardKey, _cardName, _cardIssuer) => {
                   console.log(`Card selected: ${cardKey}`);
                   
