@@ -111,20 +111,58 @@ export async function fetchWithRateLimitHandling(url: string, options: RequestIn
 // Get all cards
 export async function fetchAllCards(): Promise<CreditCardDetails[]> {
   try {
+    console.log('Fetching all cards from API...');
+    
+    // Check that API key is configured
+    const API_KEY = process.env.REWARDS_API_KEY;
+    if (!API_KEY) {
+      console.error('API key not configured');
+      throw new Error('API key not configured');
+    }
+    
+    console.log('Using API endpoint: creditcard-detail-namesearch/card');
+    
     // This API doesn't have a direct "get all cards" endpoint in your plan
     // So we'll use a common search term that will return some cards
     const response = await fetch(`${API_BASE_URL}/creditcard-detail-namesearch/card`, {
       headers: {
-        'X-RapidAPI-Key': API_KEY || '',
+        'X-RapidAPI-Key': API_KEY,
         'X-RapidAPI-Host': API_HOST
       }
     });
     
     if (!response.ok) {
+      console.error(`API error: ${response.status}`);
       throw new Error(`API error: ${response.status}`);
     }
     
     const cards = await response.json();
+    console.log(`API returned ${cards.length} basic cards`);
+    
+    // For debugging, return just the basic cards without details
+    // to see if at least this part is working
+    return cards.map((card: any) => ({
+      id: card.cardKey,
+      name: card.cardName,
+      issuer: card.cardIssuer,
+      rewardRates: {
+        dining: 1,
+        travel: 1,
+        grocery: 1,
+        gas: 1,
+        entertainment: 1,
+        rent: 1,
+        other: 1
+      },
+      annualFee: 0,
+      creditScoreRequired: "good",
+      perks: [],
+      foreignTransactionFee: false,
+      categories: ["temp"],
+      description: card.cardName
+    }));
+    
+    /* Comment out the detailed fetching for now to see if basic search works
     const detailedCards: CreditCardDetails[] = [];
     
     // Get detailed information for each card (limit to 10 cards to avoid rate limits)
@@ -138,6 +176,7 @@ export async function fetchAllCards(): Promise<CreditCardDetails[]> {
     }
     
     return detailedCards;
+    */
   } catch (error) {
     console.error('Error fetching all cards:', error);
     throw error;
