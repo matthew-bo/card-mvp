@@ -2,10 +2,33 @@
 
 import { useState, useEffect } from 'react';
 
+// Define types for the data structures
+interface SampleCard {
+  documentId: string;
+  fields: Record<string, any>;
+}
+
+interface DebugInfo {
+  success: boolean;
+  totalCards: number;
+  sampleCards: SampleCard[];
+}
+
+interface SearchResultCard {
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
+}
+
+interface SearchResult {
+  success: boolean;
+  data: SearchResultCard[];
+}
+
 export default function CardDebugger() {
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchResult, setSearchResult] = useState<any>(null);
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Fetch debug info
@@ -99,7 +122,7 @@ export default function CardDebugger() {
                 
                 <p className="font-medium mt-3">All Results:</p>
                 <ul className="mt-1 text-sm">
-                  {searchResult.data.map((card: any, i: number) => (
+                  {searchResult.data.map((card: SearchResultCard, i: number) => (
                     <li key={i} className="py-1 border-b last:border-0">
                       {card.cardName} ({card.cardIssuer}) - Key: {card.cardKey}
                     </li>
