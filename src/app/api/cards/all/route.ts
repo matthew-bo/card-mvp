@@ -8,23 +8,46 @@ import { CreditCardDetails } from '@/types/cards';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  try {
-    console.log('API Request: /api/cards/all');
-    
-    // Try to get cards from Firestore
-    const cardsRef = collection(db, 'credit_cards');
-    const cardsSnapshot = await getDocs(cardsRef);
-    
-    // If we have cards in Firestore, return them
-    if (!cardsSnapshot.empty) {
-      console.log(`Retrieved ${cardsSnapshot.size} cards from Firestore`);
+    try {
+      console.log('API Request: /api/cards/all');
       
+      // Check if cards collection exists in Firebase
+      const cardsRef = collection(db, 'credit_cards');
+      const cardsSnapshot = await getDocs(cardsRef);
+      
+      console.log(`Found ${cardsSnapshot.size} cards in Firebase`);
+      
+      if (cardsSnapshot.empty) {
+        console.log('No cards found in Firebase, returning fallback data');
+        return NextResponse.json({
+          success: true,
+          data: fallbackCards,
+          fallback: true
+        });
+      }
+      
+      // Convert Firebase docs to expected format
       const cards = cardsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Map the document data to the expected format
         return {
-          id: doc.id,
-          ...doc.data()
-        } as CreditCardDetails;
+          // Use the 'id' field from the document data, not the document ID
+          id: data.id,
+          name: data.name,
+          issuer: data.issuer,
+          rewardRates: data.rewardRates || {},
+          annualFee: data.annualFee || 0,
+          creditScoreRequired: data.creditScoreRequired || 'good',
+          perks: data.perks || [],
+          foreignTransactionFee: data.foreignTransactionFee || false,
+          categories: data.categories || [],
+          description: data.description || '',
+          signupBonus: data.signupBonus || null
+        };
       });
+      
+      console.log(`Returning ${cards.length} cards from Firebase`);
       
       return NextResponse.json({
         success: true,
@@ -32,45 +55,15 @@ export async function GET() {
         cached: true,
         count: cards.length
       });
-    }
-    
-    // If Firestore is empty, try to fetch from API
-    console.log('No cards in Firestore, fetching from API');
-    try {
-      const apiCards = await fetchAllCards();
-      console.log(`Fetched ${apiCards.length} cards from API`);
+    } catch (error) {
+      console.error('Error loading card database:', error);
       
-      // Store cards in Firestore for future use
-      // Note: This should ideally be done in a batch or separate function
-      // to avoid timeouts on the request
-      
-      return NextResponse.json({
-        success: true,
-        data: apiCards,
-        cached: false,
-        fromApi: true,
-        count: apiCards.length
-      });
-    } catch (apiError) {
-      console.error('API fetch failed, using fallback data:', apiError);
+      // Return fallback data on error
       return NextResponse.json({
         success: true,
         data: fallbackCards,
         fallback: true,
-        error: 'API error, using fallback data',
-        count: fallbackCards.length
+        error: 'Error loading database, using fallback data'
       });
     }
-  } catch (error) {
-    console.error('Error loading card database:', error);
-    
-    // Return fallback data on error
-    return NextResponse.json({
-      success: true,
-      data: fallbackCards,
-      fallback: true,
-      error: 'Error loading database, using fallback data',
-      count: fallbackCards.length
-    });
   }
-}

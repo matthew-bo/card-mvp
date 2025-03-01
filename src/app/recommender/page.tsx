@@ -600,19 +600,17 @@ useEffect(() => {
                 Add Your Current Cards
               </label>
               <CardSearch 
-                onCardSelect={(cardKey, 
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  _cardName, 
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  _cardIssuer
-                ) => {
-                  // Handle card selection
-                  setSelectedCard(cardKey);
-                      
-                  // Fetch card details or use cached ones
+                onCardSelect={(cardKey, _cardName, _cardIssuer) => {
+                  console.log(`Card selected: ${cardKey}`);
+                  
+                  // Find the card by ID in the available cards
                   const card = availableCards.find(c => c.id === cardKey);
+                  
                   if (card) {
+                    console.log('Found card:', card);
                     handleCardSelection(card);
+                  } else {
+                    console.error(`Card ${cardKey} not found in available cards`);
                   }
                 }}
                 excludeCardKeys={userCards.map(card => card.id)}

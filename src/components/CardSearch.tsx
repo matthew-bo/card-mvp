@@ -6,6 +6,7 @@ interface CardSearchProps {
   excludeCardKeys?: string[];
 }
 
+// Define a proper interface for search results
 interface SearchResult {
   cardKey: string;
   cardName: string;
@@ -36,13 +37,13 @@ export default function CardSearch({
       clearTimeout(debounceTimeout.current);
     }
     
-    // Add the async keyword here to make this an async function
     debounceTimeout.current = setTimeout(async () => {
       setLoading(true);
       setError(null);
       
       try {
-        // Use the search API that should query Firestore
+        console.log(`Searching for: ${searchTerm}`);
+        
         const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
         
         if (!response.ok) {
@@ -50,14 +51,26 @@ export default function CardSearch({
         }
         
         const data = await response.json();
+        console.log('Search response:', data);
+        
+        if (!data.data || data.data.length === 0) {
+          console.log('No search results returned');
+          setResults([]);
+          setIsOpen(false);
+          return;
+        }
         
         // Filter out cards that are in the exclude list
+        // Properly typed with SearchResult interface
         const filteredResults = data.data.filter(
           (card: SearchResult) => !excludeCardKeys.includes(card.cardKey)
         );
         
+        console.log(`Found ${filteredResults.length} results after filtering`);
+        console.log('Filtered results:', filteredResults);
+        
         setResults(filteredResults);
-        setIsOpen(true);
+        setIsOpen(filteredResults.length > 0);
       } catch (err) {
         console.error('Error searching cards:', err);
         setError('Failed to search for cards');
