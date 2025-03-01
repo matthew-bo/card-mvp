@@ -1,6 +1,6 @@
 // src/app/api/admin-access/route.ts
 import { NextResponse } from 'next/server';
-import { collection, addDoc, writeBatch, doc } from 'firebase/firestore';
+import { collection, writeBatch, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { creditCards } from '@/lib/cardDatabase';
 
