@@ -1,77 +1,48 @@
 // src/app/api/admin-access/route.ts
 import { NextResponse } from 'next/server';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, writeBatch, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { fetchAllCards } from '@/services/cardApiService';
-import { creditCards as fallbackCards } from '@/lib/cardDatabase';
+import { creditCards } from '@/lib/cardDatabase';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    console.log('Starting direct admin card population');
+    console.log('Starting population with local fallback data');
+    console.log(`Using ${creditCards.length} cards from fallback data`);
     
-    // Try fetching cards from API
-    try {
-      const cards = await fetchAllCards();
-      console.log(`Fetched ${cards.length} cards from API`);
+    // Use batched writes for better performance
+    const BATCH_SIZE = 100; // Firestore has a limit of 500 operations per batch
+    let addedCount = 0;
+    
+    for (let i = 0; i < creditCards.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      const currentBatch = creditCards.slice(i, i + BATCH_SIZE);
       
-      // Add to Firebase
-      let addedCount = 0;
-      for (const card of cards) {
-        try {
-          await addDoc(collection(db, 'credit_cards'), {
-            ...card,
-            createdAt: new Date()
-          });
-          addedCount++;
-        } catch (addError) {
-          console.error('Error adding card to Firebase:', addError);
-          // Continue with next card
-        }
+      for (const card of currentBatch) {
+        const cardRef = doc(collection(db, 'credit_cards'));
+        batch.set(cardRef, {
+          ...card,
+          createdAt: new Date()
+        });
+        addedCount++;
       }
       
-      return NextResponse.json({
-        success: true,
-        message: `Added ${addedCount} cards to Firebase`,
-        cardCount: addedCount
-      });
-    } catch (apiError) {
-      console.error('API fetch failed, using fallback data:', apiError);
-      
-      // Use fallback data instead
-      console.log('Falling back to sample data');
-      
-      let addedCount = 0;
-      for (const card of fallbackCards) {
-        try {
-          await addDoc(collection(db, 'credit_cards'), {
-            ...card,
-            createdAt: new Date()
-          });
-          addedCount++;
-        } catch (addError) {
-          console.error('Error adding fallback card to Firebase:', addError);
-        }
-      }
-      
-      return NextResponse.json({
-        success: true,
-        message: `Added ${addedCount} fallback cards to Firebase`,
-        cardCount: addedCount,
-        source: 'fallback'
-      });
+      await batch.commit();
+      console.log(`Committed batch of ${currentBatch.length} cards to Firestore (${addedCount}/${creditCards.length} total)`);
     }
-  } catch (error) {
-    // Log the full error details
-    console.error('Error in admin population:', error);
-    let errorMessage = 'Unknown error';
     
+    return NextResponse.json({
+      success: true,
+      message: `Added ${addedCount} cards to Firebase`,
+      cardCount: addedCount
+    });
+  } catch (error) {
+    console.error('Error in admin population:', error);
+    
+    let errorMessage = 'Unknown error';
     if (error instanceof Error) {
       errorMessage = `${error.name}: ${error.message}`;
-      if (error.stack) {
-        console.error('Stack trace:', error.stack);
-      }
     }
     
     return NextResponse.json({
