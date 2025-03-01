@@ -602,16 +602,15 @@ useEffect(() => {
               <CardSearch 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 onCardSelect={(cardKey, _cardName, _cardIssuer) => {
-                  console.log(`Card selected: ${cardKey}`);
+                  console.log(`Card selected with key: ${cardKey}`);
                   
                   // Find the card by ID in the available cards
                   const card = availableCards.find(c => c.id === cardKey);
-                  
+    
                   if (card) {
-                    console.log('Found card:', card);
                     handleCardSelection(card);
                   } else {
-                    console.error(`Card ${cardKey} not found in available cards`);
+                    console.error(`Card not found with key: ${cardKey}`);
                   }
                 }}
                 excludeCardKeys={userCards.map(card => card.id)}
