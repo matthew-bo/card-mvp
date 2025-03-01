@@ -56,8 +56,7 @@ export default function RecommenderPage() {
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
   const [allCards, setAllCards] = useState<CreditCardDetails[]>([]);
   const [loadingAllCards, setLoadingAllCards] = useState(true);
-  const [_availableCards, setAvailableCards] = useState<CreditCardDetails[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCard, setSelectedCard] = useState<string>('');
   
   // UI States
@@ -114,25 +113,6 @@ export default function RecommenderPage() {
       }
     }
   }, [user]);
-
-  //add cards
-  useEffect(() => {
-    async function loadCards() {
-      try {
-        const response = await fetch('/api/cards/all');
-        if (!response.ok) {
-          throw new Error('Failed to load cards');
-        }
-        const data = await response.json();
-        setAvailableCards(data.data);
-      } catch (error) {
-        console.error('Error loading cards:', error);
-        setError('Failed to load card database');
-      }
-    }
-    
-    loadCards();
-  }, []);
 
     // Add useEffect to load all cards
     useEffect(() => {
