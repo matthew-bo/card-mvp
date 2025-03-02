@@ -39,6 +39,17 @@ interface SearchResultCard {
   cardIssuer: string;
 }
 
+interface ScoredCard {
+  card: CreditCardDetails;
+  reason: string;
+  score: number;
+  matchPercentage: number;
+  potentialAnnualValue: number;
+  complementScore: number;
+  longTermValue: number;
+  portfolioContribution: string[];
+}
+
 export default function RecommenderPage() {
   const { user } = useAuth();
   
@@ -122,36 +133,56 @@ export default function RecommenderPage() {
   }, [user]);
 
     // Add useEffect to load all cards
-    useEffect(() => {
-      const loadAllCards = async () => {
-        setLoadingAllCards(true);
-        try {
-          // Use a server endpoint that returns all cards
-          const response = await fetch('/api/cards/all');
-          if (!response.ok) {
-            throw new Error('Failed to load card database');
-          }
-          
-          const data = await response.json();
-          console.log(`Loaded ${data.data.length} cards from database`);
-          setAllCards(data.data);
-        } catch (error) {
-          console.error('Error loading all cards:', error);
-          setError('Failed to load card database');
-        } finally {
-          setLoadingAllCards(false);
+    const loadAllCards = async () => {
+      setLoadingAllCards(true);
+      try {
+        // Use a server endpoint that returns all cards
+        const response = await fetch('/api/cards/all');
+        if (!response.ok) {
+          throw new Error('Failed to load card database');
         }
-      };
-      
-      loadAllCards();
-    }, []);
+        
+        const data = await response.json();
+        console.log(`Loaded ${data.data.length} cards from ${data.source || 'unknown'} source`);
+        
+        // Log some sample cards to see what we're getting
+        if (data.data.length > 0) {
+          console.log('Sample cards:', data.data.slice(0, 3).map((card: CreditCardDetails) => ({
+            id: card.id,
+            name: card.name,
+            issuer: card.issuer
+          })));
+        }
+        
+        setAllCards(data.data);
+      } catch (error) {
+        console.error('Error loading all cards:', error);
+        setError('Failed to load card database');
+      } finally {
+        setLoadingAllCards(false);
+      }
+    };
     
 // When generating recommendations, use allCards parameter 
+// Inside the recommender useEffect
 useEffect(() => {
   try {
     if (!loadingAllCards && allCards.length > 0) {
       console.log(`Generating recommendations with ${allCards.length} available cards`);
-      const newRecommendations = getCardRecommendations({
+      
+      // Force diversity by selecting cards randomly from all available cards
+      // rather than relying solely on the recommendation algorithm
+      
+      // Step 1: Filter out cards the user already has or isn't interested in
+      const availableForRecommendation = allCards.filter((card: CreditCardDetails) => 
+        !userCards.some(uc => uc.id === card.id) && 
+        !notInterestedCards.includes(card.id)
+      );
+      
+      console.log(`After filtering user cards and not interested, ${availableForRecommendation.length} cards remain`);
+      
+      // Step 2: Get algorithm recommendations
+      const algorithmRecommendations = getCardRecommendations({
         expenses,
         currentCards: userCards,
         optimizationSettings: {
@@ -160,41 +191,50 @@ useEffect(() => {
         },
         creditScore,
         excludeCardIds: notInterestedCards,
-        availableCards: allCards // Make sure this is passed correctly
+        availableCards: allCards
       });
-            
-      console.log(`Generated ${newRecommendations.length} recommendations`);
-      setRecommendations(newRecommendations);
+      
+      console.log(`Algorithm generated ${algorithmRecommendations.length} recommendations`);
+      
+      // Step 3: Ensure we have at least 6-10 recommendations by adding random cards if needed
+      let finalRecommendations = [...algorithmRecommendations];
+      
+      if (finalRecommendations.length < 6 && availableForRecommendation.length > 0) {
+        console.log('Adding random cards to ensure sufficient recommendations');
+        
+        // Randomly select cards that aren't already in the recommendations
+        const recommendedCardIds = finalRecommendations.map(rec => rec.card.id);
+        const additionalCandidates = availableForRecommendation.filter(
+          (card: CreditCardDetails) => !recommendedCardIds.includes(card.id)
+        );
+        
+        // Randomly select from remaining cards
+        const randomCards = additionalCandidates
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 10 - finalRecommendations.length);
+        
+        const randomRecommendations = randomCards.map((card: CreditCardDetails) => ({
+          card,
+          reason: "Additional option for your consideration",
+          score: 50,
+          matchPercentage: 70,
+          potentialAnnualValue: 500, // Default value
+          complementScore: 40,       // Default value
+          longTermValue: 600,        // Default value
+          portfolioContribution: ["Adds diversity to your portfolio"] // Default value
+        })) as ScoredCard[];
+        
+        finalRecommendations = [...finalRecommendations, ...randomRecommendations];
+      }
+      
+      console.log(`Final recommendation count: ${finalRecommendations.length}`);
+      setRecommendations(finalRecommendations);
     }
   } catch (err) {
     console.error('Error updating recommendations:', err);
     setError('Failed to update recommendations.');
   }
 }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);
-
-// Calculate recommendations whenever dependencies change
-useEffect(() => {
-  try {
-    if (creditCards && creditCards.length > 0) {
-      const newRecommendations = getCardRecommendations({
-        expenses,
-        currentCards: userCards,
-        optimizationSettings: {
-          preference: optimizationPreference,
-          zeroAnnualFee
-        },
-        creditScore,
-        excludeCardIds: notInterestedCards
-      });
-            
-      setRecommendations(newRecommendations);
-    }
-  } catch (err) {
-    const error = err as Error;
-    console.error('Error updating recommendations:', error);
-    setError('Failed to update recommendations.');
-  }
-}, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, creditCards, showNotification]);
 
   // Save data for non-logged in users  
   useEffect(() => {
@@ -900,6 +940,31 @@ useEffect(() => {
                 <div className="text-sm text-gray-500">{card.cardIssuer}</div>
               </div>
             ))}
+
+            {/* refresh cards */}
+            <button 
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  const response = await fetch('/api/cards/all?refresh=true');
+                  if (response.ok) {
+                    const data = await response.json();
+                    setAllCards(data.data);
+                    alert(`Successfully refreshed card database. Loaded ${data.data.length} cards from ${data.source || 'unknown'} source.`);
+                  } else {
+                    alert('Failed to refresh card database.');
+                  }
+                } catch (error) {
+                  console.error('Error refreshing cards:', error);
+                  alert('Error refreshing card database. See console for details.');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Refresh Card Database
+            </button>
 
             {/* Recommended Cards */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
