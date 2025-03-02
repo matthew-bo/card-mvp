@@ -690,7 +690,7 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
     // let recommendationCount = 2; // Default minimum
     
     // Instead, directly set the final recommendationCount
-    const maxRecommendations = 10; // Increase from original value
+    const maxRecommendations = 20; // Increase from original value
     
     // Adjust based on portfolio analysis
     let finalRecommendationCount = maxRecommendations;

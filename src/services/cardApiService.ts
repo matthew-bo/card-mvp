@@ -283,15 +283,6 @@ export function mapApiCardToAppFormat(apiCard: ApiCardDetail): CreditCardDetails
     });
   }
   
-  // Determine categories
-  const categories: string[] = [];
-  if (rewardRates.dining > baseSpend) categories.push('dining');
-  if (rewardRates.travel > baseSpend) categories.push('travel');
-  if (rewardRates.grocery > baseSpend) categories.push('grocery');
-  if (rewardRates.gas > baseSpend) categories.push('gas');
-  if (apiCard.baseSpendEarnType?.toLowerCase().includes('cash')) categories.push('cashback');
-  if (apiCard.baseSpendEarnType?.toLowerCase().includes('point')) categories.push('points');
-  
   // Create signup bonus data if available
   let signupBonus = undefined;
   if (apiCard.isSignupBonus === 1 && apiCard.signupBonusAmount) {
@@ -313,17 +304,36 @@ export function mapApiCardToAppFormat(apiCard: ApiCardDetail): CreditCardDetails
     }
   }
   
+  // Create categories array with more variety
+  const categories: string[] = [];
+  if (rewardRates.dining > baseSpend) categories.push('dining');
+  if (rewardRates.travel > baseSpend) categories.push('travel');
+  if (rewardRates.grocery > baseSpend) categories.push('grocery');
+  if (rewardRates.gas > baseSpend) categories.push('gas');
+  if (apiCard.baseSpendEarnType?.toLowerCase().includes('cash')) categories.push('cashback');
+  if (apiCard.baseSpendEarnType?.toLowerCase().includes('point')) categories.push('points');
+  
+  // Add additional categories to ensure diversity
+  if (apiCard.annualFee === 0) categories.push('no-annual-fee');
+  if (parseFloat(String(apiCard.annualFee)) > 300) categories.push('premium');
+  if (!apiCard.isFxFee) categories.push('no-foreign-fee');
+  
+  // Ensure we have at least one category
+  if (categories.length === 0) {
+    categories.push('other');
+  }
+  
   return {
-    id: apiCard.cardKey,
-    name: apiCard.cardName,
-    issuer: apiCard.cardIssuer,
+    id: apiCard.cardKey || '',
+    name: apiCard.cardName || '',
+    issuer: apiCard.cardIssuer || '',
     rewardRates: rewardRates,
     annualFee: parseInt(String(apiCard.annualFee)) || 0,
     creditScoreRequired: creditScore,
     perks: perks,
     signupBonus: signupBonus,
     foreignTransactionFee: apiCard.isFxFee === 1,
-    categories: categories.length > 0 ? categories : ['other'],
+    categories: categories,
     description: apiCard.signupBonusDesc || `A ${apiCard.cardName} card from ${apiCard.cardIssuer}`
   };
 }

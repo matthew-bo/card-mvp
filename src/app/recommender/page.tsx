@@ -905,17 +905,32 @@ useEffect(() => {
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Recommended Cards</h2>
-                {notInterestedCards.length > 0 && (
-                  <button
-                    onClick={() => setShowNotInterestedList(true)}
-                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                  >
-                    <span>Not Interested ({notInterestedCards.length})</span>
-                    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                )}
+                <div className="flex space-x-4">
+                  {/* Pagination or View More button, only show if there are more than 6 cards */}
+                  {recommendations.length > 6 && (
+                    <button
+                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                      onClick={() => {
+                        // You can implement pagination here or navigate to a full recommendations page
+                        alert('You can implement pagination or a "View All" page here');
+                      }}
+                    >
+                      View All ({recommendations.length})
+                    </button>
+                  )}
+                  
+                  {notInterestedCards.length > 0 && (
+                    <button
+                      onClick={() => setShowNotInterestedList(true)}
+                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                    >
+                      <span>Not Interested ({notInterestedCards.length})</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
               
               {loading ? (
@@ -940,7 +955,8 @@ useEffect(() => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {recommendations.map(({ card, reason }) => (
+                  {/* Only show the first 6 recommendations */}
+                  {recommendations.slice(0, 6).map(({ card, reason }) => (
                     <div key={card.id} className="relative">
                       <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center z-10">
                         {reason}
