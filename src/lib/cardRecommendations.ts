@@ -493,7 +493,7 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
     // Log the number of available cards for debugging
     console.log(`Filtering recommendations from ${cardsToFilter.length} available cards`);
 
-    // Filter available cards - make sure we're not filtering too aggressively
+    // Filter available cards
     const filteredCards = cardsToFilter.filter(cardItem => {
       // Filter out cards user already has
       if (currentCards.some(userCard => userCard.id === cardItem.id)) {
@@ -505,16 +505,16 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
         return false;
       }
       
-      // Credit score check - be more lenient if needed
+      // Credit score check - make this stricter
       const requiredScore = CREDIT_SCORE_MAP[cardItem.creditScoreRequired] || CREDIT_SCORE_MAP.good;
       const userScoreValue = CREDIT_SCORE_MAP[creditScore] || CREDIT_SCORE_MAP.good;
       if (userScoreValue < requiredScore) {
-        return false;
+        return false; // Don't show cards that require better credit than user has
       }
       
-      // Annual fee check
+      // Annual fee check - enforce strictly
       if (optimizationSettings.zeroAnnualFee && cardItem.annualFee > 0) {
-        return false;
+        return false; // Strictly filter out cards with annual fees when requested
       }
       
       return true;
@@ -709,8 +709,8 @@ return {
 const rankedCards = scoredCards
 .sort((a: ScoredCard, b: ScoredCard) => b.score - a.score);
 
-// For a portfolio, we want to recommend 2-4 cards (max 6)
-const recommendationCount = Math.min(4, Math.max(2, Math.min(6, rankedCards.length)));
+// For a portfolio, we want to recommend 2-4 cards
+const recommendationCount = Math.min(4, Math.max(2, Math.min(4, rankedCards.length)));
 
 // Get unique top recommendations
 const uniqueRecommendations = Array.from(
