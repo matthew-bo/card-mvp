@@ -951,22 +951,33 @@ useEffect(() => {
               onClick={async () => {
                 try {
                   setLoading(true);
+                  // First check the API test
+                  const testResponse = await fetch('/api/test-api');
+                  const testData = await testResponse.json();
+                  
+                  if (!testData.success) {
+                    alert(`API test failed: ${testData.error}. Status: ${testData.status} ${testData.statusText}`);
+                    setLoading(false);
+                    return;
+                  }
+                  
+                  // Now try the actual card refresh
                   const response = await fetch('/api/cards/all?refresh=true');
                   if (response.ok) {
                     const data = await response.json();
                     setAllCards(data.data);
-                    alert(`Successfully refreshed card database. Loaded ${data.data.length} cards from ${data.source || 'unknown'} source.`);
+                    alert(`Successfully refreshed card database. Loaded ${data.data.length} cards from ${data.source || 'unknown'} source.\nAPI calls remaining: ${testData.apiCallsRemaining || 'unknown'}`);
                   } else {
-                    alert('Failed to refresh card database.');
+                    alert(`Failed to refresh card database. Status: ${response.status} ${response.statusText}`);
                   }
                 } catch (error) {
                   console.error('Error refreshing cards:', error);
-                  alert('Error refreshing card database. See console for details.');
+                  alert(`Error refreshing card database: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 } finally {
                   setLoading(false);
                 }
               }}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm"
             >
               Refresh Card Database
             </button>
