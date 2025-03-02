@@ -236,6 +236,11 @@ useEffect(() => {
   }
 }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);
 
+  //call load cards
+  useEffect(() => {
+    loadAllCards();
+  }, []);
+
   // Save data for non-logged in users  
   useEffect(() => {
     if (!user) {

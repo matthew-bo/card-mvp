@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+// Remove unused imports
 import { creditCards as fallbackCards } from '@/lib/cardDatabase';
 import { CreditCardDetails, CreditScoreType } from '@/types/cards';
 
@@ -45,7 +44,8 @@ export async function GET(request: Request) {
       const issuersWithCards = await response.json();
       console.log(`API returned data for ${issuersWithCards.length} issuers`);
       
-      let allCards: CreditCardDetails[] = [];
+      // Use const instead of let since it's never reassigned
+      const allCards: CreditCardDetails[] = [];
       
       // Extract all cards from all issuers and create a diverse set
       for (const issuer of issuersWithCards) {
