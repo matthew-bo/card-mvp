@@ -509,19 +509,57 @@ useEffect(() => {
 
   // Handle Not Interested Recommended Card
   const handleNotInterested = (cardId: string) => {
-    setNotInterestedCards(prev => [...prev, cardId]);
-      // Only add to not interested if not already there
-  setNotInterestedCards(prev => {
-    if (prev.includes(cardId)) {
-      return prev; // Card already in list, don't add it again
-    }
-    return [...prev, cardId];
-  });
-  
-  // Remove from current recommendations
-  setRecommendations(prev => prev.filter(rec => rec.card.id !== cardId));
+    // Add to not interested list if not already there
+    setNotInterestedCards(prev => {
+      if (prev.includes(cardId)) {
+        return prev; // Card already in list, don't add it again
+      }
+      return [...prev, cardId];
+    });
+    
+    // Remove from current recommendations
+    setRecommendations(prev => {
+      // Filter out the card that was marked "not interested"
+      const updatedRecs = prev.filter(rec => rec.card.id !== cardId);
+      
+      // If we now have fewer than the target number of cards (e.g., 4), get a replacement
+      if (updatedRecs.length < 4 && allCards.length > 0) {
+        // Find the next best card that's not already recommended or marked as not interested
+        const currentRecIds = updatedRecs.map(rec => rec.card.id);
+        const allNotInterestedIds = [...notInterestedCards, cardId]; // Include the one just marked
+        
+        // Find potential replacement cards
+        const replacementCandidates = allCards.filter(card => 
+          !currentRecIds.includes(card.id) && 
+          !allNotInterestedIds.includes(card.id)
+        );
+        
+        if (replacementCandidates.length > 0) {
+          // Sort replacements with some randomness for variety
+          const sortedReplacements = replacementCandidates
+            .map(card => ({ 
+              card, 
+              score: Math.random() * 100 // Random score for variety
+            }))
+            .sort((a, b) => b.score - a.score);
+            
+          // Take the top replacement
+          const replacement = sortedReplacements[0];
+          
+          // Add the replacement to recommendations
+          updatedRecs.push({
+            card: replacement.card,
+            reason: "Additional card for your consideration",
+            score: 50,
+          } as RecommendedCard); // Use type assertion to force compatibility
+        }
+      }
+      
+      return updatedRecs;
+    });
   };
-  
+
+   // handle remove from not interested
   const handleRemoveFromNotInterested = (cardId: string) => {
     setNotInterestedCards(prev => {
       const updatedList = prev.filter(id => id !== cardId);

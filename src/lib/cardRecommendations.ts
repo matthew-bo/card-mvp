@@ -653,76 +653,73 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       if (valueDescription) {
         reasons.push(valueDescription);
       }
-      
-      // 8. Calculate final score with all components
-      const baseScore = preferenceScore + spendingScore + perksScore + valueScore + signupScore;
-      const portfolioFactors = (complementScore / 100 * weights.complement) + (longTermValue / 1000 * weights.longTerm);
-      
-      const totalScore = baseScore + portfolioFactors;
-      const matchPercentage = (matchFactors / 3) * 100;
 
-      // Generate reason for recommendation
-      const scoreComponents = {
-        preferenceScore,
-        spendingScore,
-        longTermValue,
-        complementScore
-      };
-      
-      return {
-        card: cardItem,
-        reason: generateCardReason(cardItem, contributions, scoreComponents),
-        score: totalScore,
-        matchPercentage,
-        potentialAnnualValue: annualRewardsEstimate,
-        complementScore,
-        longTermValue,
-        portfolioContribution: contributions
-      };
-    });
+// 8. Calculate final score with all components
+const baseScore = preferenceScore + spendingScore + perksScore + valueScore + signupScore;
+const portfolioFactors = (complementScore / 100 * weights.complement) + (longTermValue / 1000 * weights.longTerm);
 
-    // Sort by score
-    const rankedCards = scoredCards
-      .sort((a: ScoredCard, b: ScoredCard) => b.score - a.score);
-    
-    // Determine optimal number of cards to recommend
-    // Comment out or remove the original recommendationCount declaration
-    // let recommendationCount = 2; // Default minimum
-    
-    // Instead, directly set the final recommendationCount
-    const maxRecommendations = 20; // Increase from original value
-    
-    // Adjust based on portfolio analysis
-    let finalRecommendationCount = maxRecommendations;
-    if (currentCards.length === 0) {
-      // For users with no cards, recommend more to build a portfolio
-      finalRecommendationCount = maxRecommendations;
-    } else if (currentCards.length >= 5) {
-      // For users with many cards, be a little more conservative
-      finalRecommendationCount = 5;
-    } else {
-      // Dynamic recommendation count based on portfolio gaps
-      const portfolioGaps = Object.values(portfolioAnalysis.coverageByCategory)
-        .filter(rate => rate < 3).length;
+// Add category overlap penalty to improve portfolio diversity
+let categoryOverlapPenalty = 0;
+
+// Safe check for currentCards
+if (currentCards && currentCards.length > 0) {
+  // Check each spending category in this card's reward rates
+  for (const category in cardItem.rewardRates) {
+    if (cardItem.rewardRates[category as keyof typeof cardItem.rewardRates] > 2) {
+      // Check if any existing card is also strong in this category
+      const hasOverlap = currentCards.some(existingCard => 
+        existingCard.rewardRates[category as keyof typeof existingCard.rewardRates] > 2
+      );
       
-      if (portfolioGaps > 3) {
-        finalRecommendationCount = Math.min(maxRecommendations, Math.max(5, portfolioGaps));
-      } else {
-        finalRecommendationCount = Math.min(maxRecommendations, Math.max(3, portfolioGaps));
+      if (hasOverlap) {
+        // Add penalty for category overlap
+        categoryOverlapPenalty += 15;
       }
     }
-    
-    // Ensure we have enough cards to recommend
-    finalRecommendationCount = Math.min(finalRecommendationCount, rankedCards.length);
-
-    // Make sure we have unique recommendations
-    const uniqueRecommendations = Array.from(
-      new Map(rankedCards.map(card => [card.card.id, card])).values()
-    );
-    
-    return uniqueRecommendations.slice(0, finalRecommendationCount);
-  } catch (err) {
-    console.error('Recommendation generation error:', err);
-    return [];
   }
+}
+
+// Modify the final score calculation to include the penalty
+const totalScore = baseScore + portfolioFactors - categoryOverlapPenalty;
+
+const matchPercentage = (matchFactors / 3) * 100;
+
+// Generate reason for recommendation
+const scoreComponents = {
+  preferenceScore,
+  spendingScore,
+  longTermValue,
+  complementScore
+};
+
+return {
+  card: cardItem,
+  reason: generateCardReason(cardItem, contributions, scoreComponents),
+  score: totalScore, // Changed from finalScore to totalScore
+  matchPercentage,
+  potentialAnnualValue: annualRewardsEstimate,
+  complementScore,
+  longTermValue,
+  portfolioContribution: contributions
+};
+});
+
+// Sort by score
+const rankedCards = scoredCards
+.sort((a: ScoredCard, b: ScoredCard) => b.score - a.score);
+
+// For a portfolio, we want to recommend 2-4 cards (max 6)
+const recommendationCount = Math.min(4, Math.max(2, Math.min(6, rankedCards.length)));
+
+// Get unique top recommendations
+const uniqueRecommendations = Array.from(
+new Map(rankedCards.map(card => [card.card.id, card])).values()
+);
+
+// Return recommendations limited to the calculated count
+return uniqueRecommendations.slice(0, recommendationCount);
+} catch (err) {
+console.error('Recommendation generation error:', err);
+return [];
+}
 }

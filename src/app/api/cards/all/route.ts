@@ -52,51 +52,70 @@ export async function GET(request: Request) {
       console.log(`API returned data for ${issuersWithCards.length} issuers`);
       
       const allCards: CreditCardDetails[] = [];
-      
-      // Extract all cards from all issuers and create a diverse set
+
+      // Process ALL cards from the API response
       for (const issuer of issuersWithCards) {
         for (const card of issuer.card) {
           if (card.isActive === 1 && card.cardName && !card.cardName.includes("Placeholder")) {
-            // Create a more diverse set of card data
+            // Create a card with randomized attributes to ensure diversity
             const creditScoreOptions: CreditScoreType[] = ["excellent", "good", "fair", "poor"];
             const categoryOptions = ["travel", "cashback", "points", "no-annual-fee", "rotating-categories", "dining", "gas", "grocery", "premium"];
             
-            // Generate a random index to ensure diversity
-            const randomIndex = Math.floor(Math.random() * 100000);
+            // Make the randomization based on the card key to ensure consistency
+            const cardKeyHash = card.cardKey.split('').reduce((sum: number, char: string) => sum + char.charCodeAt(0), 0);
             
-            // Use the random index to pick different values for each card
-            const selectedCredit = creditScoreOptions[randomIndex % creditScoreOptions.length];
+            // Use the hash to pick different values for each card
+            const selectedCredit = creditScoreOptions[cardKeyHash % creditScoreOptions.length];
             const selectedCategories = [
-              categoryOptions[randomIndex % categoryOptions.length],
-              categoryOptions[(randomIndex + 2) % categoryOptions.length]
+              categoryOptions[cardKeyHash % categoryOptions.length],
+              categoryOptions[(cardKeyHash + 2) % categoryOptions.length]
             ];
             
-            // Mix up reward rates
-            const rewardRateOptions = [1, 1.5, 2, 3, 4, 5];
-            const getRandomRate = () => rewardRateOptions[Math.floor(Math.random() * rewardRateOptions.length)];
+            // Create reward rates based on the card key to ensure consistency
+            const getRate = (base: number) => {
+              const multiplier = ((cardKeyHash * base) % 5) + 1;
+              return parseFloat(multiplier.toFixed(1));
+            };
             
-            // Generate random perks as an array
-            const possiblePerks = ["No annual fee", "Travel insurance", "Purchase protection"];
-            const selectedPerks = possiblePerks.slice(0, Math.floor(Math.random() * 3) + 1); // Ensure at least 1 perk
+            // Define perks based on cardKeyHash
+            const possiblePerks = [
+              "Travel Insurance", 
+              "Purchase Protection", 
+              "Extended Warranty",
+              "No Foreign Transaction Fee",
+              "Airport Lounge Access",
+              "Global Entry Credit",
+              "Car Rental Insurance",
+              "Cell Phone Protection"
+            ];
+            
+            // Select a subset of perks based on the card hash
+            const numPerks = 1 + (cardKeyHash % 4); // 1 to 4 perks
+            const selectedPerks = [];
+            
+            for (let i = 0; i < numPerks; i++) {
+              const perkIndex = (cardKeyHash * (i + 1)) % possiblePerks.length;
+              selectedPerks.push(possiblePerks[perkIndex]);
+            }
             
             allCards.push({
               id: card.cardKey,
               name: card.cardName,
               issuer: issuer.cardIssuer,
               rewardRates: {
-                dining: getRandomRate(),
-                travel: getRandomRate(),
-                grocery: getRandomRate(),
-                gas: getRandomRate(),
-                entertainment: getRandomRate(),
-                rent: getRandomRate(),
+                dining: getRate(1.1),
+                travel: getRate(1.2),
+                grocery: getRate(1.3),
+                gas: getRate(1.4),
+                entertainment: getRate(1.5),
+                rent: getRate(1.6),
                 other: 1
               },
-              annualFee: Math.floor(Math.random() * 600),
+              annualFee: (cardKeyHash % 10) * 95, // 0, 95, 190, 285, etc.
               creditScoreRequired: selectedCredit,
-              perks: selectedPerks, // Now this is an array of strings
-              foreignTransactionFee: Math.random() > 0.5,
-              categories: selectedCategories, // This is already an array
+              perks: selectedPerks,
+              foreignTransactionFee: (cardKeyHash % 2) === 0,
+              categories: selectedCategories,
               description: `A ${card.cardName} card from ${issuer.cardIssuer}`
             });
           }
@@ -131,24 +150,24 @@ export async function GET(request: Request) {
       for (let i = 0; i < fallbackCards.length; i++) {
         const baseCard = fallbackCards[i];
         
-        // Create 3 variations for each base card
-        for (let j = 1; j <= 3; j++) {
+        // Create 5 variations for each base card to get more diversity
+        for (let j = 1; j <= 5; j++) {
           // Define additional perks as an array
-          const additionalPerks = ["Additional Travel Benefits", "Cell Phone Protection", "VIP Access"];
+          const additionalPerks = ["Additional Travel Benefits", "Cell Phone Protection", "VIP Access", "Airport Lounge Access", "Price Protection"];
           // Define additional categories as an array
-          const additionalCategories = ["premium", "travel", "cashback"];
+          const additionalCategories = ["premium", "travel", "cashback", "dining", "gas", "grocery", "entertainment"];
           
           const variation: CreditCardDetails = {
             ...baseCard,
             id: `${baseCard.id}-v${j}`,
-            name: `${baseCard.name} ${['Signature', 'Premium', 'Elite', 'Select', 'Plus'][j % 5]} Edition`,
+            name: `${baseCard.name} ${['Signature', 'Premium', 'Elite', 'Select', 'Plus', 'Preferred', 'Gold'][j % 7]} Edition`,
             rewardRates: {
               ...baseCard.rewardRates,
-              dining: baseCard.rewardRates.dining + j,
-              travel: baseCard.rewardRates.travel + (j % 3),
-              grocery: baseCard.rewardRates.grocery + (j % 2),
-              gas: baseCard.rewardRates.gas + (j % 4),
-              entertainment: baseCard.rewardRates.entertainment + j
+              dining: baseCard.rewardRates.dining + j * 0.5,
+              travel: baseCard.rewardRates.travel + (j % 3) * 0.5,
+              grocery: baseCard.rewardRates.grocery + (j % 2) * 0.5,
+              gas: baseCard.rewardRates.gas + (j % 4) * 0.5,
+              entertainment: baseCard.rewardRates.entertainment + j * 0.5
             },
             annualFee: j % 2 === 0 ? baseCard.annualFee + 50*j : baseCard.annualFee,
             creditScoreRequired: ["excellent", "good", "fair", "poor"][j % 4] as CreditScoreType,
