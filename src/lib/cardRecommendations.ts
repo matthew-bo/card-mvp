@@ -475,7 +475,8 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
   try {
     const { expenses, currentCards, optimizationSettings, creditScore = 'good', excludeCardIds = [], availableCards } = params;
     const spendingAnalysis = analyzeSpending(expenses);
-    // const portfolioAnalysis = analyzeCardPortfolio(currentCards);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const portfolioAnalysis = analyzeCardPortfolio(currentCards);
 
     if (!Array.isArray(currentCards)) {
       throw new Error('Invalid current cards array');
