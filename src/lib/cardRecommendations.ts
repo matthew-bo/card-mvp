@@ -514,7 +514,7 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       
       // Annual fee check - enforce strictly
       if (optimizationSettings.zeroAnnualFee && cardItem.annualFee > 0) {
-        return false; // Strictly filter out cards with annual fees when requested
+        return false;
       }
       
       return true;
@@ -563,12 +563,33 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       let matchFactors = 0;
       const reasons: string[] = [];
 
-      // 1. Preference Matching Score
-      if (cardItem.categories.includes(optimizationSettings.preference)) {
-        preferenceScore += weights.rewards;
-        matchFactors++;
-        reasons.push(`Optimizes for ${optimizationSettings.preference}`);
-      }
+    // 1. Preference Matching Score - increase weight substantially
+    if (cardItem.categories.includes(optimizationSettings.preference)) {
+      preferenceScore += weights.rewards * 3; // Triple the weight for stronger preference matching
+      matchFactors++;
+      reasons.push(`Optimizes for ${optimizationSettings.preference}`);
+    }
+
+    // Add specific handling for each preference type
+    if (optimizationSettings.preference === 'points' && 
+        (cardItem.categories.includes('points') || cardItem.categories.includes('travel'))) {
+      preferenceScore += weights.rewards * 2; // Additional boost for points cards
+    }
+
+    if (optimizationSettings.preference === 'cashback' && 
+        cardItem.categories.includes('cashback')) {
+      preferenceScore += weights.rewards * 2; // Additional boost for cashback cards
+    }
+
+    if (optimizationSettings.preference === 'perks' && 
+        cardItem.perks.length > 3) {
+      preferenceScore += weights.rewards * 2; // Additional boost for cards with many perks
+    }
+
+    if (optimizationSettings.preference === 'creditScore' && 
+        cardItem.annualFee === 0) {
+      preferenceScore += weights.rewards * 2; // For credit building, prefer no annual fee cards
+    }
 
       // 2. Perks Scoring - enhanced for perks preference
       let perksScore = 0;
@@ -610,7 +631,7 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
         return sum + (spend * (rate / 100));
       }, 0);
       
-      if (cardItem.annualFee === 0) {
+      if (cardItem.annualFee === 0 && optimizationSettings.zeroAnnualFee) {
         valueScore = weights.value;
         reasons.push("No annual fee");
       } else if (annualRewardsEstimate > cardItem.annualFee * 3) {
@@ -707,15 +728,15 @@ return {
 
 // Sort by score
 const rankedCards = scoredCards
-.sort((a: ScoredCard, b: ScoredCard) => b.score - a.score);
+  .sort((a: ScoredCard, b: ScoredCard) => b.score - a.score);
 
-// For a portfolio, we want to recommend 2-4 cards
-const recommendationCount = Math.min(4, Math.max(2, Math.min(4, rankedCards.length)));
+// First, establish the recommendation count
+const recommendationCount = Math.min(4, Math.max(2, rankedCards.length));
 
-// Get unique top recommendations
+// Then create the unique recommendations array
 const uniqueRecommendations = Array.from(
-new Map(rankedCards.map(card => [card.card.id, card])).values()
-);
+  new Map(rankedCards.map(card => [card.card.id, card])).values()
+) as ScoredCard[];
 
 // Return recommendations limited to the calculated count
 return uniqueRecommendations.slice(0, recommendationCount);

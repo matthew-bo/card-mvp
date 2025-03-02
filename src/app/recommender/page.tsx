@@ -76,6 +76,7 @@ export default function RecommenderPage() {
   const [loadingAllCards, setLoadingAllCards] = useState(true);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCard, setSelectedCard] = useState<string>('');
+  const [cardSearchLoading, setCardSearchLoading] = useState(false);
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -269,7 +270,7 @@ useEffect(() => {
     }
     
     const timer = setTimeout(async () => {
-      setLoading(true);
+      setCardSearchLoading(true);
       try {
         const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
         if (!response.ok) {
@@ -687,15 +688,22 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-gray-600">Loading...</p>
+        {/* Loading Overlay - Only show for global operations, not card search */}
+        {loading && !cardSearchLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Card Search Loading Indicator - Only shown in the search area */}
+        {cardSearchLoading && (
+          <div className="absolute right-3 top-2.5">
+            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+          </div>
+        )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -1025,7 +1033,7 @@ useEffect(() => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   {/* Only show the first 6 recommendations */}
-                  {recommendations.slice(0, 6).map(({ card, reason }) => (
+                  {recommendations.slice(0, 4).map(({ card, reason }) => (
                     <div key={card.id} className="relative">
                       <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center z-10">
                         {reason}
