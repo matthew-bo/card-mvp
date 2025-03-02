@@ -983,18 +983,6 @@ useEffect(() => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Recommended Cards</h2>
                 <div className="flex space-x-4">
-                  {/* Pagination or View More button, only show if there are more than 6 cards */}
-                  {recommendations.length > 6 && (
-                    <button
-                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                      onClick={() => {
-                        // You can implement pagination here or navigate to a full recommendations page
-                        alert('You can implement pagination or a "View All" page here');
-                      }}
-                    >
-                      View All ({recommendations.length})
-                    </button>
-                  )}
                   
                   {notInterestedCards.length > 0 && (
                     <button

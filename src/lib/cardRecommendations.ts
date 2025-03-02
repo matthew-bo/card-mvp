@@ -605,22 +605,23 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       // 3. Spending Pattern Analysis - dynamically weighted by category importance
       let categoryMatchScore = 0;
       const matchedCategories: string[] = [];
-      
-      for (const { category, percentage } of spendingAnalysis.categoryRank) {
+      const topSpendingCategories = spendingAnalysis.categoryRank.slice(0, 3); // Get top 3 spending categories
+        
+      for (const { category, percentage } of topSpendingCategories) {
         const rewardRate = cardItem.rewardRates[category as CategoryKey] || 0;
+        
+        // Significantly boost score for cards that are strong in top spending categories
         if (rewardRate > 2) {
           // Weight by both the reward rate and the spending percentage
-          categoryMatchScore += (rewardRate * percentage / 100) * 2;
+          categoryMatchScore += (rewardRate * percentage / 100) * 5; // Increase this multiplier
           matchedCategories.push(category);
-        }
-      }
-      
-      if (categoryMatchScore > 0) {
-        spendingScore = Math.min(categoryMatchScore, weights.rewards);
-        matchFactors++;
-        
-        if (matchedCategories.length > 0) {
-          reasons.push(`Strong rewards in ${matchedCategories.length} of your top spending categories`);
+          
+          // Add specific reasoning
+          if (percentage > 20) {
+            reasons.push(`Strong ${rewardRate}x rewards in ${category}, your highest spending category`);
+          } else {
+            reasons.push(`Good ${rewardRate}x rewards in ${category}`);
+          }
         }
       }
 
