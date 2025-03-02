@@ -11,7 +11,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import NotInterestedList from '@/components/NotInterestedList';
-import CardSearch from '@/components/CardSearch';
 
 interface FirestoreExpense {
   amount: number;
@@ -34,6 +33,12 @@ interface RecommendedCard {
   score: number;
 }
 
+interface SearchResultCard {
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
+}
+
 export default function RecommenderPage() {
   const { user } = useAuth();
   
@@ -50,7 +55,7 @@ export default function RecommenderPage() {
   const [notInterestedCards, setNotInterestedCards] = useState<string[]>([]);
   const [showNotInterestedList, setShowNotInterestedList] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResultCard[]>([]);
   
   // Data
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
@@ -229,7 +234,7 @@ useEffect(() => {
         // If we have results, filter out cards the user already has
         if (data.success && data.data) {
           const filtered = data.data.filter(
-            (card: any) => !userCards.some(userCard => userCard.id === card.cardKey)
+            (card: SearchResultCard) => !userCards.some(userCard => userCard.id === card.cardKey)
           );
           setSearchResults(filtered);
         } else {
@@ -879,6 +884,20 @@ useEffect(() => {
                 </div>
               )}
             </div>
+
+            {/* Search Results */}
+            {searchResults.map((card: SearchResultCard) => (
+              <div
+                key={card.cardKey}
+                className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0"
+                onClick={() => {
+                  fetchCardDetails(card.cardKey);
+                }}
+              >
+                <div className="font-medium">{card.cardName}</div>
+                <div className="text-sm text-gray-500">{card.cardIssuer}</div>
+              </div>
+            ))}
 
             {/* Recommended Cards */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
