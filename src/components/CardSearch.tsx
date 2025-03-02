@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 
 interface CardSearchProps {
@@ -6,7 +8,6 @@ interface CardSearchProps {
   excludeCardKeys?: string[];
 }
 
-// Define a proper interface for search results
 interface SearchResult {
   cardKey: string;
   cardName: string;
@@ -23,7 +24,8 @@ export default function CardSearch({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [debug, setDebug] = useState(false);  
+  const [debug, setDebug] = useState(false);
+  
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function CardSearch({
           
           console.log(`Found ${filteredResults.length} results after filtering`);
           setResults(filteredResults);
-          setIsOpen(true);
+          setIsOpen(true); // Force it to be open
         } else {
           console.log('No search results found');
           setResults([]);
@@ -93,25 +95,25 @@ export default function CardSearch({
   };
   
   return (
-    <div className="relative">
+    <div className="relative" style={{zIndex: 50}}>
       <div className="relative">
-      <input
-        type="text"
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder={placeholder}
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        onFocus={() => {
+        <input
+          type="text"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder={placeholder}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={() => {
             // Show results dropdown when input is focused if there are results
             if (results.length > 0) {
-            setIsOpen(true);
+              setIsOpen(true);
             }
-        }}
-        onBlur={() => {
+          }}
+          onBlur={() => {
             // Delay hiding the dropdown to allow for clicking on results
             setTimeout(() => setIsOpen(false), 200);
-        }}
-      />
+          }}
+        />
         {loading && (
           <div className="absolute right-3 top-2.5">
             <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
@@ -125,50 +127,54 @@ export default function CardSearch({
         </div>
       )}
       
-      {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {results.map((card) => (
+      {results.length > 0 && (
+        <div 
+          className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto" 
+          style={{display: isOpen ? 'block' : 'none'}}
+        >
+          {results.map((card) => (
             <div
-                key={card.cardKey}
-                className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSelectCard(card)}
+              key={card.cardKey}
+              className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSelectCard(card)}
             >
-                <div className="font-medium">{card.cardName}</div>
-                <div className="text-sm text-gray-500">{card.cardIssuer}</div>
+              <div className="font-medium">{card.cardName}</div>
+              <div className="text-sm text-gray-500">{card.cardIssuer}</div>
             </div>
-            ))}
+          ))}
         </div>
-        )}
-
+      )}
+      
+      {searchTerm.length >= 3 && (
+        <div className="mt-2 text-xs">
+          <button 
+            onClick={() => setDebug(!debug)} 
+            className="text-gray-500 underline"
+          >
+            {debug ? 'Hide Debug' : 'Show Debug'}
+          </button>
+          
+          {debug && (
+            <div className="mt-1 bg-gray-50 p-2 rounded border text-gray-600">
+              <p>Term: &quot;{searchTerm}&quot;</p>
+              <p>Results: {results.length}</p>
+              <p>Status: {loading ? 'Loading' : isOpen ? 'Open' : 'Closed'}</p>
+              {error && <p className="text-red-500">Error: {error}</p>}
+              {results.length > 0 && (
+                <pre className="mt-1 text-xs overflow-auto max-h-24">
+                  {JSON.stringify(results[0], null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      
       {searchTerm.length >= 3 && results.length === 0 && !loading && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
           No cards found matching &quot;{searchTerm}&quot;
         </div>
       )}
-      {searchTerm.length >= 3 && (
-        <div className="mt-2 text-xs">
-            <button 
-            onClick={() => setDebug(!debug)} 
-            className="text-gray-500 underline"
-            >
-            {debug ? 'Hide Debug' : 'Show Debug'}
-            </button>
-            
-            {debug && (
-            <div className="mt-1 bg-gray-50 p-2 rounded border text-gray-600">
-                <p>Term: &quot;{searchTerm}&quot;</p>
-                <p>Results: {results.length}</p>
-                <p>Status: {loading ? 'Loading' : isOpen ? 'Open' : 'Closed'}</p>
-                {error && <p className="text-red-500">Error: {error}</p>}
-                {results.length > 0 && (
-                <pre className="mt-1 text-xs overflow-auto max-h-24">
-                    {JSON.stringify(results[0], null, 2)}
-                </pre>
-                )}
-            </div>
-            )}
-        </div>
-        )}
     </div>
   );
 }

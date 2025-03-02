@@ -600,29 +600,48 @@ useEffect(() => {
               <CardSearch 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 onCardSelect={(cardKey, _cardName, _cardIssuer) => {
-                  console.log(`Card selected with key: ${cardKey}`);
+                  console.log(`Card selected: ${cardKey}`);
                   
-                  // Fetch card details
+                  // Create a properly typed card object
+                  const simpleCard: CreditCardDetails = {
+                    id: cardKey,
+                    name: _cardName,
+                    issuer: _cardIssuer,
+                    rewardRates: {
+                      dining: 1,
+                      travel: 1,
+                      grocery: 1,
+                      gas: 1,
+                      entertainment: 1,
+                      rent: 1,
+                      other: 1
+                    },
+                    annualFee: 0,
+                    creditScoreRequired: "good" as const,
+                    perks: [],
+                    foreignTransactionFee: false,
+                    categories: [],
+                    description: "Temporary card"
+                  };
+                  
+                  // Add this basic card to test if handleCardSelection works
+                  handleCardSelection(simpleCard);
+                  
+                  // After confirming basic functionality works, you can re-enable the API fetch
+                  /*
                   fetch(`/api/cards/details?cardKey=${cardKey}`)
-                    .then(response => {
-                      if (!response.ok) {
-                        throw new Error(`Failed to fetch card details: ${response.status}`);
-                      }
-                      return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                       if (data.success && data.data) {
-                        console.log('Card details fetched:', data.data);
                         handleCardSelection(data.data);
                       } else {
-                        console.error('Card details response error:', data);
-                        setError('Failed to get card details');
+                        console.error('Failed to get card details');
                       }
                     })
                     .catch(error => {
                       console.error('Error fetching card details:', error);
-                      setError(`Failed to get card details: ${error.message}`);
                     });
+                  */
                 }}
                 excludeCardKeys={userCards.map(card => card.id)}
                 placeholder="Search for your cards..."
