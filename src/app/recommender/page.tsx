@@ -133,6 +133,7 @@ export default function RecommenderPage() {
           }
           
           const data = await response.json();
+          console.log(`Loaded ${data.data.length} cards from database`);
           setAllCards(data.data);
         } catch (error) {
           console.error('Error loading all cards:', error);
@@ -149,6 +150,7 @@ export default function RecommenderPage() {
 useEffect(() => {
   try {
     if (!loadingAllCards && allCards.length > 0) {
+      console.log(`Generating recommendations with ${allCards.length} available cards`);
       const newRecommendations = getCardRecommendations({
         expenses,
         currentCards: userCards,
@@ -158,9 +160,10 @@ useEffect(() => {
         },
         creditScore,
         excludeCardIds: notInterestedCards,
-        availableCards: allCards
+        availableCards: allCards // Make sure this is passed correctly
       });
             
+      console.log(`Generated ${newRecommendations.length} recommendations`);
       setRecommendations(newRecommendations);
     }
   } catch (err) {

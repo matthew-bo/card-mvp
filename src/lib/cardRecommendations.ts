@@ -489,7 +489,10 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       return [];
     }
 
-    // Filter available cards
+    // Log the number of available cards for debugging
+    console.log(`Filtering recommendations from ${cardsToFilter.length} available cards`);
+
+    // Filter available cards - make sure we're not filtering too aggressively
     const filteredCards = cardsToFilter.filter(cardItem => {
       // Filter out cards user already has
       if (currentCards.some(userCard => userCard.id === cardItem.id)) {
@@ -501,9 +504,9 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
         return false;
       }
       
-      // Credit score check
-      const requiredScore = CREDIT_SCORE_MAP[cardItem.creditScoreRequired];
-      const userScoreValue = CREDIT_SCORE_MAP[creditScore];
+      // Credit score check - be more lenient if needed
+      const requiredScore = CREDIT_SCORE_MAP[cardItem.creditScoreRequired] || CREDIT_SCORE_MAP.good;
+      const userScoreValue = CREDIT_SCORE_MAP[creditScore] || CREDIT_SCORE_MAP.good;
       if (userScoreValue < requiredScore) {
         return false;
       }
@@ -515,6 +518,10 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       
       return true;
     });
+
+    // Log filtered cards count
+    console.log(`After filtering, ${filteredCards.length} cards remain as candidates`);
+
 
     // Optimization preference weights - amplify user's chosen preference
     type PreferenceWeights = {
@@ -679,38 +686,41 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       .sort((a: ScoredCard, b: ScoredCard) => b.score - a.score);
     
     // Determine optimal number of cards to recommend
-    let recommendationCount = 2; // Default minimum
+    // Comment out or remove the original recommendationCount declaration
+    // let recommendationCount = 2; // Default minimum
+    
+    // Instead, directly set the final recommendationCount
+    const maxRecommendations = 10; // Increase from original value
     
     // Adjust based on portfolio analysis
+    let finalRecommendationCount = maxRecommendations;
     if (currentCards.length === 0) {
       // For users with no cards, recommend more to build a portfolio
-      recommendationCount = 3;
+      finalRecommendationCount = maxRecommendations;
     } else if (currentCards.length >= 5) {
-      // For users with many cards, be conservative
-      recommendationCount = 2;
+      // For users with many cards, be a little more conservative
+      finalRecommendationCount = 5;
     } else {
       // Dynamic recommendation count based on portfolio gaps
       const portfolioGaps = Object.values(portfolioAnalysis.coverageByCategory)
         .filter(rate => rate < 3).length;
       
       if (portfolioGaps > 3) {
-        recommendationCount = Math.min(5, portfolioGaps);
+        finalRecommendationCount = Math.min(maxRecommendations, Math.max(5, portfolioGaps));
       } else {
-        recommendationCount = Math.min(3, Math.max(2, portfolioGaps));
+        finalRecommendationCount = Math.min(maxRecommendations, Math.max(3, portfolioGaps));
       }
     }
     
-    // Cap at 5 recommendations maximum
-    recommendationCount = Math.min(5, recommendationCount);
-    
     // Ensure we have enough cards to recommend
-    recommendationCount = Math.min(recommendationCount, rankedCards.length);
+    finalRecommendationCount = Math.min(finalRecommendationCount, rankedCards.length);
 
+    // Make sure we have unique recommendations
     const uniqueRecommendations = Array.from(
       new Map(rankedCards.map(card => [card.card.id, card])).values()
     );
     
-    return uniqueRecommendations.slice(0, recommendationCount);
+    return uniqueRecommendations.slice(0, finalRecommendationCount);
   } catch (err) {
     console.error('Recommendation generation error:', err);
     return [];
