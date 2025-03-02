@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 
+// Define an interface for the card data structure
+interface CardSearchResult {
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
+}
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
@@ -32,15 +39,15 @@ export async function GET(request: Request) {
       throw new Error(`API search error: ${response.status}`);
     }
     
-    const searchResults = await response.json();
+    const searchResults = await response.json() as CardSearchResult[];
     
     // Map the search results to the expected format
     // and ensure no duplicates
     const uniqueResults = Array.from(
-      new Map(searchResults.map((card: any) => [card.cardKey, card])).values()
+      new Map(searchResults.map((card: CardSearchResult) => [card.cardKey, card])).values()
     );
     
-    const formattedResults = uniqueResults.map((card: any) => ({
+    const formattedResults = uniqueResults.map((card: CardSearchResult) => ({
       cardKey: card.cardKey,
       cardName: card.cardName,
       cardIssuer: card.cardIssuer
