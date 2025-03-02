@@ -1,5 +1,19 @@
 import { NextResponse } from 'next/server';
 
+// Define a type for the status code object in the API response
+interface ApiStatusCode {
+  statusCode: number;
+  apiCalls: number;
+  apiCallsLimit: number;
+  apiCallsRemaining: number;
+  lastUpdated: string;
+}
+
+interface ApiUsageResponse {
+  yearMonth: string;
+  statusCode: ApiStatusCode[];
+}
+
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
@@ -35,14 +49,17 @@ export async function GET() {
       }, { status: 500 });
     }
     
-    const data = await response.json();
+    const data = await response.json() as ApiUsageResponse[];
+    
+    // Find the API calls remaining in a type-safe way
+    const apiCallsRemaining = data[0]?.statusCode.find((sc: ApiStatusCode) => sc.statusCode === 200)?.apiCallsRemaining;
     
     return NextResponse.json({
       success: true,
       status,
       statusText,
-      apiCallsRemaining: data[0]?.statusCode.find((sc: any) => sc.statusCode === 200)?.apiCallsRemaining,
-      data: data
+      apiCallsRemaining,
+      data
     });
   } catch (error) {
     return NextResponse.json({
