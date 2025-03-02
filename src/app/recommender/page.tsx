@@ -49,6 +49,8 @@ export default function RecommenderPage() {
   const [zeroAnnualFee, setZeroAnnualFee] = useState<boolean>(false);
   const [notInterestedCards, setNotInterestedCards] = useState<string[]>([]);
   const [showNotInterestedList, setShowNotInterestedList] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   
   // Data
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
@@ -205,6 +207,71 @@ useEffect(() => {
       }
     }
   }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification]);
+
+  useEffect(() => {
+    // Only search if we have at least 3 characters
+    if (searchTerm.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
+        if (!response.ok) {
+          throw new Error(`Search failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Search response:', data);
+        
+        // If we have results, filter out cards the user already has
+        if (data.success && data.data) {
+          const filtered = data.data.filter(
+            (card: any) => !userCards.some(userCard => userCard.id === card.cardKey)
+          );
+          setSearchResults(filtered);
+        } else {
+          setSearchResults([]);
+        }
+      } catch (error) {
+        console.error('Error searching cards:', error);
+        setSearchResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 500); // Debounce time
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm, userCards]);
+  
+  // Function to fetch card details when a card is selected
+  const fetchCardDetails = async (cardKey: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/cards/details?cardKey=${cardKey}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch card details: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Card details:', data);
+      
+      if (data.success && data.data) {
+        handleCardSelection(data.data);
+        setSearchTerm(''); // Clear search after selection
+        setSearchResults([]); // Clear results
+      } else {
+        setError('Failed to get card details');
+      }
+    } catch (error) {
+      console.error('Error fetching card details:', error);
+      setError(`Failed to get card details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // =========== FIREBASE DATA LOADING ===========
   // Load user data from Firebase for logged-in users
@@ -592,60 +659,57 @@ useEffect(() => {
               </form>
             </div>
 
-            {/* Add cards UI */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Add Your Current Cards
-              </label>
-              <CardSearch 
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                onCardSelect={(cardKey, _cardName, _cardIssuer) => {
-                  console.log(`Card selected: ${cardKey}`);
+            {/* Add Your Cards Section */}
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Your Current Cards</h2>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Search for your cards
+                </label>
+                
+                {/* Simple Inline Search */}
+                <div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Type at least 3 characters to search..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                  />
                   
-                  // Create a properly typed card object
-                  const simpleCard: CreditCardDetails = {
-                    id: cardKey,
-                    name: _cardName,
-                    issuer: _cardIssuer,
-                    rewardRates: {
-                      dining: 1,
-                      travel: 1,
-                      grocery: 1,
-                      gas: 1,
-                      entertainment: 1,
-                      rent: 1,
-                      other: 1
-                    },
-                    annualFee: 0,
-                    creditScoreRequired: "good" as const,
-                    perks: [],
-                    foreignTransactionFee: false,
-                    categories: [],
-                    description: "Temporary card"
-                  };
+                  {loading ? (
+                    <div className="mt-2 p-2 text-center">
+                      <div className="inline-block animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                      <span className="ml-2 text-sm text-gray-600">Searching...</span>
+                    </div>
+                  ) : (
+                    searchResults.length > 0 && (
+                      <div className="mt-2 border rounded-md max-h-60 overflow-y-auto">
+                        {searchResults.map((card: {cardKey: string; cardName: string; cardIssuer: string}) => (
+                          <div
+                            key={card.cardKey}
+                            className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0"
+                            onClick={() => {
+                              // Handle card selection
+                              fetchCardDetails(card.cardKey);
+                            }}
+                          >
+                            <div className="font-medium">{card.cardName}</div>
+                            <div className="text-sm text-gray-500">{card.cardIssuer}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  )}
                   
-                  // Add this basic card to test if handleCardSelection works
-                  handleCardSelection(simpleCard);
-                  
-                  // After confirming basic functionality works, you can re-enable the API fetch
-                  /*
-                  fetch(`/api/cards/details?cardKey=${cardKey}`)
-                    .then(response => response.json())
-                    .then(data => {
-                      if (data.success && data.data) {
-                        handleCardSelection(data.data);
-                      } else {
-                        console.error('Failed to get card details');
-                      }
-                    })
-                    .catch(error => {
-                      console.error('Error fetching card details:', error);
-                    });
-                  */
-                }}
-                excludeCardKeys={userCards.map(card => card.id)}
-                placeholder="Search for your cards..."
-              />
+                  {searchTerm.length >= 3 && !loading && searchResults.length === 0 && (
+                    <div className="mt-2 p-3 text-center text-gray-500 bg-gray-50 rounded-md">
+                      No cards found matching your search
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Optimization Settings */}
