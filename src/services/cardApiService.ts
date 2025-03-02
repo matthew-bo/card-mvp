@@ -1,5 +1,5 @@
-import { CreditCardDetails } from '@/types/cards';
 import { ApiUsageMonth } from '@/types/cards';
+import { CreditCardDetails, CreditScoreType } from '@/types/cards';
 
 // Make sure these are accessible as environment variables
 const API_KEY = process.env.REWARDS_API_KEY;
@@ -109,24 +109,15 @@ export async function fetchWithRateLimitHandling(url: string, options: RequestIn
 }
 
 // Get all cards
+// Update your fetchAllCards function to use the cardlist endpoint
+// Updated code for fetchAllCards function
 export async function fetchAllCards(): Promise<CreditCardDetails[]> {
   try {
     console.log('Fetching all cards from API...');
     
-    // Check that API key is configured
-    const API_KEY = process.env.REWARDS_API_KEY;
-    if (!API_KEY) {
-      console.error('API key not configured');
-      throw new Error('API key not configured');
-    }
-    
-    console.log('Using API endpoint: creditcard-detail-namesearch/card');
-    
-    // This API doesn't have a direct "get all cards" endpoint in your plan
-    // So we'll use a common search term that will return some cards
-    const response = await fetch(`${API_BASE_URL}/creditcard-detail-namesearch/card`, {
+    const response = await fetch(`${API_BASE_URL}/creditcard-cardlist`, {
       headers: {
-        'X-RapidAPI-Key': API_KEY,
+        'X-RapidAPI-Key': API_KEY || '',
         'X-RapidAPI-Host': API_HOST
       }
     });
@@ -136,51 +127,72 @@ export async function fetchAllCards(): Promise<CreditCardDetails[]> {
       throw new Error(`API error: ${response.status}`);
     }
     
-    const cards = await response.json();
-    console.log(`API returned ${cards.length} basic cards`);
+    const issuersWithCards = await response.json();
+    const allCardBasics: { cardKey: string; cardName: string; cardIssuer: string }[] = [];
     
-    // For debugging, return just the basic cards without details
-    // to see if at least this part is working
-    return cards.map((card: {
-      cardKey: string;
-      cardName: string;
-      cardIssuer: string;
-    }) => ({
-      id: card.cardKey,
-      name: card.cardName,
-      issuer: card.cardIssuer,
-      rewardRates: {
-        dining: 1,
-        travel: 1,
-        grocery: 1,
-        gas: 1,
-        entertainment: 1,
-        rent: 1,
-        other: 1
-      },
-      annualFee: 0,
-      creditScoreRequired: "good" as const,
-      perks: [],
-      foreignTransactionFee: false,
-      categories: ["temp"],
-      description: card.cardName
-    }));
+    // Extract all cards from all issuers
+    for (const issuer of issuersWithCards) {
+      for (const card of issuer.card) {
+        if (card.isActive === 1) {
+          allCardBasics.push({
+            cardKey: card.cardKey,
+            cardName: card.cardName,
+            cardIssuer: issuer.cardIssuer
+          });
+        }
+      }
+    }
     
-    /* Comment out the detailed fetching for now to see if basic search works
+    // Fetch details for a subset of cards (to avoid rate limits)
+    // In production, you might want to implement a caching strategy
     const detailedCards: CreditCardDetails[] = [];
     
-    // Get detailed information for each card (limit to 10 cards to avoid rate limits)
-    for (let i = 0; i < Math.min(cards.length, 10); i++) {
-      try {
-        const details = await getCardDetails(cards[i].cardKey);
-        detailedCards.push(details);
-      } catch (error) {
-        console.error(`Error fetching details for ${cards[i].cardName}:`, error);
+    // Process in batches to respect API rate limits
+    const batchSize = 10;
+    const cardsToProcess = allCardBasics.slice(0, 50); // Process 50 for testing
+    
+    for (let i = 0; i < cardsToProcess.length; i += batchSize) {
+      const batch = cardsToProcess.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (card) => {
+        try {
+          return await getCardDetails(card.cardKey);
+        } catch (error) {
+          console.error(`Error fetching details for ${card.cardName}:`, error);
+          // Create a minimal card with basic info - with correct type for creditScoreRequired
+          return {
+            id: card.cardKey,
+            name: card.cardName,
+            issuer: card.cardIssuer,
+            rewardRates: {
+              dining: 1,
+              travel: 1,
+              grocery: 1,
+              gas: 1,
+              entertainment: 1,
+              rent: 1,
+              other: 1
+            },
+            annualFee: 0,
+            creditScoreRequired: "good" as CreditScoreType, // Add 'as CreditScoreType' to fix the type error
+            perks: [],
+            foreignTransactionFee: false,
+            categories: ["other"],
+            description: `A ${card.cardName} card from ${card.cardIssuer}`
+          } as CreditCardDetails; // Add type assertion to ensure it matches
+        }
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      detailedCards.push(...batchResults);
+      
+      // Add a small delay between batches to avoid rate limits
+      if (i + batchSize < cardsToProcess.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     
     return detailedCards;
-    */
   } catch (error) {
     console.error('Error fetching all cards:', error);
     throw error;

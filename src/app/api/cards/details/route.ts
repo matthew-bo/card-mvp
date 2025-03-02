@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { mapApiCardToAppFormat } from '@/services/cardApiService';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,41 +15,36 @@ export async function GET(request: Request) {
       );
     }
     
-    // Get all cards from Firebase
-    const cardsRef = collection(db, 'credit_cards');
-    const snapshot = await getDocs(cardsRef);
+    // Use the API directly for getting card details
+    const API_KEY = process.env.REWARDS_API_KEY;
+    const API_HOST = 'rewards-credit-card-api.p.rapidapi.com';
+    const API_BASE_URL = 'https://rewards-credit-card-api.p.rapidapi.com';
     
-    // Find the card with the matching ID field
-    const cardDoc = snapshot.docs.find(doc => {
-      const data = doc.data();
-      return data.id === cardKey;
+    const response = await fetch(`${API_BASE_URL}/creditcard-detail-bycard/${cardKey}`, {
+      headers: {
+        'X-RapidAPI-Key': API_KEY || '',
+        'X-RapidAPI-Host': API_HOST
+      }
     });
     
-    if (!cardDoc) {
-      return NextResponse.json(
-        { success: false, error: 'Card not found' },
-        { status: 404 }
-      );
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
     }
     
-    const data = cardDoc.data();
+    const cardData = await response.json();
     
-    // Return the card in the expected format
+    if (!cardData || !Array.isArray(cardData) || cardData.length === 0) {
+      throw new Error('Invalid API response format');
+    }
+    
+    const apiCard = cardData[0];
+    
+    // Map API response to our app's card format
+    const mappedCard = mapApiCardToAppFormat(apiCard);
+    
     return NextResponse.json({
       success: true,
-      data: {
-        id: data.id,
-        name: data.name || '',
-        issuer: data.issuer || '',
-        rewardRates: data.rewardRates || {},
-        annualFee: data.annualFee || 0,
-        creditScoreRequired: data.creditScoreRequired || 'good',
-        perks: data.perks || [],
-        foreignTransactionFee: data.foreignTransactionFee === false ? false : true,
-        categories: data.categories || [],
-        description: data.description || '',
-        signupBonus: data.signupBonus || null
-      }
+      data: mappedCard
     });
   } catch (error) {
     console.error('Error getting card details:', error);

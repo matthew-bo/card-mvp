@@ -261,7 +261,6 @@ useEffect(() => {
       }
       
       const data = await response.json();
-      console.log('Card details:', data);
       
       if (data.success && data.data) {
         handleCardSelection(data.data);

@@ -48,9 +48,9 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
   
   // Format reward rates for easy display
   const topRewardRates = Object.entries(card.rewardRates)
-    .filter(([, rate]) => rate > 0)
+    .filter(([, rate]) => rate > 1) // Only show rates better than the base rate
     .sort(([, a], [, b]) => Number(b) - Number(a))
-    .slice(0, 3);
+    .slice(0, 4); // Show up to 4 top categories
 
   // Format signup bonus
   const formattedBonus = card.signupBonus 

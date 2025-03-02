@@ -45,8 +45,6 @@ export default function CardSearch({
       setError(null);
       
       try {
-        console.log(`Searching for: "${searchTerm}"`);
-        
         const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
         
         if (!response.ok) {
@@ -54,7 +52,6 @@ export default function CardSearch({
         }
         
         const data = await response.json();
-        console.log('Search response:', data);
         
         if (data.success && data.data && data.data.length > 0) {
           // Filter out cards that are in the exclude list
@@ -62,11 +59,14 @@ export default function CardSearch({
             (card: SearchResult) => !excludeCardKeys.includes(card.cardKey)
           );
           
-          console.log(`Found ${filteredResults.length} results after filtering`);
-          setResults(filteredResults);
-          setIsOpen(true); // Force it to be open
+          // Remove any duplicates - with explicit type assertion
+          const uniqueResults = Array.from(
+            new Map(filteredResults.map((card: SearchResult) => [card.cardKey, card])).values()
+          ) as SearchResult[]; // Add type assertion here
+          
+          setResults(uniqueResults);
+          setIsOpen(uniqueResults.length > 0);
         } else {
-          console.log('No search results found');
           setResults([]);
           setIsOpen(false);
         }
@@ -86,7 +86,7 @@ export default function CardSearch({
       }
     };
   }, [searchTerm, excludeCardKeys]);
-  
+   
   const handleSelectCard = (card: SearchResult) => {
     onCardSelect(card.cardKey, card.cardName, card.cardIssuer);
     setSearchTerm('');
@@ -145,6 +145,12 @@ export default function CardSearch({
         </div>
       )}
       
+      {searchTerm.length >= 3 && results.length === 0 && !loading && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
+          No cards found matching &quot;{searchTerm}&quot;
+        </div>
+      )}
+      
       {searchTerm.length >= 3 && (
         <div className="mt-2 text-xs">
           <button 
@@ -167,12 +173,6 @@ export default function CardSearch({
               )}
             </div>
           )}
-        </div>
-      )}
-      
-      {searchTerm.length >= 3 && results.length === 0 && !loading && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
-          No cards found matching &quot;{searchTerm}&quot;
         </div>
       )}
     </div>

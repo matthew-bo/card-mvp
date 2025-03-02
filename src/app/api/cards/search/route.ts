@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,40 +16,39 @@ export async function GET(request: Request) {
       );
     }
     
-    // Get all cards from Firebase
-    const cardsRef = collection(db, 'credit_cards');
-    const snapshot = await getDocs(cardsRef);
+    // Use the API directly for searching
+    const API_KEY = process.env.REWARDS_API_KEY;
+    const API_HOST = 'rewards-credit-card-api.p.rapidapi.com';
+    const API_BASE_URL = 'https://rewards-credit-card-api.p.rapidapi.com';
     
-    console.log(`Searching ${snapshot.size} cards`);
-    
-    // Find matches
-    const matches = snapshot.docs.filter(doc => {
-      const data = doc.data();
-      const name = data.name || '';
-      const issuer = data.issuer || '';
-      const searchLower = searchTerm.toLowerCase();
-      
-      return name.toLowerCase().includes(searchLower) || 
-             issuer.toLowerCase().includes(searchLower);
+    const response = await fetch(`${API_BASE_URL}/creditcard-detail-namesearch/${encodeURIComponent(searchTerm)}`, {
+      headers: {
+        'X-RapidAPI-Key': API_KEY || '',
+        'X-RapidAPI-Host': API_HOST
+      }
     });
     
-    console.log(`Found ${matches.length} matches`);
+    if (!response.ok) {
+      throw new Error(`API search error: ${response.status}`);
+    }
     
-    // Transform to expected format for CardSearch component
-    const results = matches.map(doc => {
-      const data = doc.data();
-      
-      // Important: Map the id field to cardKey
-      return {
-        cardKey: data.id, // This is the critical mapping
-        cardName: data.name || '',
-        cardIssuer: data.issuer || ''
-      };
-    });
+    const searchResults = await response.json();
+    
+    // Map the search results to the expected format
+    // and ensure no duplicates
+    const uniqueResults = Array.from(
+      new Map(searchResults.map((card: any) => [card.cardKey, card])).values()
+    );
+    
+    const formattedResults = uniqueResults.map((card: any) => ({
+      cardKey: card.cardKey,
+      cardName: card.cardName,
+      cardIssuer: card.cardIssuer
+    }));
     
     return NextResponse.json({
       success: true,
-      data: results
+      data: formattedResults
     });
   } catch (error) {
     console.error('Search error:', error);
