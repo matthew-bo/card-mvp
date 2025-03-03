@@ -8,16 +8,12 @@ export default function RecommenderLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthProvider>
-      <div className="min-h-screen bg-gray-50">
-        {/* Use the Navigation component without currentPath prop */}
-        <Navigation />
-        
-        {/* Page Content */}
-        <main>
-          {children}
-        </main>
-      </div>
-    </AuthProvider>
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      
+      <main>
+        {children}
+      </main>
+    </div>
   );
 }
