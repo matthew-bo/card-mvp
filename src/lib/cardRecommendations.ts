@@ -560,53 +560,43 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
       let spendingScore = 0;
       let valueScore = 0;
       let signupScore = 0;
+      let perksScore = 0; // Added perksScore
       let matchFactors = 0;
       const reasons: string[] = [];
 
-    // 1. Preference Matching Score - increase weight substantially
-    if (cardItem.categories.includes(optimizationSettings.preference)) {
-      preferenceScore += weights.rewards * 3; // Triple the weight for stronger preference matching
-      matchFactors++;
-      reasons.push(`Optimizes for ${optimizationSettings.preference}`);
-    }
-
-    // Add specific handling for each preference type
-    if (optimizationSettings.preference === 'points' && 
-        (cardItem.categories.includes('points') || cardItem.categories.includes('travel'))) {
-      preferenceScore += weights.rewards * 2; // Additional boost for points cards
-    }
-
-    if (optimizationSettings.preference === 'cashback' && 
-        cardItem.categories.includes('cashback')) {
-      preferenceScore += weights.rewards * 2; // Additional boost for cashback cards
-    }
-
-    if (optimizationSettings.preference === 'perks' && 
-        cardItem.perks.length > 3) {
-      preferenceScore += weights.rewards * 2; // Additional boost for cards with many perks
-    }
-
-    if (optimizationSettings.preference === 'creditScore' && 
-        cardItem.annualFee === 0) {
-      preferenceScore += weights.rewards * 2; // For credit building, prefer no annual fee cards
-    }
-
-      // 2. Perks Scoring - enhanced for perks preference
-      let perksScore = 0;
-      if (optimizationSettings.preference === 'perks') {
-        perksScore = Math.min(cardItem.perks.length * 8, weights.perks);
-        if (cardItem.perks.length > 3) {
-          reasons.push(`Extensive perks package with ${cardItem.perks.length} benefits`);
-        }
-      } else {
-        perksScore = Math.min(cardItem.perks.length * 3, weights.perks);
+      // 1. Preference Matching Score - increase weight substantially
+      if (cardItem.categories.includes(optimizationSettings.preference)) {
+        preferenceScore += weights.rewards * 3; // Triple the weight for stronger preference matching
+        matchFactors++;
+        reasons.push(`Optimizes for ${optimizationSettings.preference}`);
       }
 
-      // 3. Spending Pattern Analysis - dynamically weighted by category importance
+      // Add specific handling for each preference type
+      if (optimizationSettings.preference === 'points' && 
+          (cardItem.categories.includes('points') || cardItem.categories.includes('travel'))) {
+        preferenceScore += weights.rewards * 2; // Additional boost for points cards
+      }
+
+      if (optimizationSettings.preference === 'cashback' && 
+          cardItem.categories.includes('cashback')) {
+        preferenceScore += weights.rewards * 2; // Additional boost for cashback cards
+      }
+
+      if (optimizationSettings.preference === 'perks' && 
+          cardItem.perks.length > 3) {
+        preferenceScore += weights.rewards * 2; // Additional boost for cards with many perks
+      }
+
+      if (optimizationSettings.preference === 'creditScore' && 
+          cardItem.annualFee === 0) {
+        preferenceScore += weights.rewards * 2; // For credit building, prefer no annual fee cards
+      }
+
+      // 2. Spending Pattern Analysis - dynamically weighted by category importance
       let categoryMatchScore = 0;
       const matchedCategories: string[] = [];
       const topSpendingCategories = spendingAnalysis.categoryRank.slice(0, 3); // Get top 3 spending categories
-        
+      
       for (const { category, percentage } of topSpendingCategories) {
         const rewardRate = cardItem.rewardRates[category as CategoryKey] || 0;
         
@@ -624,6 +614,15 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
           }
         }
       }
+      
+  // Add the categoryMatchScore to spendingScore
+  spendingScore += categoryMatchScore;
+
+  // Keep your original perksScore calculation logic here
+  // For example:
+  if (cardItem.perks.length > 0) {
+    perksScore = Math.min(cardItem.perks.length * 5, weights.perks);
+  }
 
       // 4. Value Proposition
       const annualRewardsEstimate = spendingAnalysis.categoryRank.reduce((sum, { category, percentage }) => {
