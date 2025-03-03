@@ -1,5 +1,4 @@
 import React from 'react';
-import { AuthProvider } from '@/components/AuthProvider';
 import Navigation from '@/components/Navigation';
 
 export default function RecommenderLayout({
