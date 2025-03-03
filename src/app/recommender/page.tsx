@@ -77,6 +77,7 @@ export default function RecommenderPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCard, setSelectedCard] = useState<string>('');
   const [cardSearchLoading, setCardSearchLoading] = useState(false);
+     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const shouldShowRecommendations = expenses.length > 0 || userCards.length > 0;
   
   // UI States
