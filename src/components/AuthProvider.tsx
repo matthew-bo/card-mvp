@@ -1,11 +1,11 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User } from 'firebase/auth';
 import { auth } from '@/utils/auth/authConfig';
 
-// Add a global variable to track if provider is mounted
-let isAuthProviderMounted = false;
+// Use a global variable outside of React component lifecycle
+let isGlobalProviderMounted = false;
 
 const AuthContext = createContext<{
   user: User | null;
@@ -16,20 +16,19 @@ const AuthContext = createContext<{
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Check for duplicate mounting
-  if (typeof window !== 'undefined' && isAuthProviderMounted) {
-    console.warn('Warning: AuthProvider is being mounted more than once!');
-    // Just render children without a new context to avoid errors
-    return <>{children}</>;
-  }
-
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
-    // Set the mounted flag
+    // Check for duplicate mounting in the effect
     if (typeof window !== 'undefined') {
-      isAuthProviderMounted = true;
+      if (isGlobalProviderMounted) {
+        console.warn('Warning: AuthProvider is being mounted more than once!');
+        // We still continue with the normal render since we can't return early from effects
+      }
+      isGlobalProviderMounted = true;
+      isMountedRef.current = true;
     }
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -40,8 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       unsubscribe();
       // Reset the flag when unmounted
-      if (typeof window !== 'undefined') {
-        isAuthProviderMounted = false;
+      if (typeof window !== 'undefined' && isMountedRef.current) {
+        isGlobalProviderMounted = false;
+        isMountedRef.current = false;
       }
     };
   }, []);
