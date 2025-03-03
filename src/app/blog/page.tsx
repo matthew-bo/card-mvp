@@ -7,7 +7,7 @@ import PageTransition from '@/components/PageTransition';
 export default function BlogPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation currentPath="/blog" />
+      <Navigation />
       
       <PageTransition>
         <div className="max-w-7xl mx-auto px-6 py-16">
