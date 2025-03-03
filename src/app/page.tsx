@@ -10,7 +10,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <Navigation currentPath="/" />
+      <Navigation />
 
       {/* Hero Section */}
       <div className="relative px-6 py-24 md:py-32 max-w-7xl mx-auto">
