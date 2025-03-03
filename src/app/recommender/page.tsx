@@ -11,19 +11,20 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import NotInterestedList from '@/components/NotInterestedList';
+import safeStorage from '@/utils/safeStorage';
 
 // Safe localStorage handling
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(key);
+      return safeStorage.getItem(key);
     }
     return null;
   },
   setItem: (key: string, value: string): void => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(key, value);
+        safeStorage.setItem(key, value);
       } catch (e) {
         console.error('Error setting localStorage item:', e);
       }
@@ -77,6 +78,7 @@ export default function RecommenderPage() {
   
   // =========== STATE MANAGEMENT ===========
   // User inputs
+  const [mounted, setMounted] = useState(false);
   const [optimizationPreference, setOptimizationPreference] = useState<OptimizationPreference>('points');
   const [creditScore, setCreditScore] = useState<'poor' | 'fair' | 'good' | 'excellent'>('good');
   const [amount, setAmount] = useState('');
@@ -135,24 +137,45 @@ export default function RecommenderPage() {
 
   // =========== LOCAL STORAGE DATA PERSISTENCE ===========
   // Move useEffect to top level and put condition inside
-  useEffect(() => {
-    if (!user) {
-      const savedData = safeLocalStorage.getItem('cardPickerUserData');
-      if (savedData) {
-        try {
-          const data = JSON.parse(savedData);
-          setOptimizationPreference(data.optimizationPreference || 'points');
-          setCreditScore(data.creditScore || 'good');
-          setZeroAnnualFee(data.zeroAnnualFee || false);
-          setExpenses(data.expenses || []);
-          setUserCards(data.userCards || []);
-          setNotInterestedCards(data.notInterestedCards || []);
-        } catch (err) {
-          console.error('Error loading saved data:', err);
-        }
+// Move useEffect to top level and put condition inside
+useEffect(() => {
+  if (!user && mounted) {
+    const savedData = safeStorage.getItem('cardPickerUserData');
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        setOptimizationPreference(data.optimizationPreference || 'points');
+        setCreditScore(data.creditScore || 'good');
+        setZeroAnnualFee(data.zeroAnnualFee || false);
+        setExpenses(data.expenses || []);
+        setUserCards(data.userCards || []);
+        setNotInterestedCards(data.notInterestedCards || []);
+      } catch (err) {
+        console.error('Error loading saved data:', err);
       }
     }
-  }, [user]);
+  }
+}, [user, mounted]);
+
+// Save data for non-logged in users  
+useEffect(() => {
+  if (!user && mounted) {
+    const dataToSave = {
+      optimizationPreference,
+      creditScore,
+      zeroAnnualFee,
+      expenses,
+      userCards,
+      notInterestedCards
+    };
+    try {
+      safeStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
+    } catch (err) {
+      console.error('Error saving data:', err);
+      showNotification('Error saving your data locally.', 'error');
+    }
+  }
+}, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification, mounted]);
 
     // Add useEffect to load all cards
     const loadAllCards = async () => {
@@ -184,6 +207,10 @@ export default function RecommenderPage() {
         setLoadingAllCards(false);
       }
     };
+
+    useEffect(() => {
+      setMounted(true);
+    }, []);
     
 // When generating recommendations, use allCards parameter 
 // Inside the recommender useEffect
@@ -675,6 +702,16 @@ const getComparisonData = () => {
       </div>
     </div>;
   }
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+        <p className="text-gray-600">Loading application...</p>
+      </div>
+    </div>;
+  }
+  
 
   return (
     <div className="min-h-screen bg-gray-50">

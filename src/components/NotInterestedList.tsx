@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
-import { creditCards } from '@/lib/cardDatabase';
+import React, { useState, useEffect } from 'react';
 import { CreditCardDetails } from '@/types/cards';
+import { creditCards } from '@/lib/cardDatabase';
 
 interface NotInterestedListProps {
   notInterestedIds: string[];
@@ -15,11 +15,26 @@ const NotInterestedList: React.FC<NotInterestedListProps> = ({
   onRemove,
   onClose
 }) => {
-  // Get card details from local cardDatabase instead of fetching
-  const notInterestedCards = notInterestedIds
-    .map(id => creditCards.find(card => card.id === id))
-    .filter(Boolean) as CreditCardDetails[];
+  const [mounted, setMounted] = useState(false);
+
+  // Client-side only rendering to avoid SSR conflicts
+  useEffect(() => {
+    setMounted(true);
     
+    // Handle Escape key
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+  
+  // Don't render anything on server
+  if (!mounted) return null;
+  
   if (notInterestedIds.length === 0) {
     return (
       <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -49,6 +64,11 @@ const NotInterestedList: React.FC<NotInterestedListProps> = ({
     );
   }
   
+  // Filter cards from the static creditCards array
+  const notInterestedCards = notInterestedIds
+    .map(id => creditCards.find(card => card.id === id))
+    .filter(Boolean) as CreditCardDetails[];
+  
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full max-h-[80vh] flex flex-col">
@@ -67,25 +87,31 @@ const NotInterestedList: React.FC<NotInterestedListProps> = ({
           These cards won&apos;t appear in your recommendations. Click &quot;Reconsider&quot; to add them back to potential recommendations.
         </p>
         
-        <div className="space-y-3 overflow-y-auto flex-grow max-h-[400px] pr-1">
-          {notInterestedCards.map(card => (
-            <div 
-              key={card.id} 
-              className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
-            >
-              <div>
-                <p className="font-medium">{card.name}</p>
-                <p className="text-sm text-gray-600">{card.issuer}</p>
-              </div>
-              <button
-                onClick={() => onRemove(card.id)}
-                className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+        {notInterestedCards.length === 0 ? (
+          <div className="text-center py-4 text-gray-500">
+            Loading card details...
+          </div>
+        ) : (
+          <div className="space-y-3 overflow-y-auto flex-grow pr-1" style={{ maxHeight: '50vh' }}>
+            {notInterestedCards.map(card => (
+              <div 
+                key={card.id} 
+                className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
               >
-                Reconsider
-              </button>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <p className="font-medium">{card.name}</p>
+                  <p className="text-sm text-gray-600">{card.issuer}</p>
+                </div>
+                <button
+                  onClick={() => onRemove(card.id)}
+                  className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+                >
+                  Reconsider
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         
         <div className="mt-4 flex justify-end pt-2 border-t border-gray-100">
           <button

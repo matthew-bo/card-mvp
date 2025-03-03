@@ -10,10 +10,14 @@ import { usePathname } from 'next/navigation';
 const Navigation: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const pathname = usePathname();
 
+  // Only run client-side
   useEffect(() => {
+    setMounted(true);
+    
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
@@ -21,6 +25,11 @@ const Navigation: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Don't render anything during SSR
+  if (!mounted) {
+    return <div className="h-16"></div>; // Placeholder with the same height as the nav
+  }
 
   const navLinks = [
     { href: '/', label: 'Home', active: pathname === '/' },
