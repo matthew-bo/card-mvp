@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/components/AuthProvider';
 import { auth } from '@/lib/firebase';
 import { usePathname } from 'next/navigation';
@@ -116,65 +115,57 @@ const Navigation: React.FC = () => {
         </div>
       </div>
       
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            className="md:hidden fixed inset-0 z-40 bg-white pt-20"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="px-6 py-4 space-y-4">
-              {navLinks.map((link) => (
-                <Link 
-                  key={link.href}
-                  href={link.href} 
-                  className={`block py-2 text-lg ${
-                    link.active 
-                      ? 'text-blue-600 font-medium' 
-                      : 'text-gray-600'
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+      {/* Mobile Menu - Without framer-motion animations */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-white pt-20">
+          <div className="px-6 py-4 space-y-4">
+            {navLinks.map((link) => (
+              <Link 
+                key={link.href}
+                href={link.href} 
+                className={`block py-2 text-lg ${
+                  link.active 
+                    ? 'text-blue-600 font-medium' 
+                    : 'text-gray-600'
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="pt-4 border-t border-gray-100">
+              {user ? (
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="block py-2 text-lg text-gray-600"
                 >
-                  {link.label}
-                </Link>
-              ))}
-              <div className="pt-4 border-t border-gray-100">
-                {user ? (
-                  <button
-                    onClick={() => {
-                      handleSignOut();
-                      setIsMobileMenuOpen(false);
-                    }}
+                  Sign Out
+                </button>
+              ) : (
+                <>
+                  <Link 
+                    href="/auth/login" 
                     className="block py-2 text-lg text-gray-600"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Sign Out
-                  </button>
-                ) : (
-                  <>
-                    <Link 
-                      href="/auth/login" 
-                      className="block py-2 text-lg text-gray-600"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Log in
-                    </Link>
-                    <Link 
-                      href="/auth/signup" 
-                      className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Sign up
-                    </Link>
-                  </>
-                )}
-              </div>
+                    Log in
+                  </Link>
+                  <Link 
+                    href="/auth/signup" 
+                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

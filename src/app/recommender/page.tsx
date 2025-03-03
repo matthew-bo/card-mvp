@@ -10,8 +10,8 @@ import { useCards } from '@/hooks/useCards';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
-import NotInterestedList from '@/components/NotInterestedList';
 import safeStorage from '@/utils/safeStorage';
+import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
 
 // Safe localStorage handling
 const safeLocalStorage = {
@@ -88,6 +88,7 @@ export default function RecommenderPage() {
   const [showNotInterestedList, setShowNotInterestedList] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResultCard[]>([]);
+  const [preparedNotInterestedCards, setPreparedNotInterestedCards] = useState<CreditCardDetails[]>([]);
   
   // Data
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
@@ -122,6 +123,16 @@ export default function RecommenderPage() {
     { id: 'other', name: 'Other' }
   ] as const;
 
+  const prepareAndShowNotInterestedList = () => {
+    // Filter cards from the static creditCards array
+    const notInterestedCardsData = notInterestedCards
+      .map(id => creditCards.find(card => card.id === id))
+      .filter(Boolean) as CreditCardDetails[];
+    
+    setPreparedNotInterestedCards(notInterestedCardsData);
+    setShowNotInterestedList(true);
+  };
+
   // Show notification
   const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     const id = Date.now();
@@ -132,8 +143,6 @@ export default function RecommenderPage() {
       setNotification(current => current?.id === id ? null : current);
     }, 4000);
   }, []);
-
-
 
   // =========== LOCAL STORAGE DATA PERSISTENCE ===========
   // Move useEffect to top level and put condition inside
@@ -1045,17 +1054,17 @@ const getComparisonData = () => {
                 <h2 className="text-lg font-semibold">Recommended Cards</h2>
                 <div className="flex space-x-4">
                   
-                  {notInterestedCards.length > 0 && (
-                    <button
-                      onClick={() => setShowNotInterestedList(true)}
-                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                    >
-                      <span>Not Interested ({notInterestedCards.length})</span>
-                      <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  )}
+                {notInterestedCards.length > 0 && (
+                <button
+                  onClick={prepareAndShowNotInterestedList}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  <span>Not Interested ({notInterestedCards.length})</span>
+                  <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
                 </div>
               </div>
               
@@ -1146,8 +1155,9 @@ const getComparisonData = () => {
       </footer>
 
       {showNotInterestedList && (
-        <NotInterestedList
+        <SimpleNotInterestedList
           notInterestedIds={notInterestedCards}
+          notInterestedCards={preparedNotInterestedCards}
           onRemove={handleRemoveFromNotInterested}
           onClose={() => setShowNotInterestedList(false)}
         />
