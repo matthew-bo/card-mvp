@@ -12,6 +12,25 @@ import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import NotInterestedList from '@/components/NotInterestedList';
 
+// Safe localStorage handling
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(key);
+    }
+    return null;
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {
+        console.error('Error setting localStorage item:', e);
+      }
+    }
+  }
+};
+
 interface FirestoreExpense {
   amount: number;
   category: string;
@@ -118,7 +137,7 @@ export default function RecommenderPage() {
   // Move useEffect to top level and put condition inside
   useEffect(() => {
     if (!user) {
-      const savedData = localStorage.getItem('cardPickerUserData');
+      const savedData = safeLocalStorage.getItem('cardPickerUserData');
       if (savedData) {
         try {
           const data = JSON.parse(savedData);
@@ -246,7 +265,7 @@ useEffect(() => {
 
   // Save data for non-logged in users  
   useEffect(() => {
-    if (!user) {
+    if (!user && typeof window !== 'undefined') {
       const dataToSave = {
         optimizationPreference,
         creditScore,
@@ -256,7 +275,7 @@ useEffect(() => {
         notInterestedCards
       };
       try {
-        localStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
+        safeLocalStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
       } catch (err) {
         console.error('Error saving data:', err);
         showNotification('Error saving your data locally.', 'error');
