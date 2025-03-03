@@ -3,17 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/components/AuthProvider'; // Add this import
-import { auth } from '@/lib/firebase'; // Add this import
+import { useAuth } from '@/components/AuthProvider';
+import { auth } from '@/lib/firebase';
+import { usePathname } from 'next/navigation';
 
-interface NavigationProps {
-  currentPath: string;
-}
-
-const Navigation: React.FC<NavigationProps> = ({ currentPath }) => {
+const Navigation: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user } = useAuth(); // Add this to access user authentication state
+  const { user } = useAuth();
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,10 +23,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentPath }) => {
   }, []);
 
   const navLinks = [
-    { href: '/', label: 'Home', active: currentPath === '/' },
-    { href: '/recommender', label: 'Recommender', active: currentPath === '/recommender' },
-    { href: '/blog', label: 'Blog', active: currentPath === '/blog' },
-    { href: '/contact', label: 'Contact', active: currentPath === '/contact' }
+    { href: '/', label: 'Home', active: pathname === '/' },
+    { href: '/recommender', label: 'Recommender', active: pathname === '/recommender' },
+    { href: '/blog', label: 'Blog', active: pathname === '/blog' },
+    { href: '/contact', label: 'Contact', active: pathname === '/contact' }
   ];
 
   // Function to handle sign out

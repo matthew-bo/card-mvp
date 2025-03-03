@@ -10,8 +10,8 @@ export default function RecommenderLayout({
   return (
     <AuthProvider>
       <div className="min-h-screen bg-gray-50">
-        {/* Only include the main Navigation component */}
-        <Navigation currentPath="/recommender" />
+        {/* Use the Navigation component without currentPath prop */}
+        <Navigation />
         
         {/* Page Content */}
         <main>

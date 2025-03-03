@@ -77,6 +77,7 @@ export default function RecommenderPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCard, setSelectedCard] = useState<string>('');
   const [cardSearchLoading, setCardSearchLoading] = useState(false);
+  const shouldShowRecommendations = expenses.length > 0 || userCards.length > 0;
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -614,29 +615,32 @@ useEffect(() => {
   };
 
   // =========== DATA PROCESSING ===========
-  // Get comparison data for chart
-  const getComparisonData = () => {
-    const chartCategories = ['dining', 'travel', 'grocery', 'gas', 'entertainment', 'rent'] as const;
-    type CategoryKey = keyof CreditCardDetails['rewardRates'];
+// Get comparison data for chart
+const getComparisonData = () => {
+  const chartCategories = ['dining', 'travel', 'grocery', 'gas', 'entertainment', 'rent'] as const;
+  type CategoryKey = keyof CreditCardDetails['rewardRates'];
 
-    return chartCategories.map(category => {
-      const currentBestRate = userCards.length > 0 
-        ? Math.max(...userCards.map(card => 
-            card.rewardRates[category as CategoryKey] || 0))
-        : 0;
-        
-      const recommendedBestRate = recommendations.length > 0
-        ? Math.max(...recommendations.map(rec => 
-            rec.card.rewardRates[category as CategoryKey] || 0))
-        : 0;
+  // Use only the displayed recommended cards (up to 4)
+  const displayedRecommendedCards = recommendations.slice(0, 4).map(rec => rec.card);
 
-      return {
-        category: category.charAt(0).toUpperCase() + category.slice(1),
-        'Current Best Rate': currentBestRate,
-        'Recommended Best Rate': recommendedBestRate,
-      };
-    });
-  };
+  return chartCategories.map(category => {
+    const currentBestRate = userCards.length > 0 
+      ? Math.max(...userCards.map(card => 
+          card.rewardRates[category as CategoryKey] || 0))
+      : 0;
+      
+    const recommendedBestRate = displayedRecommendedCards.length > 0
+      ? Math.max(...displayedRecommendedCards.map(card => 
+          card.rewardRates[category as CategoryKey] || 0))
+      : 0;
+
+    return {
+      category: category.charAt(0).toUpperCase() + category.slice(1),
+      'Current Best Rate': currentBestRate,
+      'Recommended Best Rate': recommendedBestRate,
+    };
+  });
+};
 
   // Calculate total expenses
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -1002,12 +1006,19 @@ useEffect(() => {
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
+              ) : (!expenses.length && !userCards.length) ? (
+                // Show this when there's no user input yet
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
+                  <p className="text-gray-500">
+                    Add expenses and cards to get personalized recommendations
+                  </p>
+                </div>
               ) : recommendations.length === 0 ? (
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
                   <p className="text-gray-500">
                     {notInterestedCards.length > 0 
                       ? "No more recommendations available. Try reconsidering some cards."
-                      : "Add expenses and cards to get personalized recommendations"}
+                      : "No recommendations available based on your current selections."}
                   </p>
                   {notInterestedCards.length > 0 && (
                     <button
@@ -1020,7 +1031,7 @@ useEffect(() => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {/* Only show the first 6 recommendations */}
+                  {/* Only show the first 4 recommendations */}
                   {recommendations.slice(0, 4).map(({ card, reason }) => (
                     <div key={card.id} className="relative">
                       <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center z-10">
@@ -1045,22 +1056,24 @@ useEffect(() => {
             />
 
             {/* Rewards Comparison Chart */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <h2 className="text-xl font-semibold mb-4">Rewards Rate Comparison</h2>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={getComparisonData()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
-                    <YAxis label={{ value: 'Reward Rate (%)', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="Current Best Rate" fill="#4B5563" />
-                    <Bar dataKey="Recommended Best Rate" fill="#3B82F6" />
-                  </BarChart>
-                </ResponsiveContainer>
+            {(expenses.length > 0 || userCards.length > 0) && (
+              <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+                <h2 className="text-xl font-semibold mb-4">Rewards Rate Comparison</h2>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={getComparisonData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="category" />
+                      <YAxis label={{ value: 'Reward Rate (%)', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="Current Best Rate" fill="#4B5563" />
+                      <Bar dataKey="Recommended Best Rate" fill="#3B82F6" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>

@@ -51,7 +51,7 @@ const NotInterestedList: React.FC<NotInterestedListProps> = ({
   
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full max-h-[80vh] overflow-auto">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full max-h-[80vh]">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Not Interested Cards</h3>
           <button 
@@ -66,7 +66,7 @@ const NotInterestedList: React.FC<NotInterestedListProps> = ({
         <p className="text-gray-600 mb-4">
           These cards won&apos;t appear in your recommendations. Click &quot;Reconsider&quot; to add them back to potential recommendations.
         </p>
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
           {notInterestedCards.map(card => (
             <div 
               key={card.id} 

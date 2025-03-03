@@ -14,16 +14,52 @@ interface FeatureTableProps {
 }
 
 const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommendedCards = [] }) => {
+  // Only use the displayed recommended cards (up to 4 cards) for all calculations
+  const displayedRecommendedCards = recommendedCards.slice(0, 4).map(rec => rec.card);
+  
   // Helper functions for calculations
   const calculateAnnualFees = (cards: CreditCardDetails[]) => 
     cards.reduce((sum, card) => sum + (card.annualFee || 0), 0);
 
   const currentAnnualFees = calculateAnnualFees(currentCards);
-  const recommendedAnnualFees = calculateAnnualFees(recommendedCards.map(rec => rec.card));
+  const recommendedAnnualFees = calculateAnnualFees(displayedRecommendedCards);
 
-  // Total Rewards Value calculations
-  const currentRewardsValue = currentCards.length > 0 ? 1245 : 0;
-  const recommendedRewardsValue = 1875;
+  // Calculate realistic rewards value based on category spending and reward rates
+  // This is a simplified calculation and can be improved
+  const calculateRewardsValue = (cards: CreditCardDetails[]) => {
+    if (cards.length === 0) return 0;
+    
+    // Simplified annual spend by category
+    const annualSpend = {
+      dining: 2400, // $200/month
+      travel: 3000, // $250/month
+      grocery: 6000, // $500/month
+      gas: 1800, // $150/month
+      entertainment: 1200, // $100/month
+      other: 12000, // $1000/month
+    };
+    
+    // Get best reward rate for each category
+    const bestRates: Record<string, number> = {};
+    
+    for (const category of Object.keys(annualSpend)) {
+      bestRates[category] = Math.max(
+        ...cards.map(card => card.rewardRates[category as keyof typeof card.rewardRates] || 0)
+      );
+    }
+    
+    // Calculate rewards
+    let totalRewards = 0;
+    for (const [category, spend] of Object.entries(annualSpend)) {
+      const rate = bestRates[category] || 0;
+      totalRewards += spend * (rate / 100);
+    }
+    
+    return Math.round(totalRewards);
+  };
+
+  const currentRewardsValue = currentCards.length > 0 ? calculateRewardsValue(currentCards) : 0;
+  const recommendedRewardsValue = displayedRecommendedCards.length > 0 ? calculateRewardsValue(displayedRecommendedCards) : 0;
 
   // Net Value calculations
   const currentNetValue = currentRewardsValue - currentAnnualFees;
@@ -38,6 +74,13 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
 
   const hasPurchaseProtection = (cards: CreditCardDetails[]) =>
     cards.some(card => card.perks?.some(perk => perk.toLowerCase().includes('purchase protection')));
+
+  // Check if we should render the table
+  const hasData = currentCards.length > 0 || displayedRecommendedCards.length > 0;
+
+  if (!hasData) {
+    return null; // Don't render anything if there's no data
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
@@ -67,7 +110,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {currentCards.length}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {recommendedCards.length}
+                  {displayedRecommendedCards.length}
                 </td>
               </tr>
 
@@ -115,7 +158,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {hasTravelProtection(currentCards) ? 'Included' : 'Not Available'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {hasTravelProtection(recommendedCards.map(rec => rec.card)) ? 'Included' : 'Not Available'}
+                  {hasTravelProtection(displayedRecommendedCards) ? 'Included' : 'Not Available'}
                 </td>
               </tr>
 
@@ -127,7 +170,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {hasAirportLounges(currentCards) ? 'Available' : 'Not Available'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {hasAirportLounges(recommendedCards.map(rec => rec.card)) ? 'Available' : 'Not Available'}
+                  {hasAirportLounges(displayedRecommendedCards) ? 'Available' : 'Not Available'}
                 </td>
               </tr>
 
@@ -139,7 +182,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {hasPurchaseProtection(currentCards) ? 'Included' : 'Not Available'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {hasPurchaseProtection(recommendedCards.map(rec => rec.card)) ? 'Included' : 'Not Available'}
+                  {hasPurchaseProtection(displayedRecommendedCards) ? 'Included' : 'Not Available'}
                 </td>
               </tr>
 
@@ -151,7 +194,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {currentCards.some(card => !card.foreignTransactionFee) ? 'Some cards with no fees' : 'All cards have fees'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {recommendedCards.some(rec => !rec.card.foreignTransactionFee) ? 'Some cards with no fees' : 'All cards have fees'}
+                  {displayedRecommendedCards.some(card => !card.foreignTransactionFee) ? 'Some cards with no fees' : 'All cards have fees'}
                 </td>
               </tr>
 
@@ -163,19 +206,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {[...new Set(currentCards.map(card => card.issuer))].join(', ') || 'None'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {[...new Set(recommendedCards.map(rec => rec.card.issuer))].join(', ')}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  Credit Score Range
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {[...new Set(currentCards.map(card => card.creditScoreRequired))].sort().join(' to ') || 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {[...new Set(recommendedCards.map(rec => rec.card.creditScoreRequired))].sort().join(' to ')}
+                  {[...new Set(displayedRecommendedCards.map(card => card.issuer))].join(', ')}
                 </td>
               </tr>
             </tbody>
