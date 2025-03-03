@@ -1,29 +1,20 @@
-import type { Metadata } from "next";
-import { Inter } from 'next/font/google';
-import "./globals.css";
-import { AuthProvider } from '@/components/AuthProvider'; 
+import React from 'react';
+import { AuthProvider } from '@/components/AuthProvider';
+import Navigation from '@/components/Navigation';
 
-// Initialize Inter font
-const inter = Inter({ 
-  subsets: ['latin'],
-  variable: '--font-inter',
-});
-
-export const metadata: Metadata = {
-  title: "Stoid - Credit Card Recommendation System",
-  description: "Find the perfect credit cards to maximize your rewards",
-};
-
-export default function RootLayout({
+export default function RecommenderLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
-      <body className="bg-gray-50 min-h-screen font-sans antialiased">
-        <AuthProvider>{children}</AuthProvider>
-      </body>
-    </html>
+    <AuthProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <main>
+          {children}
+        </main>
+      </div>
+    </AuthProvider>
   );
 }

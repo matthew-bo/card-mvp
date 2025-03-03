@@ -25,7 +25,6 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
   const recommendedAnnualFees = calculateAnnualFees(displayedRecommendedCards);
 
   // Calculate realistic rewards value based on category spending and reward rates
-  // This is a simplified calculation and can be improved
   const calculateRewardsValue = (cards: CreditCardDetails[]) => {
     if (cards.length === 0) return 0;
     
@@ -76,7 +75,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
     cards.some(card => card.perks?.some(perk => perk.toLowerCase().includes('purchase protection')));
 
   // Check if we should render the table
-  const hasData = currentCards.length > 0 || displayedRecommendedCards.length > 0;
+  const hasData = currentCards.length > 0;
 
   if (!hasData) {
     return null; // Don't render anything if there's no data
@@ -110,7 +109,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {currentCards.length}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {displayedRecommendedCards.length}
+                  {displayedRecommendedCards.length || "0"}
                 </td>
               </tr>
 
@@ -122,7 +121,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   ${currentRewardsValue}/year
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  ${recommendedRewardsValue}/year
+                  ${recommendedRewardsValue || 0}/year
                 </td>
               </tr>
 
@@ -134,7 +133,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   ${currentAnnualFees}/year
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  ${recommendedAnnualFees}/year
+                  ${recommendedAnnualFees || 0}/year
                 </td>
               </tr>
 
@@ -146,7 +145,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   ${currentNetValue}/year
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  ${recommendedNetValue}/year
+                  ${recommendedNetValue || 0}/year
                 </td>
               </tr>
 
@@ -194,7 +193,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {currentCards.some(card => !card.foreignTransactionFee) ? 'Some cards with no fees' : 'All cards have fees'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {displayedRecommendedCards.some(card => !card.foreignTransactionFee) ? 'Some cards with no fees' : 'All cards have fees'}
+                  {displayedRecommendedCards.some(card => !card.foreignTransactionFee) ? 'Some cards with no fees' : displayedRecommendedCards.length ? 'All cards have fees' : 'None'}
                 </td>
               </tr>
 
@@ -206,7 +205,7 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
                   {[...new Set(currentCards.map(card => card.issuer))].join(', ') || 'None'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                  {[...new Set(displayedRecommendedCards.map(card => card.issuer))].join(', ')}
+                  {displayedRecommendedCards.length ? [...new Set(displayedRecommendedCards.map(card => card.issuer))].join(', ') : 'None'}
                 </td>
               </tr>
             </tbody>

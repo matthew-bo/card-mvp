@@ -879,7 +879,7 @@ const getComparisonData = () => {
               </div>
               <div>
                 <p className="text-xs text-blue-600 uppercase font-medium">Recommended</p>
-                <p className="text-lg font-bold">{recommendations.length}</p>
+                <p className="text-lg font-bold">{recommendations.slice(0, 4).length}</p>
               </div>
               <div>
                 <p className="text-xs text-blue-600 uppercase font-medium">Optimizing For</p>
