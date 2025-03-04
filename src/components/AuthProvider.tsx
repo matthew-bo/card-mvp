@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User } from 'firebase/auth';
-import { auth } from '@/utils/auth/authConfig';
+import { auth } from '@/lib/firebase';
 
 // Use a global variable outside of React component lifecycle
 let isGlobalProviderMounted = false;
@@ -25,7 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       if (isGlobalProviderMounted) {
         console.warn('Warning: AuthProvider is being mounted more than once!');
-        // We still continue with the normal render since we can't return early from effects
+        // Return early without setting up duplicate listeners
+        return () => {};
       }
       isGlobalProviderMounted = true;
       isMountedRef.current = true;
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

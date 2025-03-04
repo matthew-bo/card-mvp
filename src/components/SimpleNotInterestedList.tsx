@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CreditCardDetails } from '@/types/cards';
 
 interface SimpleNotInterestedListProps {
@@ -16,6 +16,36 @@ const SimpleNotInterestedList: React.FC<SimpleNotInterestedListProps> = ({
   onRemove,
   onClose
 }) => {
+  // Add an effect to prevent scrolling when modal is open
+  useEffect(() => {
+    // Save original overflow style
+    const originalStyle = document.body.style.overflow;
+    // Prevent scrolling
+    document.body.style.overflow = 'hidden';
+    
+    // Clean up when component unmounts
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+  
+  // Handle escape key
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener('keydown', handleEscKey);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose]);
+
   if (notInterestedIds.length === 0) {
     return (
       <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
