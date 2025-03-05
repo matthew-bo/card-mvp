@@ -12,7 +12,6 @@ import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
-import RecommenderNavigation from '@/components/RecommenderNavigation';
 
 // Safe localStorage handling
 const safeLocalStorage = {
