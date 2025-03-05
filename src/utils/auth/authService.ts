@@ -19,7 +19,7 @@ import {
 import { validatePassword, checkRateLimit } from './authConfig';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { FIREBASE_COLLECTIONS } from '@/lib/firebase';
-import { User, UserCredential } from 'firebase/auth';
+import { UserCredential } from 'firebase/auth';
 
 
 // Sign up with email and password

@@ -3,12 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { useAuthGuard } from '@/utils/auth/useAuthGuard'; // Import the auth guard
+import { useAuthGuard } from '@/utils/auth/useAuthGuard';
 import { 
   updateUserProfile, 
   updateUserEmail, 
   updateUserPassword, 
-  resendVerificationEmail 
 } from '@/utils/auth/authService';
 import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
 

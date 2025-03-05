@@ -78,7 +78,7 @@ export default function SignUpPage() {
             </div>
             <h2 className="mt-3 text-lg font-medium text-gray-900">Verification email sent!</h2>
             <p className="mt-2 text-sm text-gray-500">
-              We've sent a verification email to <span className="font-medium">{email}</span>. 
+              We&apos;ve sent a verification email to <span className="font-medium">{email}</span>. 
               Please check your inbox and click the link to verify your account.
             </p>
           </div>
