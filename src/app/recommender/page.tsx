@@ -12,6 +12,7 @@ import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
+import RecommenderNavigation from '@/components/RecommenderNavigation';
 
 // Safe localStorage handling
 const safeLocalStorage = {
@@ -483,7 +484,7 @@ export default function RecommenderPage() {
   useEffect(() => {
     console.log("Not interested list updated:", notInterestedCards);
   }, [notInterestedCards]);
-  
+
   // =========== EVENT HANDLERS ===========
   // Handle adding expense
   const handleAddExpense = async (e: React.FormEvent) => {
@@ -733,6 +734,8 @@ const getComparisonData = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Custom navigation just for this page */}
+    <RecommenderNavigation />
 
       {/* Notification Banner */}
       {notification && (
