@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { auth } from '@/lib/firebase';
+import { usePathname } from 'next/navigation';
 
 const Navigation: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -11,7 +12,6 @@ const Navigation: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
 
   // Only run client-side
   useEffect(() => {
@@ -24,12 +24,6 @@ const Navigation: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Add function to handle navigation with router
-  const navigateTo = (href: string) => {
-    setIsMobileMenuOpen(false);
-    router.push(href);
-  };
 
   // Don't render anything during SSR
   if (!mounted) {
@@ -52,51 +46,54 @@ const Navigation: React.FC = () => {
     <nav className={`sticky top-0 z-50 px-6 py-5 transition-all duration-200 ${isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center">
-          <div 
-            onClick={() => navigateTo('/')}
-            className="text-2xl font-bold text-gray-900 cursor-pointer"
-          >
-            Stoid
-          </div>
+          <Link href="/" className="text-2xl font-bold text-gray-900">Stoid</Link>
         </div>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
           {navLinks.slice(1).map((link) => (
-            <div
+            <Link 
               key={link.href}
-              onClick={() => navigateTo(link.href)}
+              href={link.href} 
               className={`${link.active 
                 ? 'text-blue-600 font-medium' 
-                : 'text-gray-600 hover:text-gray-900'} transition-colors cursor-pointer`}
+                : 'text-gray-600 hover:text-gray-900'} transition-colors`}
             >
               {link.label}
-            </div>
+            </Link>
           ))}
           
           {/* Authentication Buttons */}
           <div className="flex items-center space-x-4">
             {user ? (
-              <div
-                onClick={handleSignOut}
-                className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-              >
-                Sign Out
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/profile"
+                  className={`text-gray-600 hover:text-gray-900 transition-colors ${pathname === '/profile' ? 'text-blue-600 font-medium' : ''}`}
+                >
+                  Profile
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Sign Out
+                </button>
               </div>
             ) : (
               <>
-                <div
-                  onClick={() => navigateTo('/auth/login')}
-                  className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                <Link 
+                  href="/auth/login" 
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
                 >
                   Log in
-                </div>
-                <div
-                  onClick={() => navigateTo('/auth/signup')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                </Link>
+                <Link 
+                  href="/auth/signup" 
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
                   Sign up
-                </div>
+                </Link>
               </>
             )}
           </div>
@@ -131,52 +128,55 @@ const Navigation: React.FC = () => {
         <div className="md:hidden fixed inset-0 z-40 bg-white pt-20">
           <div className="px-6 py-4 space-y-4">
             {navLinks.map((link) => (
-              <div
+              <Link 
                 key={link.href}
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  navigateTo(link.href);
-                }}
+                href={link.href} 
                 className={`block py-2 text-lg ${
                   link.active 
                     ? 'text-blue-600 font-medium' 
                     : 'text-gray-600'
-                } cursor-pointer`}
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.label}
-              </div>
+              </Link>
             ))}
             <div className="pt-4 border-t border-gray-100">
               {user ? (
-                <div
-                  onClick={() => {
-                    handleSignOut();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block py-2 text-lg text-gray-600 cursor-pointer"
-                >
-                  Sign Out
-                </div>
+                <>
+                  <Link 
+                    href="/profile"
+                    className="block py-2 text-lg text-gray-600"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block py-2 text-lg text-gray-600"
+                  >
+                    Sign Out
+                  </button>
+                </>
               ) : (
                 <>
-                  <div
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      navigateTo('/auth/login');
-                    }}
-                    className="block py-2 text-lg text-gray-600 cursor-pointer"
+                  <Link 
+                    href="/auth/login" 
+                    className="block py-2 text-lg text-gray-600"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Log in
-                  </div>
-                  <div
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      navigateTo('/auth/signup');
-                    }}
-                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center cursor-pointer"
+                  </Link>
+                  <Link 
+                    href="/auth/signup" 
+                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Sign up
-                  </div>
+                  </Link>
                 </>
               )}
             </div>

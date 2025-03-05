@@ -734,8 +734,6 @@ const getComparisonData = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Custom navigation just for this page */}
-    <RecommenderNavigation />
 
       {/* Notification Banner */}
       {notification && (
