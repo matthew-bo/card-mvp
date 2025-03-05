@@ -65,21 +65,13 @@ const Navigation: React.FC = () => {
           
           {/* Authentication Buttons */}
           <div className="flex items-center space-x-4">
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <Link
-                  href="/profile"
-                  className={`text-gray-600 hover:text-gray-900 transition-colors ${pathname === '/profile' ? 'text-blue-600 font-medium' : ''}`}
-                >
-                  Profile
-                </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Sign Out
+            </button>
             ) : (
               <>
                 <Link 
@@ -142,26 +134,17 @@ const Navigation: React.FC = () => {
               </Link>
             ))}
             <div className="pt-4 border-t border-gray-100">
-              {user ? (
-                <>
-                  <Link 
-                    href="/profile"
-                    className="block py-2 text-lg text-gray-600"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Profile
-                  </Link>
-                  <button
-                    onClick={() => {
-                      handleSignOut();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="block py-2 text-lg text-gray-600"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
+            {user ? (
+              <button
+                onClick={() => {
+                  handleSignOut();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="block py-2 text-lg text-gray-600"
+              >
+                Sign Out
+              </button>
+            ) : (
                 <>
                   <Link 
                     href="/auth/login" 
