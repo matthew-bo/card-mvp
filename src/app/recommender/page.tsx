@@ -12,8 +12,6 @@ import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
-import React from 'react';
-import ClientOnly from '@/components/ClientOnly';
 
 // Safe localStorage handling
 const safeLocalStorage = {
@@ -73,7 +71,6 @@ interface ScoredCard {
 }
 
 export default function RecommenderPage() {
-
   const { user } = useAuth();
   
   // Use the cards hook instead of static import
@@ -99,10 +96,10 @@ export default function RecommenderPage() {
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
   const [allCards, setAllCards] = useState<CreditCardDetails[]>([]);
   const [loadingAllCards, setLoadingAllCards] = useState(true);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCard, setSelectedCard] = useState<string>('');
   const [cardSearchLoading, setCardSearchLoading] = useState(false);
-     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const shouldShowRecommendations = expenses.length > 0 || userCards.length > 0;
   
   // UI States
@@ -114,6 +111,16 @@ export default function RecommenderPage() {
     type: 'success' | 'error' | 'info';
     id: number;
   } | null>(null);
+
+  // Add cleanup effect to ensure body styles are reset
+  useEffect(() => {
+    return () => {
+      // Reset body styles when component unmounts
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
+    };
+  }, []);
 
   // =========== CATEGORIES ===========
   const categories = [
@@ -149,163 +156,154 @@ export default function RecommenderPage() {
 
   // =========== LOCAL STORAGE DATA PERSISTENCE ===========
   // Move useEffect to top level and put condition inside
- // Move useEffect to top level and put condition inside
-useEffect(() => {
-  if (!user && mounted) {
-    const savedData = safeStorage.getItem('cardPickerUserData');
-    if (savedData) {
-      try {
-        const data = JSON.parse(savedData);
-        setOptimizationPreference(data.optimizationPreference || 'points');
-        setCreditScore(data.creditScore || 'good');
-        setZeroAnnualFee(data.zeroAnnualFee || false);
-        setExpenses(data.expenses || []);
-        setUserCards(data.userCards || []);
-        setNotInterestedCards(data.notInterestedCards || []);
-      } catch (err) {
-        console.error('Error loading saved data:', err);
+  useEffect(() => {
+    if (!user && mounted) {
+      const savedData = safeStorage.getItem('cardPickerUserData');
+      if (savedData) {
+        try {
+          const data = JSON.parse(savedData);
+          setOptimizationPreference(data.optimizationPreference || 'points');
+          setCreditScore(data.creditScore || 'good');
+          setZeroAnnualFee(data.zeroAnnualFee || false);
+          setExpenses(data.expenses || []);
+          setUserCards(data.userCards || []);
+          setNotInterestedCards(data.notInterestedCards || []);
+        } catch (err) {
+          console.error('Error loading saved data:', err);
+        }
       }
     }
-  }
-}, [user, mounted]);
+  }, [user, mounted]);
 
-useEffect(() => {
-  // Clean up any potential event listeners that might be interfering
-  return () => {
-    // This will run when navigating away from the page
-    document.body.style.overflow = 'auto'; // Reset any body styles
-  };
-}, []);
-
-// Save data for non-logged in users  
-useEffect(() => {
-  if (!user && mounted) {
-    const dataToSave = {
-      optimizationPreference,
-      creditScore,
-      zeroAnnualFee,
-      expenses,
-      userCards,
-      notInterestedCards
-    };
-    try {
-      safeStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
-    } catch (err) {
-      console.error('Error saving data:', err);
-      showNotification('Error saving your data locally.', 'error');
-    }
-  }
-}, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification, mounted]);
-
-    // Add useEffect to load all cards
-    const loadAllCards = async () => {
-      setLoadingAllCards(true);
-      try {
-        // Use a server endpoint that returns all cards
-        const response = await fetch('/api/cards/all');
-        if (!response.ok) {
-          throw new Error('Failed to load card database');
-        }
-        
-        const data = await response.json();
-        console.log(`Loaded ${data.data.length} cards from ${data.source || 'unknown'} source`);
-        
-        // Log some sample cards to see what we're getting
-        if (data.data.length > 0) {
-          console.log('Sample cards:', data.data.slice(0, 3).map((card: CreditCardDetails) => ({
-            id: card.id,
-            name: card.name,
-            issuer: card.issuer
-          })));
-        }
-        
-        setAllCards(data.data);
-      } catch (error) {
-        console.error('Error loading all cards:', error);
-        setError('Failed to load card database');
-      } finally {
-        setLoadingAllCards(false);
-      }
-    };
-
-    useEffect(() => {
-      setMounted(true);
-    }, []);
-    
-// When generating recommendations, use allCards parameter 
-// Inside the recommender useEffect
-useEffect(() => {
-  try {
-    if (!loadingAllCards && allCards.length > 0) {
-      console.log(`Generating recommendations with ${allCards.length} available cards`);
-      
-      // Force diversity by selecting cards randomly from all available cards
-      // rather than relying solely on the recommendation algorithm
-      
-      // Step 1: Filter out cards the user already has or isn't interested in
-      const availableForRecommendation = allCards.filter((card: CreditCardDetails) => 
-        !userCards.some(uc => uc.id === card.id) && 
-        !notInterestedCards.includes(card.id)
-      );
-      
-      console.log(`After filtering user cards and not interested, ${availableForRecommendation.length} cards remain`);
-      
-      // Step 2: Get algorithm recommendations
-      const algorithmRecommendations = getCardRecommendations({
-        expenses,
-        currentCards: userCards,
-        optimizationSettings: {
-          preference: optimizationPreference,
-          zeroAnnualFee
-        },
+  // Save data for non-logged in users  
+  useEffect(() => {
+    if (!user && mounted) {
+      const dataToSave = {
+        optimizationPreference,
         creditScore,
-        excludeCardIds: notInterestedCards,
-        availableCards: allCards
-      });
+        zeroAnnualFee,
+        expenses,
+        userCards,
+        notInterestedCards
+      };
+      try {
+        safeStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
+      } catch (err) {
+        console.error('Error saving data:', err);
+        showNotification('Error saving your data locally.', 'error');
+      }
+    }
+  }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification, mounted]);
+
+  // Add useEffect to load all cards
+  const loadAllCards = async () => {
+    setLoadingAllCards(true);
+    try {
+      // Use a server endpoint that returns all cards
+      const response = await fetch('/api/cards/all');
+      if (!response.ok) {
+        throw new Error('Failed to load card database');
+      }
       
-      console.log(`Algorithm generated ${algorithmRecommendations.length} recommendations`);
+      const data = await response.json();
+      console.log(`Loaded ${data.data.length} cards from ${data.source || 'unknown'} source`);
       
-      // Step 3: Ensure we have at least 6-10 recommendations by adding random cards if needed
-      let finalRecommendations = [...algorithmRecommendations];
+      // Log some sample cards to see what we're getting
+      if (data.data.length > 0) {
+        console.log('Sample cards:', data.data.slice(0, 3).map((card: CreditCardDetails) => ({
+          id: card.id,
+          name: card.name,
+          issuer: card.issuer
+        })));
+      }
       
-      if (finalRecommendations.length < 6 && availableForRecommendation.length > 0) {
-        console.log('Adding random cards to ensure sufficient recommendations');
+      setAllCards(data.data);
+    } catch (error) {
+      console.error('Error loading all cards:', error);
+      setError('Failed to load card database');
+    } finally {
+      setLoadingAllCards(false);
+    }
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+    
+  // When generating recommendations, use allCards parameter 
+  // Inside the recommender useEffect
+  useEffect(() => {
+    try {
+      if (!loadingAllCards && allCards.length > 0) {
+        console.log(`Generating recommendations with ${allCards.length} available cards`);
         
-        // Randomly select cards that aren't already in the recommendations
-        const recommendedCardIds = finalRecommendations.map(rec => rec.card.id);
-        const additionalCandidates = availableForRecommendation.filter(
-          (card: CreditCardDetails) => !recommendedCardIds.includes(card.id)
+        // Force diversity by selecting cards randomly from all available cards
+        // rather than relying solely on the recommendation algorithm
+        
+        // Step 1: Filter out cards the user already has or isn't interested in
+        const availableForRecommendation = allCards.filter((card: CreditCardDetails) => 
+          !userCards.some(uc => uc.id === card.id) && 
+          !notInterestedCards.includes(card.id)
         );
         
-        // Randomly select from remaining cards
-        const randomCards = additionalCandidates
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 10 - finalRecommendations.length);
+        console.log(`After filtering user cards and not interested, ${availableForRecommendation.length} cards remain`);
         
-        const randomRecommendations = randomCards.map((card: CreditCardDetails) => ({
-          card,
-          reason: "Additional option for your consideration",
-          score: 50,
-          matchPercentage: 70,
-          potentialAnnualValue: 500, // Default value
-          complementScore: 40,       // Default value
-          longTermValue: 600,        // Default value
-          portfolioContribution: ["Adds diversity to your portfolio"] // Default value
-        })) as ScoredCard[];
+        // Step 2: Get algorithm recommendations
+        const algorithmRecommendations = getCardRecommendations({
+          expenses,
+          currentCards: userCards,
+          optimizationSettings: {
+            preference: optimizationPreference,
+            zeroAnnualFee
+          },
+          creditScore,
+          excludeCardIds: notInterestedCards,
+          availableCards: allCards
+        });
         
-        finalRecommendations = [...finalRecommendations, ...randomRecommendations];
+        console.log(`Algorithm generated ${algorithmRecommendations.length} recommendations`);
+        
+        // Step 3: Ensure we have at least 6-10 recommendations by adding random cards if needed
+        let finalRecommendations = [...algorithmRecommendations];
+        
+        if (finalRecommendations.length < 6 && availableForRecommendation.length > 0) {
+          console.log('Adding random cards to ensure sufficient recommendations');
+          
+          // Randomly select cards that aren't already in the recommendations
+          const recommendedCardIds = finalRecommendations.map(rec => rec.card.id);
+          const additionalCandidates = availableForRecommendation.filter(
+            (card: CreditCardDetails) => !recommendedCardIds.includes(card.id)
+          );
+          
+          // Randomly select from remaining cards
+          const randomCards = additionalCandidates
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 10 - finalRecommendations.length);
+          
+          const randomRecommendations = randomCards.map((card: CreditCardDetails) => ({
+            card,
+            reason: "Additional option for your consideration",
+            score: 50,
+            matchPercentage: 70,
+            potentialAnnualValue: 500, // Default value
+            complementScore: 40,       // Default value
+            longTermValue: 600,        // Default value
+            portfolioContribution: ["Adds diversity to your portfolio"] // Default value
+          })) as ScoredCard[];
+          
+          finalRecommendations = [...finalRecommendations, ...randomRecommendations];
+        }
+        
+        console.log(`Final recommendation count: ${finalRecommendations.length}`);
+        setRecommendations(finalRecommendations);
       }
-      
-      console.log(`Final recommendation count: ${finalRecommendations.length}`);
-      setRecommendations(finalRecommendations);
+    } catch (err) {
+      console.error('Error updating recommendations:', err);
+      setError('Failed to update recommendations.');
     }
-  } catch (err) {
-    console.error('Error updating recommendations:', err);
-    setError('Failed to update recommendations.');
-  }
-}, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);
 
-  //call load cards
+  // Call load cards
   useEffect(() => {
     loadAllCards();
   }, []);
@@ -485,7 +483,7 @@ useEffect(() => {
   useEffect(() => {
     console.log("Not interested list updated:", notInterestedCards);
   }, [notInterestedCards]);
-
+  
   // =========== EVENT HANDLERS ===========
   // Handle adding expense
   const handleAddExpense = async (e: React.FormEvent) => {
