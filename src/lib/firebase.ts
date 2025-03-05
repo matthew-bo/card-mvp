@@ -1,8 +1,8 @@
-// src/lib/firebase.ts - revert to your original implementation
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
+// Import the types we need for proper typing
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,11 +17,9 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
-// Development environment setup
-// Completely commented out to avoid emulator connection issues
+// Development environment setup is commented out
 /*
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   Promise.all([
@@ -44,4 +42,23 @@ export const FIREBASE_COLLECTIONS = {
   USER_PROFILES: 'user_profiles'
 };
 
-export { app, db, auth, storage, googleProvider };
+// Variable to store the storage instance after it's been initialized
+// Adding the correct type or null
+let storageInstance: FirebaseStorage | null = null;
+
+// Function to safely get Firebase storage
+export function getFirebaseStorage(): FirebaseStorage | null {
+  if (typeof window === 'undefined') {
+    // Running on server, return null
+    return null;
+  }
+  
+  // Initialize storage if it hasn't been initialized yet
+  if (!storageInstance) {
+    storageInstance = getStorage(app);
+  }
+  
+  return storageInstance;
+}
+
+export { app, db, auth, googleProvider };
