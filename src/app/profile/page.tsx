@@ -13,7 +13,6 @@ import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
 
 export default function ProfilePage() {
   // Use the auth guard to check authentication
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const authGuard = useAuthGuard({
     requireAuth: true,
     redirectTo: '/auth/login'
