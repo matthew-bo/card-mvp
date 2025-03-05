@@ -12,6 +12,8 @@ import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
+import React from 'react';
+import ClientOnly from '@/components/ClientOnly';
 
 // Safe localStorage handling
 const safeLocalStorage = {
@@ -71,6 +73,7 @@ interface ScoredCard {
 }
 
 export default function RecommenderPage() {
+
   const { user } = useAuth();
   
   // Use the cards hook instead of static import
@@ -146,7 +149,7 @@ export default function RecommenderPage() {
 
   // =========== LOCAL STORAGE DATA PERSISTENCE ===========
   // Move useEffect to top level and put condition inside
-// Move useEffect to top level and put condition inside
+ // Move useEffect to top level and put condition inside
 useEffect(() => {
   if (!user && mounted) {
     const savedData = safeStorage.getItem('cardPickerUserData');
@@ -165,6 +168,14 @@ useEffect(() => {
     }
   }
 }, [user, mounted]);
+
+useEffect(() => {
+  // Clean up any potential event listeners that might be interfering
+  return () => {
+    // This will run when navigating away from the page
+    document.body.style.overflow = 'auto'; // Reset any body styles
+  };
+}, []);
 
 // Save data for non-logged in users  
 useEffect(() => {

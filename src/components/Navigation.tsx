@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { auth } from '@/lib/firebase';
-import { usePathname } from 'next/navigation';
 
 const Navigation: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -12,6 +11,7 @@ const Navigation: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Only run client-side
   useEffect(() => {
@@ -24,6 +24,12 @@ const Navigation: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Add function to handle navigation with router
+  const navigateTo = (href: string) => {
+    setIsMobileMenuOpen(false);
+    router.push(href);
+  };
 
   // Don't render anything during SSR
   if (!mounted) {
@@ -46,46 +52,51 @@ const Navigation: React.FC = () => {
     <nav className={`sticky top-0 z-50 px-6 py-5 transition-all duration-200 ${isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center">
-          <Link href="/" className="text-2xl font-bold text-gray-900">Stoid</Link>
+          <div 
+            onClick={() => navigateTo('/')}
+            className="text-2xl font-bold text-gray-900 cursor-pointer"
+          >
+            Stoid
+          </div>
         </div>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
           {navLinks.slice(1).map((link) => (
-            <Link 
+            <div
               key={link.href}
-              href={link.href} 
+              onClick={() => navigateTo(link.href)}
               className={`${link.active 
                 ? 'text-blue-600 font-medium' 
-                : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+                : 'text-gray-600 hover:text-gray-900'} transition-colors cursor-pointer`}
             >
               {link.label}
-            </Link>
+            </div>
           ))}
           
           {/* Authentication Buttons */}
           <div className="flex items-center space-x-4">
             {user ? (
-              <button
+              <div
                 onClick={handleSignOut}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
               >
                 Sign Out
-              </button>
+              </div>
             ) : (
               <>
-                <Link 
-                  href="/auth/login" 
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                <div
+                  onClick={() => navigateTo('/auth/login')}
+                  className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
                 >
                   Log in
-                </Link>
-                <Link 
-                  href="/auth/signup" 
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                </div>
+                <div
+                  onClick={() => navigateTo('/auth/signup')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
                 >
                   Sign up
-                </Link>
+                </div>
               </>
             )}
           </div>
@@ -120,46 +131,52 @@ const Navigation: React.FC = () => {
         <div className="md:hidden fixed inset-0 z-40 bg-white pt-20">
           <div className="px-6 py-4 space-y-4">
             {navLinks.map((link) => (
-              <Link 
+              <div
                 key={link.href}
-                href={link.href} 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigateTo(link.href);
+                }}
                 className={`block py-2 text-lg ${
                   link.active 
                     ? 'text-blue-600 font-medium' 
                     : 'text-gray-600'
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
+                } cursor-pointer`}
               >
                 {link.label}
-              </Link>
+              </div>
             ))}
             <div className="pt-4 border-t border-gray-100">
               {user ? (
-                <button
+                <div
                   onClick={() => {
                     handleSignOut();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block py-2 text-lg text-gray-600"
+                  className="block py-2 text-lg text-gray-600 cursor-pointer"
                 >
                   Sign Out
-                </button>
+                </div>
               ) : (
                 <>
-                  <Link 
-                    href="/auth/login" 
-                    className="block py-2 text-lg text-gray-600"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                  <div
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigateTo('/auth/login');
+                    }}
+                    className="block py-2 text-lg text-gray-600 cursor-pointer"
                   >
                     Log in
-                  </Link>
-                  <Link 
-                    href="/auth/signup" 
-                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                  </div>
+                  <div
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigateTo('/auth/signup');
+                    }}
+                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center cursor-pointer"
                   >
                     Sign up
-                  </Link>
+                  </div>
                 </>
               )}
             </div>
