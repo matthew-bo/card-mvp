@@ -42,6 +42,12 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState('');
 
+  // Use the auth guard to check authentication
+useAuthGuard({
+    requireAuth: true,
+    redirectTo: '/auth/login'
+  });
+
   // Load user data when component mounts
   useEffect(() => {
     if (user) {
