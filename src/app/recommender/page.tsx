@@ -4,25 +4,26 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function RecommenderPage() {
-  // Use underscore prefix to indicate an intentionally unused variable
- // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { user: _user } = useAuth();
-  
-  // Simple loading state to prevent any issues during hydration
-  const [isClient, setIsClient] = useState(false);
+  const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
-    setIsClient(true);
+    setMounted(true);
   }, []);
   
-  if (!isClient) {
-    return <div>Loading...</div>;
+  if (!mounted) {
+    return <div className="p-4">Loading recommender...</div>;
   }
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Card recommender</h1>
-      {/* Your recommender UI components */}
+      <h1 className="text-2xl font-bold mb-6">Card Recommender</h1>
+      <p>Welcome to the card recommender tool.</p>
+      {user ? (
+        <p className="mt-4">Logged in as: {user.email}</p>
+      ) : (
+        <p className="mt-4">Not logged in</p>
+      )}
     </div>
   );
 }
