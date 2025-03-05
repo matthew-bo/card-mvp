@@ -37,7 +37,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}) {
       return;
     }
 
-    // If user should be redirected when authenticated
+    // If user should be redirected when authenticated 
     if (redirectIfAuthenticated && user) {
       router.push(redirectAuthenticatedTo);
       return;
