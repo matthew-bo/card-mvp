@@ -69,24 +69,38 @@ export const signIn = async (email: string, password: string): Promise<UserCrede
 // Sign in with Google
 export const signInWithGoogle = async () => {
   try {
+    console.log("Starting Google sign-in process");
     const result = await signInWithPopup(auth, googleProvider);
     
-    // Check if user profile exists
-    const profileDoc = await getDoc(doc(db, FIREBASE_COLLECTIONS.USER_PROFILES, result.user.uid));
+    console.log("Google sign-in successful, user:", result.user.uid);
     
-    if (!profileDoc.exists()) {
-      // Create user profile document for Google sign-in
-      await setDoc(doc(db, FIREBASE_COLLECTIONS.USER_PROFILES, result.user.uid), {
-        email: result.user.email,
-        displayName: result.user.displayName,
-        createdAt: new Date(),
-        isEmailVerified: result.user.emailVerified,
-        photoURL: result.user.photoURL
-      });
+    // Check if user profile exists
+    try {
+      console.log("Checking for existing user profile");
+      const profileDoc = await getDoc(doc(db, FIREBASE_COLLECTIONS.USER_PROFILES, result.user.uid));
+      
+      if (!profileDoc.exists()) {
+        console.log("Profile doesn't exist, creating new profile");
+        // Create user profile document for Google sign-in
+        await setDoc(doc(db, FIREBASE_COLLECTIONS.USER_PROFILES, result.user.uid), {
+          email: result.user.email,
+          displayName: result.user.displayName,
+          createdAt: new Date(),
+          isEmailVerified: result.user.emailVerified,
+          photoURL: result.user.photoURL
+        });
+        console.log("Profile created successfully");
+      } else {
+        console.log("User profile already exists");
+      }
+    } catch (profileError) {
+      console.error("Error accessing or creating user profile:", profileError);
+      // Still return the authenticated user even if profile creation fails
     }
     
     return result.user;
   } catch (error) {
+    console.error("Google sign-in error:", error);
     throw error;
   }
 };
