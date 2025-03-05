@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -17,6 +17,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const googleProvider = new GoogleAuthProvider();
 
 // Development environment setup
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -41,48 +42,8 @@ export const FIREBASE_COLLECTIONS = {
   CREDIT_CARDS: 'credit_cards',
   USER_CARDS: 'user_cards',
   USER_PREFERENCES: 'user_preferences',
-  EXPENSES: 'expenses'
+  EXPENSES: 'expenses',
+  USER_PROFILES: 'user_profiles'
 };
 
-
-// Monitoring setup
-//if (typeof window !== 'undefined') {
-//  app.automaticDataCollectionEnabled = true;
-
-  // Monitor authentication state changes
-// auth.onAuthStateChanged((user) => {
-//    MonitoringService.logEvent({
- //     type: 'auth_state_change',
- //     severity: 'info',
- //     message: user ? 'User signed in' : 'User signed out',
- //     metadata: user ? { userId: user.uid } : undefined
- //   });
- // });
-//}
-
-
-//type DbFunction = (...parameters: unknown[]) => unknown;
-
-//const monitoredDb = new Proxy(db, {
- // get(target, prop: string | symbol) {
- //   const original = target[prop as keyof typeof target];
-//    if (typeof original === 'function') {
-  //    return function (...parameters: unknown[]) {
-    //    const startTime = performance.now();
-      //  const result = (original as DbFunction).apply(target, parameters);
-        //
-        //if (result instanceof Promise) {
-          //return result.finally(() => {
-            //PerformanceMonitor.trackOperation(`firestore_${String(prop)}`, startTime);
-//          });
-  //      }
-        
-    //    PerformanceMonitor.trackOperation(`firestore_${String(prop)}`, startTime);
-      //  return result;
-  //    };
-    //}
-   // return original;
-  //}
-//});
-
-export { app, db, auth, storage };
+export { app, db, auth, storage, googleProvider };

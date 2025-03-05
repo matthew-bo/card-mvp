@@ -8,7 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdmin } from '@/utils/adminConfig';
-import ApiUsageStats from '@/components/ApiUsageStats';
+import { ApiUsageStats } from '@/components/ApiUsageStats';
 import AdminCardManager from '@/components/AdminCardManager';
 
 

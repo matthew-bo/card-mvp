@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
             </div>
             <h2 className="mt-3 text-lg font-medium text-gray-900">Check your email</h2>
             <p className="mt-2 text-sm text-gray-500">
-              We've sent a password reset link to <span className="font-medium">{email}</span>. 
+                We&apos;ve sent a password reset link to <span className="font-medium">{email}</span>.
               Please check your inbox and click the link to reset your password.
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
         }
       >
         <p className="mt-2 text-center text-sm text-gray-600">
-          Enter your email address and we'll send you a link to reset your password.
+          Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
