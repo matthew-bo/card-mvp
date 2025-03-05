@@ -13,7 +13,7 @@ import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
 
 export default function ProfilePage() {
   // Use the auth guard to check authentication
-  const authGuard = useAuthGuard({
+  useAuthGuard({
     requireAuth: true,
     redirectTo: '/auth/login'
   });
@@ -41,12 +41,6 @@ export default function ProfilePage() {
   const [passwordUpdating, setPasswordUpdating] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState('');
-
-  // Use the auth guard to check authentication
-useAuthGuard({
-    requireAuth: true,
-    redirectTo: '/auth/login'
-  });
 
   // Load user data when component mounts
   useEffect(() => {
