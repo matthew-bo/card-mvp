@@ -418,11 +418,11 @@ export default function RecommenderPage() {
               date: data.date.toDate()
             } as LoadedExpense;
           });
-
+  
           setExpenses(loadedExpenses);
         } catch (expError) {
           console.error('Error loading expenses:', expError);
-          throw expError;
+          // Don't throw here, just log the error
         }
   
         // Loading cards
@@ -441,7 +441,7 @@ export default function RecommenderPage() {
           }
         } catch (cardError) {
           console.error('Error loading cards:', cardError);
-          throw cardError;
+          // Don't throw here, just log the error
         }
   
         // Loading preferences
@@ -459,7 +459,7 @@ export default function RecommenderPage() {
           }
         } catch (prefError) {
           console.error('Error loading preferences:', prefError);
-          throw prefError;
+          // Don't throw here, just log the error
         }
   
       } catch (err) {
@@ -473,6 +473,9 @@ export default function RecommenderPage() {
   
     if (user) {
       loadUserData();
+    } else {
+      // Important: set loading to false when not logged in
+      setLoading(false);
     }
   }, [user, creditCards]);
 
@@ -720,7 +723,7 @@ const getComparisonData = () => {
       </div>
     </div>;
   }
-
+  
   if (!mounted) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
@@ -729,7 +732,6 @@ const getComparisonData = () => {
       </div>
     </div>;
   }
-  
 
   return (
     <div className="min-h-screen bg-gray-50">
