@@ -1,6 +1,5 @@
 import { 
   auth, 
-  googleProvider, 
   db 
 } from '@/lib/firebase';
 import { 
@@ -14,7 +13,8 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
-  updateEmail
+  updateEmail,
+  GoogleAuthProvider  // Add this import
 } from 'firebase/auth';
 import { validatePassword, checkRateLimit } from './authConfig';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -70,35 +70,19 @@ export const signIn = async (email: string, password: string): Promise<UserCrede
 export const signInWithGoogle = async () => {
   try {
     console.log("Starting Google sign-in process");
-    const result = await signInWithPopup(auth, googleProvider);
+    const provider = new GoogleAuthProvider();
     
-    console.log("Google sign-in successful, user:", result.user.uid);
+    // Important: Force re-authentication
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
     
-    // Check if user profile exists
-    try {
-      console.log("Checking for existing user profile");
-      const profileDoc = await getDoc(doc(db, FIREBASE_COLLECTIONS.USER_PROFILES, result.user.uid));
-      
-      if (!profileDoc.exists()) {
-        console.log("Profile doesn't exist, creating new profile");
-        // Create user profile document for Google sign-in
-        await setDoc(doc(db, FIREBASE_COLLECTIONS.USER_PROFILES, result.user.uid), {
-          email: result.user.email,
-          displayName: result.user.displayName,
-          createdAt: new Date(),
-          isEmailVerified: result.user.emailVerified,
-          photoURL: result.user.photoURL
-        });
-        console.log("Profile created successfully");
-      } else {
-        console.log("User profile already exists");
-      }
-    } catch (profileError) {
-      console.error("Error accessing or creating user profile:", profileError);
-      // Still return the authenticated user even if profile creation fails
-    }
-    
-    return result.user;
+    // Use a simple version first to isolate the issue
+    return signInWithPopup(auth, provider)
+      .then((result) => {
+        console.log("Sign-in successful");
+        return result.user;
+      });
   } catch (error) {
     console.error("Google sign-in error:", error);
     throw error;

@@ -12,6 +12,16 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Debug logging for Firebase config
+console.log("Firebase Config Check:", {
+  apiKey: !!firebaseConfig.apiKey,
+  authDomain: !!firebaseConfig.authDomain,
+  projectId: !!firebaseConfig.projectId,
+  storageBucket: !!firebaseConfig.storageBucket,
+  messagingSenderId: !!firebaseConfig.messagingSenderId,
+  appId: !!firebaseConfig.appId
+});
+
 // Initialize Firebase only if it hasn't been initialized
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
@@ -20,6 +30,8 @@ const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 // Development environment setup
+// Completely commented out to avoid emulator connection issues
+/*
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   Promise.all([
     import('firebase/auth'),
@@ -31,12 +43,20 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     connectStorageEmulator(storage, 'localhost', 9199);
   }).catch(console.error);
 }
+*/
 
 // Error handling for initialization
 if (!app) throw new Error('Firebase app initialization failed');
 if (!auth) throw new Error('Firebase auth initialization failed');
 if (!db) throw new Error('Firebase Firestore initialization failed');
 if (!storage) throw new Error('Firebase storage initialization failed');
+
+// Debug log successful initialization
+console.log("Firebase initialized successfully", {
+  authInitialized: !!auth,
+  firestoreInitialized: !!db,
+  storageInitialized: !!storage
+});
 
 export const FIREBASE_COLLECTIONS = {
   CREDIT_CARDS: 'credit_cards',
