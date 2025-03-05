@@ -13,14 +13,14 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const oobCode = searchParams.get('oobCode');
-    
+    const oobCode = searchParams ? searchParams.get('oobCode') : null;
+  
     if (!oobCode) {
       setStatus('error');
       setError('Invalid verification link. Please request a new verification email.');
       return;
     }
-
+    
     const verifyEmail = async () => {
       try {
         await applyActionCode(auth, oobCode);
