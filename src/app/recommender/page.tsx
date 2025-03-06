@@ -1059,7 +1059,16 @@ const getComparisonData = () => {
 
             {/* Optimization Settings */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-             <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
+              
+              {/* Card Type Selection*/}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Card Type</label>
+                <CardTypeToggle 
+                  value={cardType}
+                  onChange={setCardType}
+                />
+              </div>
               
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">What would you like to optimize for?</label>
@@ -1106,15 +1115,6 @@ const getComparisonData = () => {
               </div>
             </div>
           </div>
-
-              {/* Card Type Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
-                <CardTypeToggle 
-                  value={cardType}
-                  onChange={setCardType}
-                />
-              </div>
 
           {/* Right Column - Results Area */}
           <div className={`lg:col-span-2 space-y-6 ${activeTab === 'results' || window.innerWidth >= 768 ? 'block' : 'hidden'}`}>
@@ -1258,19 +1258,6 @@ const getComparisonData = () => {
                     </button>
                   )}
                 </div>
-              </div>
-
-              <div className="flex justify-center mb-6">
-                <button
-                  onClick={handleUpdateRecommendations}
-                  disabled={loading || expenses.length === 0 && userCards.length === 0}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-lg font-medium disabled:opacity-50 flex items-center space-x-2"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Update Recommendations</span>
-                </button>
               </div>
               
               {loading ? (
