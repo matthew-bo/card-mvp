@@ -97,6 +97,7 @@ export default function RecommenderPage() {
   const [showUpdateButton, setShowUpdateButton] = useState(true);
   const [refreshingRecommendations, setRefreshingRecommendations] = useState(false);
   const [cardType, setCardType] = useState<'personal' | 'business' | 'both'>('personal');
+  const [loadingState, setLoadingState] = useState<string>('initializing');
   
   // Data
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
@@ -205,58 +206,159 @@ export default function RecommenderPage() {
 
   // Add useEffect to load all cards
   const loadAllCards = useCallback(async () => {
-    console.log('Starting to load all cards');
+    console.log('🔄 Loading all cards started');
+    setLoadingState('loading-cards');
     setLoadingAllCards(true);
     
     try {
       // Use a server endpoint that returns all cards
+      console.log('📡 Fetching card data from API');
       const response = await fetch('/api/cards/all');
+      
       if (!response.ok) {
-        throw new Error('Failed to load card database');
+        throw new Error(`Failed to load card database: ${response.status}`);
       }
       
-      const data = await response.json();
-      console.log(`Loaded ${data.data.length} cards from ${data.source || 'unknown'} source`);
+      console.log('✅ Card API response received');
+      let data;
+      try {
+        data = await response.json();
+        console.log(`📊 Loaded ${data.data?.length || 0} cards from ${data.source || 'unknown'} source`);
+      } catch (parseError) {
+        console.error('❌ Error parsing API response:', parseError);
+        throw new Error('Failed to parse card data');
+      }
       
       // Filter based on card type
-      let filteredCards;
-    
-      if (cardType === 'personal') {
+      let filteredCards = [];
+      
+      if (!data.data || !Array.isArray(data.data)) {
+        console.error('❌ Invalid data format received:', data);
+        filteredCards = [];
+      } else if (cardType === 'personal') {
         filteredCards = filterPersonalCards(data.data);
+        console.log(`👤 Filtered to ${filteredCards.length} personal cards`);
       } else if (cardType === 'business') {
         filteredCards = filterBusinessCards(data.data);
+        console.log(`💼 Filtered to ${filteredCards.length} business cards`);
       } else {
         filteredCards = data.data;
+        console.log(`🔄 Using all ${filteredCards.length} cards`);
       }
-          
-      console.log(`Showing ${filteredCards.length} ${cardType} cards`);
-      setAllCards(filteredCards); 
       
-      console.log('Successfully loaded cards');
+      console.log(`💾 Setting ${filteredCards.length} cards to state`);
+      setAllCards(filteredCards);
+      setLoadingState('cards-loaded');
     } catch (error) {
-      console.error('Error loading all cards:', error);
-      setError('Failed to load card database');
-      
-      setAllCards([]); 
+      console.error('❌ Error loading all cards:', error);
+      // Important: Set a fallback value so the UI doesn't get stuck
+      setAllCards([]);
+      setError(`Failed to load card database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setLoadingState('cards-error');
     } finally {
-      console.log('Finished loading all cards attempt');
+      console.log('🏁 Finished loading cards attempt');
       setLoadingAllCards(false);
     }
-  }, [cardType]);
-
+  }, [cardType]); // Only include cardType as a dependency
+  
+  // Add a failsafe timeout to unstick loading states
   useEffect(() => {
-    if (loading) {
-      const timeout = setTimeout(() => {
-        console.log('Loading timeout reached - forcing completion');
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.log('⚠️ Loading timeout reached - forcing completion');
         setLoading(false);
         setLoadingAllCards(false);
-        setError('Loading took too long. Please refresh the page.');
-      }, 10000); // 10 seconds timeout
-      
-      return () => clearTimeout(timeout);
-    }
+        setError('Loading timed out. Please refresh the page or try again later.');
+        setLoadingState('timeout');
+      }
+    }, 15000); // 15 seconds timeout
+    
+    return () => clearTimeout(loadingTimeout);
   }, [loading]);
   
+  // Monitor loading state changes
+  useEffect(() => {
+    console.log(`🔄 Loading state changed to: ${loadingState}`);
+  }, [loadingState]);
+  
+  // Initial data loading - make sure this only runs once
+  useEffect(() => {
+    console.log('📱 Component mounted effect triggered');
+    setMounted(true);
+    
+    // Don't automatically load cards here, let other effects trigger it
+    
+    return () => {
+      console.log('🧹 Component unmount cleanup');
+    };
+  }, []); // Empty dependency array means this only runs once
+  
+  // Load cards when necessary dependencies change
+  useEffect(() => {
+    if (mounted) {
+      console.log('🔄 Dependencies changed, loading cards');
+      loadAllCards();
+    }
+  }, [cardType, mounted, loadAllCards]);
+  
+  // This simplified render will help diagnose loading issues
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+          <p className="text-gray-600">Initializing application...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+          <p className="text-gray-600">Loading data... ({loadingState})</p>
+          <p className="text-sm text-gray-500 mt-2">This is taking longer than expected.</p>
+          <button 
+            onClick={() => {
+              setLoading(false);
+              setLoadingAllCards(false);
+            }}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Skip Loading
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+          <div className="text-red-500 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error Loading Data</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              loadAllCards();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Fix the useEffect dependencies
   useEffect(() => {
