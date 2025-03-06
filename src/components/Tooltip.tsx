@@ -8,7 +8,7 @@ interface TooltipProps {
   content: string | React.ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
-  maxWidth?: string; // Make sure this line is present
+  maxWidth?: string;
 }
 
 const Tooltip: React.FC<TooltipProps> = ({
@@ -16,7 +16,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   content,
   position = 'top',
   className = '',
-  maxWidth = '250px' // Default value
+  maxWidth = '250px'
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -34,9 +34,10 @@ const Tooltip: React.FC<TooltipProps> = ({
     }
   };
 
+  // Add inline-flex to ensure the tooltip is positioned relative to the child
   return (
     <div
-      className={`relative inline-block ${className}`}
+      className={`inline-flex ${className}`}
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
       onFocus={() => setIsVisible(true)}
@@ -47,7 +48,7 @@ const Tooltip: React.FC<TooltipProps> = ({
         {isVisible && (
           <motion.div
             className={`absolute z-50 min-w-max px-3 py-2 text-sm text-white bg-gray-800 rounded shadow-lg pointer-events-none ${getPositionStyles()}`}
-            style={{ maxWidth }} // Apply maxWidth via style
+            style={{ maxWidth }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}

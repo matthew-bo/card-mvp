@@ -12,6 +12,9 @@ import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
+import UpdateRecommendationsButton from '@/components/UpdateRecommendationsButton';
+import CardTypeToggle from '@/components/CardTypeToggle';
+import { filterPersonalCards, filterBusinessCards, isBusinessCard } from '@/utils/cardUtils';
 
 // Safe localStorage handling
 const safeLocalStorage = {
@@ -91,6 +94,8 @@ export default function RecommenderPage() {
   const [preparedNotInterestedCards, setPreparedNotInterestedCards] = useState<CreditCardDetails[]>([]);
   const [manualRecommendations, setManualRecommendations] = useState<RecommendedCard[]>([]);
   const [showUpdateButton, setShowUpdateButton] = useState(true);
+  const [refreshingRecommendations, setRefreshingRecommendations] = useState(false);
+  const [cardType, setCardType] = useState<'personal' | 'business' | 'both'>('personal');
   
   // Data
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
@@ -201,7 +206,6 @@ export default function RecommenderPage() {
   const loadAllCards = async () => {
     setLoadingAllCards(true);
     try {
-      // Use a server endpoint that returns all cards
       const response = await fetch('/api/cards/all');
       if (!response.ok) {
         throw new Error('Failed to load card database');
@@ -210,16 +214,20 @@ export default function RecommenderPage() {
       const data = await response.json();
       console.log(`Loaded ${data.data.length} cards from ${data.source || 'unknown'} source`);
       
-      // Log some sample cards to see what we're getting
-      if (data.data.length > 0) {
-        console.log('Sample cards:', data.data.slice(0, 3).map((card: CreditCardDetails) => ({
-          id: card.id,
-          name: card.name,
-          issuer: card.issuer
-        })));
+      // Store all cards but filter based on current selection
+      const allLoadedCards = data.data;
+      let filteredCards;
+      
+      if (cardType === 'personal') {
+        filteredCards = filterPersonalCards(allLoadedCards);
+      } else if (cardType === 'business') {
+        filteredCards = filterBusinessCards(allLoadedCards);
+      } else {
+        filteredCards = allLoadedCards;
       }
       
-      setAllCards(data.data);
+      console.log(`Showing ${filteredCards.length} ${cardType} cards`);
+      setAllCards(filteredCards);
     } catch (error) {
       console.error('Error loading all cards:', error);
       setError('Failed to load card database');
@@ -227,10 +235,30 @@ export default function RecommenderPage() {
       setLoadingAllCards(false);
     }
   };
-
+  
+  // Add this useEffect to reload cards when cardType changes
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (mounted) {
+      loadAllCards();
+    }
+  }, [cardType, mounted]);
+
+  const handleRefreshRecommendations = useCallback(async () => {
+    setRefreshingRecommendations(true);
+    setError(null);
+  
+    try {
+      // Refresh all cards from API
+      await loadAllCards();
+      
+      showNotification('Recommendations updated based on your latest inputs', 'success');
+    } catch (err) {
+      console.error('Error refreshing recommendations:', err);
+      setError('Failed to update recommendations. Please try again.');
+    } finally {
+      setRefreshingRecommendations(false);
+    }
+  }, [loadAllCards, showNotification]);
     
   // When generating recommendations, use allCards parameter 
   // Inside the recommender useEffect
@@ -903,7 +931,7 @@ const getComparisonData = () => {
 
             {/* Optimization Settings */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
+             <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
               
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">What would you like to optimize for?</label>
@@ -950,6 +978,15 @@ const getComparisonData = () => {
               </div>
             </div>
           </div>
+
+              {/* Card Type Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
+                <CardTypeToggle 
+                  value={cardType}
+                  onChange={setCardType}
+                />
+              </div>
 
           {/* Right Column - Results Area */}
           <div className={`lg:col-span-2 space-y-6 ${activeTab === 'results' || window.innerWidth >= 768 ? 'block' : 'hidden'}`}>
@@ -1071,9 +1108,16 @@ const getComparisonData = () => {
 
             {/* Recommended Cards */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                 <h2 className="text-lg font-semibold">Recommended Cards</h2>
-                <div className="flex space-x-4">
+                <div className="flex space-x-4 mt-2 sm:mt-0">
+                  {/* Add the update recommendations button here */}
+                  <UpdateRecommendationsButton 
+                    onClick={handleRefreshRecommendations} 
+                    loading={refreshingRecommendations}
+                    className="mb-2 sm:mb-0"
+                  />
+                  
                   {notInterestedCards.length > 0 && (
                     <button
                       onClick={prepareAndShowNotInterestedList}
