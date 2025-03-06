@@ -69,23 +69,31 @@ export default function SignUpPage() {
   if (success) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-        <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg border border-gray-100">
           <div className="text-center">
+            <Link href="/" className="inline-block mb-6">
+              <div className="flex items-center justify-center">
+                <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center mr-3">
+                  <span className="text-white font-bold text-lg">S</span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Stoid</h1>
+              </div>
+            </Link>
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
               <svg className="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="mt-3 text-lg font-medium text-gray-900">Verification email sent!</h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <h2 className="mt-4 text-2xl font-bold text-gray-900">Verification email sent!</h2>
+            <p className="mt-3 text-base text-gray-600">
               We&apos;ve sent a verification email to <span className="font-medium">{email}</span>. 
               Please check your inbox and click the link to verify your account.
             </p>
           </div>
-          <div className="mt-5">
+          <div className="mt-6">
             <button
               onClick={() => router.push('/auth/login')}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
               Go to Sign In
             </button>
@@ -100,20 +108,20 @@ export default function SignUpPage() {
       <AuthCard 
         title="Create your account"
         footer={
-          <Link href="/auth/login" className="text-blue-600 hover:text-blue-500">
+          <Link href="/auth/login" className="text-blue-600 hover:text-blue-500 font-medium">
             Already have an account? Sign in
           </Link>
         }
       >
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded">
+            <div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-100">
               {error}
             </div>
           )}
           
           <div>
-            <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
               Full Name
             </label>
             <input
@@ -123,12 +131,12 @@ export default function SignUpPage() {
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
@@ -138,12 +146,12 @@ export default function SignUpPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
             <input
@@ -153,15 +161,15 @@ export default function SignUpPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-2 text-sm text-gray-500">
               Must be at least 8 characters with uppercase, lowercase, number and special character
             </p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
               Confirm Password
             </label>
             <input
@@ -171,14 +179,14 @@ export default function SignUpPage() {
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
           >
             {loading ? (
               <>
@@ -192,13 +200,13 @@ export default function SignUpPage() {
           </button>
         </form>
         
-        <div className="mt-6">
+        <div className="mt-8">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-3 bg-white text-gray-500">Or continue with</span>
             </div>
           </div>
 

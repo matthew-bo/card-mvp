@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCardDetails } from '@/types/cards';
+import Tooltip from './Tooltip';
 
 interface CardDisplayProps {
   card: CreditCardDetails;
@@ -42,9 +44,9 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
   onDelete, 
   onNotInterested,
 }) => {
-
   const [expanded, setExpanded] = useState(false);
   const colors = getIssuerColors(card.issuer);
+  const cardRef = useRef<HTMLDivElement>(null);
   
   // Format reward rates for easy display
   const topRewardRates = Object.entries(card.rewardRates)
@@ -64,15 +66,15 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
     card.creditScoreRequired === 'fair' ? 'bg-yellow-100 text-yellow-800' :
     'bg-red-100 text-red-800';
   
-  // Delete handler
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(card.id);
-    }
-  };
-
   return (
-    <div className="relative group h-full">
+    <motion.div 
+      className="relative group h-full"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ y: -5 }}
+      ref={cardRef}
+    >
       {/* Card container */}
       <div className="h-full border rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
         {/* Card Header */}
@@ -91,9 +93,9 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
         {/* Action Buttons - Repositioned to the bottom of the header */}
         <div className="absolute top-14 right-4 flex space-x-2">
           {onDelete && (
-            <div className="group/tooltip">
+            <Tooltip content="Remove card" position="top">
               <button
-                onClick={handleDelete}
+                onClick={() => onDelete(card.id)}
                 className="p-1.5 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
                   hover:text-red-600 hover:bg-red-50 hover:border-red-200 
                   transition-all duration-200"
@@ -107,14 +109,11 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                 </svg>
               </button>
-              <div className="absolute right-0 -bottom-7 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                Remove card
-              </div>
-            </div>
+            </Tooltip>
           )}
           
           {onNotInterested && (
-            <div className="group/tooltip">
+            <Tooltip content="Not interested in this card" position="top">
               <button
                 onClick={() => onNotInterested(card.id)}
                 className="p-1.5 rounded-full bg-white shadow-sm border border-gray-200 text-gray-400 
@@ -129,10 +128,7 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
                   <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
                 </svg>
               </button>
-              <div className="absolute right-0 -bottom-7 text-xs bg-gray-800 text-white px-2 py-1 rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                Not interested
-              </div>
-            </div>
+            </Tooltip>
           )}
         </div>
         
@@ -150,13 +146,19 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
             <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-2">Top Rewards</h4>
             <div className="space-y-2">
               {topRewardRates.map(([category, rate]) => (
-                <div key={category} className="flex items-center text-sm">
+                <motion.div 
+                  key={category} 
+                  className="flex items-center text-sm"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
                   <div className={`w-2 h-2 rounded-full ${colors.accent} mr-2 flex-shrink-0`}></div>
                   <span className="text-gray-700 capitalize truncate">{category}</span>
                   <span className={`ml-auto font-medium ${colors.text}`}>
                     {rate}%
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -168,9 +170,15 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
           {card.signupBonus && (
             <div className="mb-3">
               <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-1">Sign-up Bonus</h4>
-              <p className={`text-sm font-medium ${colors.text}`}>
-                {formattedBonus?.display}
-              </p>
+              <Tooltip 
+                content={`Spend $${card.signupBonus.spendRequired.toLocaleString()} in ${card.signupBonus.timeframe} months to earn this bonus.`} 
+                position="left"
+                maxWidth="220px"
+              >
+                <p className={`text-sm font-medium ${colors.text}`}>
+                  {formattedBonus?.display}
+                </p>
+              </Tooltip>
               <p className="text-xs text-gray-600 mt-0.5">
                 after ${card.signupBonus.spendRequired.toLocaleString()} spend in {card.signupBonus.timeframe} months
               </p>
@@ -179,9 +187,11 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
           
           {/* Credit Score Badge */}
           <div className="flex items-center justify-between">
-            <span className={`text-xs px-2 py-1 rounded-full ${creditScoreColor}`}>
-              {card.creditScoreRequired.charAt(0).toUpperCase() + card.creditScoreRequired.slice(1)}
-            </span>
+            <Tooltip content={`This card typically requires a ${card.creditScoreRequired} credit score.`} position="bottom">
+              <span className={`text-xs px-2 py-1 rounded-full ${creditScoreColor}`}>
+                {card.creditScoreRequired.charAt(0).toUpperCase() + card.creditScoreRequired.slice(1)}
+              </span>
+            </Tooltip>
             
             {/* Expand/Collapse Button */}
             <button 
@@ -194,37 +204,53 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
           </div>
           
           {/* Expanded Content */}
-          {expanded && (
-            <div className="mt-3 pt-3 border-t border-gray-100 animate-fadeIn">
-              {/* Foreign Transaction Fee */}
-              <div className="flex items-center mt-2 text-sm">
-                <span className="text-gray-600">Foreign Transaction Fee:</span>
-                <span className="ml-auto font-medium">
-                  {card.foreignTransactionFee ? 'Yes' : 'None'}
-                </span>
-              </div>
-              
-              {/* Perks List */}
-              {card.perks.length > 0 && (
-                <div className="mt-3">
-                  <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-1">Top Perks</h4>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    {card.perks.slice(0, 3).map((perk, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="text-green-500 mr-1">✓</span>
-                        <span>{perk}</span>
-                      </li>
-                    ))}
-                    {card.perks.length > 3 && (
-                      <li className="text-xs text-gray-500">+{card.perks.length - 3} more</li>
-                    )}
-                  </ul>
+          <AnimatePresence>
+            {expanded && (
+              <motion.div 
+                className="mt-3 pt-3 border-t border-gray-100"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Foreign Transaction Fee */}
+                <div className="flex items-center mt-2 text-sm">
+                  <span className="text-gray-600">Foreign Transaction Fee:</span>
+                  <span className="ml-auto font-medium">
+                    {card.foreignTransactionFee ? 'Yes' : 'None'}
+                  </span>
                 </div>
-              )}
-            </div>
-          )}
+                
+                {/* Perks List */}
+                {card.perks.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-1">Top Perks</h4>
+                    <ul className="text-xs text-gray-600 space-y-1">
+                      {card.perks.slice(0, 3).map((perk, index) => (
+                        <motion.li 
+                          key={index} 
+                          className="flex items-start"
+                          initial={{ opacity: 0, x: -5 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.2, delay: index * 0.1 }}
+                        >
+                          <span className="text-green-500 mr-1">✓</span>
+                          <span>{perk}</span>
+                        </motion.li>
+                      ))}
+                      {card.perks.length > 3 && (
+                        <li className="text-xs text-gray-500">+{card.perks.length - 3} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
+
+export default CardDisplay;

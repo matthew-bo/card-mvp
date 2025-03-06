@@ -60,9 +60,27 @@ module.exports = {
           '100%': { opacity: 1 },
         },
       },
+      transitionProperty: {
+        'height': 'height',
+        'spacing': 'margin, padding',
+      }
     },
   },
   plugins: [
     require('@tailwindcss/forms'),
+    function ({ addUtilities }) {
+      const newUtilities = {
+        '.backface-hidden': {
+          'backface-visibility': 'hidden',
+        },
+        '.backface-visible': {
+          'backface-visibility': 'visible',
+        },
+        '.preserve-3d': {
+          'transform-style': 'preserve-3d',
+        },
+      }
+      addUtilities(newUtilities)
+    }
   ],
 }

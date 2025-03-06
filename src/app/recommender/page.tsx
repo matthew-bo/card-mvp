@@ -89,6 +89,8 @@ export default function RecommenderPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResultCard[]>([]);
   const [preparedNotInterestedCards, setPreparedNotInterestedCards] = useState<CreditCardDetails[]>([]);
+  const [manualRecommendations, setManualRecommendations] = useState<RecommendedCard[]>([]);
+  const [showUpdateButton, setShowUpdateButton] = useState(true);
   
   // Data
   const [expenses, setExpenses] = useState<LoadedExpense[]>([]);
@@ -233,14 +235,11 @@ export default function RecommenderPage() {
   // When generating recommendations, use allCards parameter 
   // Inside the recommender useEffect
   useEffect(() => {
-    try {
-      if (!loadingAllCards && allCards.length > 0) {
+    if (!showUpdateButton && !loadingAllCards && allCards.length > 0) {
+      try {
         console.log(`Generating recommendations with ${allCards.length} available cards`);
         
-        // Force diversity by selecting cards randomly from all available cards
-        // rather than relying solely on the recommendation algorithm
-        
-        // Step 1: Filter out cards the user already has or isn't interested in
+        // Filter out cards the user already has or isn't interested in
         const availableForRecommendation = allCards.filter((card: CreditCardDetails) => 
           !userCards.some(uc => uc.id === card.id) && 
           !notInterestedCards.includes(card.id)
@@ -248,7 +247,7 @@ export default function RecommenderPage() {
         
         console.log(`After filtering user cards and not interested, ${availableForRecommendation.length} cards remain`);
         
-        // Step 2: Get algorithm recommendations
+        // Get algorithm recommendations
         const algorithmRecommendations = getCardRecommendations({
           expenses,
           currentCards: userCards,
@@ -263,7 +262,7 @@ export default function RecommenderPage() {
         
         console.log(`Algorithm generated ${algorithmRecommendations.length} recommendations`);
         
-        // Step 3: Ensure we have at least 6-10 recommendations by adding random cards if needed
+        // Ensure we have at least 6-10 recommendations by adding random cards if needed
         let finalRecommendations = [...algorithmRecommendations];
         
         if (finalRecommendations.length < 6 && availableForRecommendation.length > 0) {
@@ -295,13 +294,17 @@ export default function RecommenderPage() {
         }
         
         console.log(`Final recommendation count: ${finalRecommendations.length}`);
-        setRecommendations(finalRecommendations);
+        setManualRecommendations(finalRecommendations);
+        
+        // Reset update button state after generating recommendations
+        setShowUpdateButton(true);
+      } catch (err) {
+        console.error('Error updating recommendations:', err);
+        setError('Failed to update recommendations.');
+        setShowUpdateButton(true);
       }
-    } catch (err) {
-      console.error('Error updating recommendations:', err);
-      setError('Failed to update recommendations.');
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards, showUpdateButton]);
 
   // Call load cards
   useEffect(() => {
@@ -682,6 +685,11 @@ export default function RecommenderPage() {
     }
   };
 
+  const handleUpdateRecommendations = () => {
+    setShowUpdateButton(false);
+    // This will trigger the useEffect to run with the latest data
+  };
+
   // =========== DATA PROCESSING ===========
 // Get comparison data for chart
 const getComparisonData = () => {
@@ -689,7 +697,9 @@ const getComparisonData = () => {
   type CategoryKey = keyof CreditCardDetails['rewardRates'];
 
   // Use only the displayed recommended cards (up to 4)
-  const displayedRecommendedCards = recommendations.slice(0, 4).map(rec => rec.card);
+  const displayedRecommendedCards = (manualRecommendations.length > 0 ? manualRecommendations : recommendations)
+    .slice(0, 4)
+    .map(rec => rec.card);
 
   return chartCategories.map(category => {
     const currentBestRate = userCards.length > 0 
@@ -1064,19 +1074,31 @@ const getComparisonData = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Recommended Cards</h2>
                 <div className="flex space-x-4">
-                  
-                {notInterestedCards.length > 0 && (
-                <button
-                  onClick={prepareAndShowNotInterestedList}
-                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                >
-                  <span>Not Interested ({notInterestedCards.length})</span>
-                  <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )}
+                  {notInterestedCards.length > 0 && (
+                    <button
+                      onClick={prepareAndShowNotInterestedList}
+                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                    >
+                      <span>Not Interested ({notInterestedCards.length})</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
+              </div>
+
+              <div className="flex justify-center mb-6">
+                <button
+                  onClick={handleUpdateRecommendations}
+                  disabled={loading || expenses.length === 0 && userCards.length === 0}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-lg font-medium disabled:opacity-50 flex items-center space-x-2"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Update Recommendations</span>
+                </button>
               </div>
               
               {loading ? (
@@ -1084,18 +1106,17 @@ const getComparisonData = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
               ) : (!expenses.length && !userCards.length) ? (
-                // Show this when there's no user input yet
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
                   <p className="text-gray-500">
                     Add expenses and cards to get personalized recommendations
                   </p>
                 </div>
-              ) : recommendations.length === 0 ? (
+              ) : manualRecommendations.length === 0 ? (
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
                   <p className="text-gray-500">
                     {notInterestedCards.length > 0 
                       ? "No more recommendations available. Try reconsidering some cards."
-                      : "No recommendations available based on your current selections."}
+                      : "Click the 'Update Recommendations' button to generate recommendations."}
                   </p>
                   {notInterestedCards.length > 0 && (
                     <button
@@ -1109,7 +1130,7 @@ const getComparisonData = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   {/* Only show the first 4 recommendations */}
-                  {recommendations.slice(0, 4).map(({ card, reason }) => (
+                  {manualRecommendations.slice(0, 4).map(({ card, reason }) => (
                     <div key={card.id} className="relative">
                       <div className="absolute -top-2 left-4 right-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full text-center z-10">
                         {reason}
@@ -1129,11 +1150,11 @@ const getComparisonData = () => {
             {/* Feature Comparison Table */}
             <FeatureTable 
               currentCards={userCards}
-              recommendedCards={recommendations}
+              recommendedCards={manualRecommendations.length > 0 ? manualRecommendations : recommendations}
             />
 
             {/* Rewards Comparison Chart */}
-            {(expenses.length > 0 || userCards.length > 0) && (
+            {(manualRecommendations.length > 0 || userCards.length > 0) && (
               <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
                 <h2 className="text-xl font-semibold mb-4">Rewards Rate Comparison</h2>
                 <div className="h-80">
