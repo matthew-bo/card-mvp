@@ -68,7 +68,8 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/forms'),
-    function ({ addUtilities }) {
+    // Add proper typing for the plugin function
+    function({ addUtilities }: { addUtilities: (utilities: Record<string, Record<string, string>>) => void }) {
       const newUtilities = {
         '.backface-hidden': {
           'backface-visibility': 'hidden',
