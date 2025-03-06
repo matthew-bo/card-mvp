@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy } from 'firebase/firestore';
@@ -261,6 +261,24 @@ export default function RecommenderPage() {
     }
   }, [cardType]); // Only include cardType as a dependency
   
+  const handleRefreshRecommendations = useCallback(async () => {
+    setRefreshingRecommendations(true);
+    setError(null);
+  
+    try {
+      // Refresh all cards from API
+      await loadAllCards();
+      
+      showNotification('Recommendations updated based on your latest inputs', 'success');
+    } catch (err) {
+      console.error('Error refreshing recommendations:', err);
+      setError('Failed to update recommendations. Please try again.');
+    } finally {
+      setRefreshingRecommendations(false);
+    }
+  }, [loadAllCards, showNotification]);
+  
+  // All useEffect hooks
   // Add a failsafe timeout to unstick loading states
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
@@ -301,64 +319,6 @@ export default function RecommenderPage() {
     }
   }, [cardType, mounted, loadAllCards]);
   
-  // This simplified render will help diagnose loading issues
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
-          <p className="text-gray-600">Initializing application...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
-          <p className="text-gray-600">Loading data... ({loadingState})</p>
-          <p className="text-sm text-gray-500 mt-2">This is taking longer than expected.</p>
-          <button 
-            onClick={() => {
-              setLoading(false);
-              setLoadingAllCards(false);
-            }}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Skip Loading
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-          <div className="text-red-500 mb-4">
-            <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Error Loading Data</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              setLoading(true);
-              loadAllCards();
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // Fix the useEffect dependencies
   useEffect(() => {
@@ -366,23 +326,6 @@ export default function RecommenderPage() {
       loadAllCards();
     }
   }, [cardType, mounted, loadAllCards]); 
-
-  const handleRefreshRecommendations = useCallback(async () => {
-    setRefreshingRecommendations(true);
-    setError(null);
-  
-    try {
-      // Refresh all cards from API
-      await loadAllCards();
-      
-      showNotification('Recommendations updated based on your latest inputs', 'success');
-    } catch (err) {
-      console.error('Error refreshing recommendations:', err);
-      setError('Failed to update recommendations. Please try again.');
-    } finally {
-      setRefreshingRecommendations(false);
-    }
-  }, [loadAllCards, showNotification]);
     
   // When generating recommendations, use allCards parameter 
   // Inside the recommender useEffect
@@ -880,6 +823,64 @@ const getComparisonData = () => {
 
   // =========== RENDER ===========
   // Check if we're still loading card data
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+          <p className="text-gray-600">Initializing application...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+          <p className="text-gray-600">Loading data... ({loadingState})</p>
+          <p className="text-sm text-gray-500 mt-2">This is taking longer than expected.</p>
+          <button 
+            onClick={() => {
+              setLoading(false);
+              setLoadingAllCards(false);
+            }}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Skip Loading
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+          <div className="text-red-500 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error Loading Data</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              loadAllCards();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (cardsLoading) {
     return <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
