@@ -14,7 +14,7 @@ import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
 import UpdateRecommendationsButton from '@/components/UpdateRecommendationsButton';
 import CardTypeToggle from '@/components/CardTypeToggle';
-import { filterPersonalCards, filterBusinessCards, isBusinessCard } from '@/utils/cardUtils';
+import { filterPersonalCards, filterBusinessCards } from '@/utils/cardUtils';
 
 // Safe localStorage handling
 const safeLocalStorage = {
@@ -203,9 +203,10 @@ export default function RecommenderPage() {
   }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification, mounted]);
 
   // Add useEffect to load all cards
-  const loadAllCards = async () => {
+  const loadAllCards = useCallback(async () => {
     setLoadingAllCards(true);
     try {
+      // Use a server endpoint that returns all cards
       const response = await fetch('/api/cards/all');
       if (!response.ok) {
         throw new Error('Failed to load card database');
@@ -214,16 +215,15 @@ export default function RecommenderPage() {
       const data = await response.json();
       console.log(`Loaded ${data.data.length} cards from ${data.source || 'unknown'} source`);
       
-      // Store all cards but filter based on current selection
-      const allLoadedCards = data.data;
+      // Filter based on card type
       let filteredCards;
       
       if (cardType === 'personal') {
-        filteredCards = filterPersonalCards(allLoadedCards);
+        filteredCards = filterPersonalCards(data.data);
       } else if (cardType === 'business') {
-        filteredCards = filterBusinessCards(allLoadedCards);
+        filteredCards = filterBusinessCards(data.data);
       } else {
-        filteredCards = allLoadedCards;
+        filteredCards = data.data;
       }
       
       console.log(`Showing ${filteredCards.length} ${cardType} cards`);
@@ -234,14 +234,14 @@ export default function RecommenderPage() {
     } finally {
       setLoadingAllCards(false);
     }
-  };
-  
-  // Add this useEffect to reload cards when cardType changes
+  }, [cardType]); 
+
+  // Fix the useEffect dependencies
   useEffect(() => {
     if (mounted) {
       loadAllCards();
     }
-  }, [cardType, mounted]);
+  }, [cardType, mounted, loadAllCards]); 
 
   const handleRefreshRecommendations = useCallback(async () => {
     setRefreshingRecommendations(true);
@@ -332,7 +332,7 @@ export default function RecommenderPage() {
         setShowUpdateButton(true);
       }
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards, showUpdateButton]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards, showUpdateButton, loadAllCards]);
 
   // Call load cards
   useEffect(() => {
@@ -395,7 +395,7 @@ export default function RecommenderPage() {
     }, 500); // Debounce time
     
     return () => clearTimeout(timer);
-  }, [searchTerm, userCards]);
+  }, [searchTerm, userCards, loadAllCards]);
   
   // Function to fetch card details when a card is selected
   const fetchCardDetails = async (cardKey: string) => {
