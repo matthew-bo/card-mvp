@@ -81,6 +81,7 @@ export default function RecommenderPage() {
   
   // =========== STATE MANAGEMENT ===========
   // User inputs
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [mounted, setMounted] = useState(false);
   const [optimizationPreference, setOptimizationPreference] = useState<OptimizationPreference>('points');
   const [creditScore, setCreditScore] = useState<'poor' | 'fair' | 'good' | 'excellent'>('good');
