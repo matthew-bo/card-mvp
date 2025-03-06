@@ -205,7 +205,9 @@ export default function RecommenderPage() {
 
   // Add useEffect to load all cards
   const loadAllCards = useCallback(async () => {
+    console.log('Starting to load all cards');
     setLoadingAllCards(true);
+    
     try {
       // Use a server endpoint that returns all cards
       const response = await fetch('/api/cards/all');
@@ -227,15 +229,31 @@ export default function RecommenderPage() {
         filteredCards = data.data;
       }
       
-      console.log(`Showing ${filteredCards.length} ${cardType} cards`);
-      setAllCards(filteredCards);
+      console.log('Successfully loaded cards');
     } catch (error) {
       console.error('Error loading all cards:', error);
       setError('Failed to load card database');
+      
+      setAllCards([]); 
     } finally {
+      console.log('Finished loading all cards attempt');
       setLoadingAllCards(false);
     }
-  }, [cardType]); 
+  }, [cardType]);
+
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        console.log('Loading timeout reached - forcing completion');
+        setLoading(false);
+        setLoadingAllCards(false);
+        setError('Loading took too long. Please refresh the page.');
+      }, 10000); // 10 seconds timeout
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [loading]);
+  
 
   // Fix the useEffect dependencies
   useEffect(() => {
@@ -506,7 +524,6 @@ export default function RecommenderPage() {
     if (user) {
       loadUserData();
     } else {
-      // Important: set loading to false when not logged in
       setLoading(false);
     }
   }, [user, creditCards]);
@@ -518,6 +535,10 @@ export default function RecommenderPage() {
   useEffect(() => {
     console.log("Not interested list updated:", notInterestedCards);
   }, [notInterestedCards]);
+
+  useEffect(() => {
+    console.log('Loading state changed:', loading);
+  }, [loading]);
 
   // =========== EVENT HANDLERS ===========
   // Handle adding expense
