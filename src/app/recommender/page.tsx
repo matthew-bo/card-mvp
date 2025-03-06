@@ -783,6 +783,7 @@ export default function RecommenderPage() {
     }
   };
 
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleUpdateRecommendations = () => {
     setShowUpdateButton(false);
     // This will trigger the useEffect to run with the latest data
@@ -887,7 +888,7 @@ const getComparisonData = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
           <p className="text-gray-600">Loading card database...</p>
-          <p className="text-sm text-gray-500 mt-2">We're finding the best cards for you.</p>
+          <p className="text-sm text-gray-500 mt-2">We&apos;re finding the best cards for you.</p>
         </div>
       </div>
     );
@@ -1041,7 +1042,7 @@ const getComparisonData = () => {
 
               {/* Credit Score Selection */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">What's your credit score range?</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">What&apos;s your credit score range?</label>
                 <select
                   value={creditScore}
                   onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
