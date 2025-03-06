@@ -173,7 +173,7 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
               <Tooltip 
                 content={`Spend $${card.signupBonus.spendRequired.toLocaleString()} in ${card.signupBonus.timeframe} months to earn this bonus.`} 
                 position="left"
-                maxWidth="220px"
+                // Remove the maxWidth property for now
               >
                 <p className={`text-sm font-medium ${colors.text}`}>
                   {formattedBonus?.display}

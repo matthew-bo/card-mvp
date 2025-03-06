@@ -8,6 +8,7 @@ interface TooltipProps {
   content: string | React.ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
+  maxWidth?: string; // Make sure this line is present
 }
 
 const Tooltip: React.FC<TooltipProps> = ({
@@ -15,6 +16,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   content,
   position = 'top',
   className = '',
+  maxWidth = '250px' // Default value
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -44,7 +46,8 @@ const Tooltip: React.FC<TooltipProps> = ({
       <AnimatePresence>
         {isVisible && (
           <motion.div
-            className={`absolute z-50 min-w-max max-w-xs px-3 py-2 text-sm text-white bg-gray-800 rounded shadow-lg pointer-events-none ${getPositionStyles()}`}
+            className={`absolute z-50 min-w-max px-3 py-2 text-sm text-white bg-gray-800 rounded shadow-lg pointer-events-none ${getPositionStyles()}`}
+            style={{ maxWidth }} // Apply maxWidth via style
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
