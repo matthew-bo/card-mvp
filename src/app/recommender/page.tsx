@@ -12,7 +12,6 @@ import FeatureTable from '@/components/FeatureTable';
 import { CardDisplay } from '@/components/CardDisplay';
 import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
-import UpdateRecommendationsButton from '@/components/UpdateRecommendationsButton';
 import CardTypeToggle from '@/components/CardTypeToggle';
 import { filterPersonalCards, filterBusinessCards } from '@/utils/cardUtils';
 
@@ -81,7 +80,6 @@ export default function RecommenderPage() {
   
   // =========== STATE MANAGEMENT ===========
   // User inputs
-   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [mounted, setMounted] = useState(false);
   const [optimizationPreference, setOptimizationPreference] = useState<OptimizationPreference>('points');
   const [creditScore, setCreditScore] = useState<'poor' | 'fair' | 'good' | 'excellent'>('good');
@@ -404,7 +402,7 @@ export default function RecommenderPage() {
   // Call load cards
   useEffect(() => {
     loadAllCards();
-  }, []);
+  }, [loadAllCards]);
 
   // Save data for non-logged in users  
   useEffect(() => {
