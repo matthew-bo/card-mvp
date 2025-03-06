@@ -220,7 +220,7 @@ export default function RecommenderPage() {
       
       // Filter based on card type
       let filteredCards;
-      
+    
       if (cardType === 'personal') {
         filteredCards = filterPersonalCards(data.data);
       } else if (cardType === 'business') {
@@ -228,6 +228,9 @@ export default function RecommenderPage() {
       } else {
         filteredCards = data.data;
       }
+          
+      console.log(`Showing ${filteredCards.length} ${cardType} cards`);
+      setAllCards(filteredCards); 
       
       console.log('Successfully loaded cards');
     } catch (error) {
@@ -351,7 +354,7 @@ export default function RecommenderPage() {
         setShowUpdateButton(true);
       }
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards, showUpdateButton, loadAllCards]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards, showUpdateButton, loadAllCards, loadAllCards]);
 
   // Call load cards
   useEffect(() => {
