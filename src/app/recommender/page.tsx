@@ -1097,7 +1097,7 @@ const getComparisonData = () => {
             </div>
 
             {/* Add Expense Section */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6" data-section="expense-form">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
               <p className="text-sm text-gray-600 mb-4">
                 Track your monthly expenses for personalized recommendations
@@ -1156,7 +1156,7 @@ const getComparisonData = () => {
             </div>
 
             {/* Add Your Cards Section */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6" data-section="card-search">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Your Current Cards</h2>
               
               <div>
@@ -1256,7 +1256,17 @@ const getComparisonData = () => {
                   <p className="text-gray-500 mb-2">No expenses added yet</p>
                   <button 
                     className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                    onClick={() => setActiveTab('input')}
+                    onClick={() => {
+                      setActiveTab('input');
+                      setTimeout(() => {
+                        const element = document.querySelector('[data-section="expense-form"]');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                          element.classList.add('bg-blue-50');
+                          setTimeout(() => element.classList.remove('bg-blue-50'), 2000);
+                        }
+                      }, 100);
+                    }}
                   >
                     Add Your First Expense
                   </button>
@@ -1335,7 +1345,17 @@ const getComparisonData = () => {
                   <p className="text-gray-500 mb-2">No cards added yet</p>
                   <button 
                     className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                    onClick={() => setActiveTab('input')}
+                    onClick={() => {
+                      setActiveTab('input');
+                      setTimeout(() => {
+                        const element = document.querySelector('[data-section="card-search"]');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                          element.classList.add('bg-blue-50');
+                          setTimeout(() => element.classList.remove('bg-blue-50'), 2000);
+                        }
+                      }, 100);
+                    }}
                   >
                     Add Your First Card
                   </button>
@@ -1385,7 +1405,17 @@ const getComparisonData = () => {
                   </p>
                   <button 
                     className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                    onClick={() => setActiveTab('input')}
+                    onClick={() => {
+                      setActiveTab('input');
+                      setTimeout(() => {
+                        const element = document.querySelector('[data-section="expense-form"]');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                          element.classList.add('bg-blue-50');
+                          setTimeout(() => element.classList.remove('bg-blue-50'), 2000);
+                        }
+                      }, 100);
+                    }}
                   >
                     Start by Adding Data
                   </button>
@@ -1449,7 +1479,17 @@ const getComparisonData = () => {
                   {userCards.length === 0 ? (
                     <button 
                       className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                      onClick={() => setActiveTab('input')}
+                      onClick={() => {
+                        setActiveTab('input');
+                        setTimeout(() => {
+                          const element = document.querySelector('[data-section="card-search"]');
+                          if (element) {
+                            element.scrollIntoView({ behavior: 'smooth' });
+                            element.classList.add('bg-blue-50');
+                            setTimeout(() => element.classList.remove('bg-blue-50'), 2000);
+                          }
+                        }, 100);
+                      }}
                     >
                       Add Your Cards
                     </button>
