@@ -93,7 +93,7 @@ export default function RecommenderPage() {
   const [preparedNotInterestedCards, setPreparedNotInterestedCards] = useState<CreditCardDetails[]>([]);
   const [manualRecommendations, setManualRecommendations] = useState<RecommendedCard[]>([]);
   const [showUpdateButton, setShowUpdateButton] = useState(true);
-  const [refreshingRecommendations, setRefreshingRecommendations] = useState(false);
+  const [_refreshingRecommendations, setRefreshingRecommendations] = useState(false);
   const [cardType, setCardType] = useState<'personal' | 'business' | 'both'>('personal');
   const [loadingState, setLoadingState] = useState<string>('initializing');
   
