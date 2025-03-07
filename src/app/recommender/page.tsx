@@ -14,6 +14,7 @@ import safeStorage from '@/utils/safeStorage';
 import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
 import CardTypeToggle from '@/components/CardTypeToggle';
 import { filterPersonalCards, filterBusinessCards } from '@/utils/cardUtils';
+import Navigation from '@/components/Navigation';
 
 // Safe localStorage handling
 const safeLocalStorage = {
@@ -262,6 +263,7 @@ export default function RecommenderPage() {
   const handleRefreshRecommendations = useCallback(async () => {
     setRefreshingRecommendations(true);
     setError(null);
+    setShowUpdateButton(false); // Add this line to trigger recommendations generation
   
     try {
       // Refresh all cards from API
@@ -271,6 +273,7 @@ export default function RecommenderPage() {
     } catch (err) {
       console.error('Error refreshing recommendations:', err);
       setError('Failed to update recommendations. Please try again.');
+      setShowUpdateButton(true); // Reset if error occurs
     } finally {
       setRefreshingRecommendations(false);
     }
@@ -428,11 +431,13 @@ export default function RecommenderPage() {
     // Only search if we have at least 3 characters
     if (searchTerm.length < 3) {
       setSearchResults([]);
+      setCardSearchLoading(false); // Clear loading state when search term is cleared or too short
       return;
     }
     
+    setCardSearchLoading(true); // Set loading when search starts
+    
     const timer = setTimeout(async () => {
-      setCardSearchLoading(true);
       try {
         const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
         if (!response.ok) {
@@ -455,7 +460,7 @@ export default function RecommenderPage() {
         console.error('Error searching cards:', error);
         setSearchResults([]);
       } finally {
-        setLoading(false);
+        setCardSearchLoading(false); // Clear loading state when done
       }
     }, 500); // Debounce time
     
@@ -781,12 +786,6 @@ export default function RecommenderPage() {
     }
   };
 
-   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleUpdateRecommendations = () => {
-    setShowUpdateButton(false);
-    // This will trigger the useEffect to run with the latest data
-  };
-
   // =========== DATA PROCESSING ===========
 // Get comparison data for chart
 const getComparisonData = () => {
@@ -894,40 +893,48 @@ const getComparisonData = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Notification Banner */}
+      {/* Navigation bar */}
+      <Navigation />
+      
+      {/* Notification Banner - Updated modern style */}
       {notification && (
-        <div 
-          className={`fixed top-16 left-0 right-0 z-50 p-4 flex items-center justify-between transition-all transform ${
-            notification.type === 'success' ? 'bg-green-100 text-green-800 border-b border-green-200' :
-            notification.type === 'error' ? 'bg-red-100 text-red-800 border-b border-red-200' :
-            'bg-blue-100 text-blue-800 border-b border-blue-200'
-          }`}
-        >
-          <div className="flex items-center">
-            <svg className={`w-5 h-5 mr-2 ${
-              notification.type === 'success' ? 'text-green-500' :
-              notification.type === 'error' ? 'text-red-500' :
-              'text-blue-500'
-            }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {notification.type === 'success' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />}
-              {notification.type === 'error' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />}
-              {notification.type === 'info' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
-            </svg>
-            <p>{notification.message}</p>
+        <div className="fixed top-16 left-0 right-0 z-50 flex justify-center">
+          <div className={`mt-4 px-6 py-3 rounded-lg shadow-lg flex items-center ${
+            notification.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+            notification.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+            'bg-blue-50 text-blue-800 border border-blue-200'
+          }`}>
+            <div className={`rounded-full p-1 mr-3 ${
+              notification.type === 'success' ? 'bg-green-100' :
+              notification.type === 'error' ? 'bg-red-100' :
+              'bg-blue-100'
+            }`}>
+              {notification.type === 'success' && (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {notification.type === 'error' && (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              {notification.type === 'info' && (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </div>
+            <p className="font-medium">{notification.message}</p>
+            <button 
+              onClick={() => setNotification(null)}
+              className="ml-4 p-1 rounded-full hover:bg-opacity-10 opacity-70 hover:opacity-100"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button 
-            onClick={() => setNotification(null)}
-            className={`ml-4 p-1 rounded-full hover:bg-opacity-10 ${
-              notification.type === 'success' ? 'hover:bg-green-500 text-green-500' :
-              notification.type === 'error' ? 'hover:bg-red-500 text-red-500' :
-              'hover:bg-blue-500 text-blue-500'
-            }`}
-            aria-label="Dismiss notification"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
       )}
 
@@ -1007,97 +1014,8 @@ const getComparisonData = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Input Sections */}
           <div className={`lg:col-span-4 space-y-6 ${activeTab === 'input' || window.innerWidth >= 1024 ? 'block' : 'hidden'}`}>
-            {/* Card Type Toggle moved to Optimization Settings */}
-            
-            {/* Optimization Settings - Moved up for better flow */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
-              
-              {/* Card Type Selection - Moved here from elsewhere */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
-                <CardTypeToggle 
-                  value={cardType}
-                  onChange={setCardType}
-                  className="w-full"
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">What would you like to optimize for?</label>
-                <select
-                  value={optimizationPreference}
-                  onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  disabled={loading}
-                >
-                  <option value="points">Maximize Points</option>
-                  <option value="creditScore">Build Credit Score</option>
-                  <option value="cashback">Maximize Cash Back</option>
-                  <option value="perks">Best Perks</option>
-                </select>
-              </div>
-
-              {/* Credit Score Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">What&apos;s your credit score range?</label>
-                <select
-                  value={creditScore}
-                  onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  disabled={loading}
-                >
-                  <option value="excellent">Excellent (720+)</option>
-                  <option value="good">Good (690-719)</option>
-                  <option value="fair">Fair (630-689)</option>
-                  <option value="poor">Poor (Below 630)</option>
-                </select>
-              </div>
-
-              {/* Annual Fee Preference */}
-              <div className="mt-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={zeroAnnualFee}
-                    onChange={(e) => setZeroAnnualFee(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Only show cards with no annual fee</span>
-                </label>
-              </div>
-              
-              {/* Update Recommendations Button - Moved here from the top of recommendations section */}
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <button
-                  onClick={handleRefreshRecommendations}
-                  disabled={refreshingRecommendations}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white 
-                    rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 
-                    focus:ring-offset-2 transition-colors disabled:opacity-50"
-                >
-                  {refreshingRecommendations ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Updating Recommendations...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span>Update Recommendations</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Add Expense Section */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+            {/* Track Expense Section */}
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6" data-highlight="add-expense">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
               <p className="text-sm text-gray-600 mb-4">
                 Track your monthly expenses for personalized recommendations
@@ -1156,7 +1074,7 @@ const getComparisonData = () => {
             </div>
 
             {/* Add Your Cards Section */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6" data-highlight="add-cards">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Your Current Cards</h2>
               
               <div>
@@ -1178,39 +1096,32 @@ const getComparisonData = () => {
                     placeholder="Type at least 3 characters to search..."
                     className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   />
-                  {cardSearchLoading && (
+                  {cardSearchLoading && searchTerm.length >= 3 && (
                     <div className="absolute right-3 top-2.5">
                       <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
                     </div>
                   )}
                 </div>
                 
-                {loading ? (
-                  <div className="mt-2 p-2 text-center">
-                    <div className="inline-block animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-                    <span className="ml-2 text-sm text-gray-600">Searching...</span>
+                {searchResults.length > 0 && (
+                  <div className="mt-2 border rounded-md max-h-60 overflow-y-auto shadow-sm">
+                    {searchResults.map((card: {cardKey: string; cardName: string; cardIssuer: string}) => (
+                      <div
+                        key={card.cardKey}
+                        className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0 transition-colors"
+                        onClick={() => {
+                          // Handle card selection
+                          fetchCardDetails(card.cardKey);
+                        }}
+                      >
+                        <div className="font-medium">{card.cardName}</div>
+                        <div className="text-sm text-gray-500">{card.cardIssuer}</div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  searchResults.length > 0 && (
-                    <div className="mt-2 border rounded-md max-h-60 overflow-y-auto shadow-sm">
-                      {searchResults.map((card: {cardKey: string; cardName: string; cardIssuer: string}) => (
-                        <div
-                          key={card.cardKey}
-                          className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0 transition-colors"
-                          onClick={() => {
-                            // Handle card selection
-                            fetchCardDetails(card.cardKey);
-                          }}
-                        >
-                          <div className="font-medium">{card.cardName}</div>
-                          <div className="text-sm text-gray-500">{card.cardIssuer}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )
                 )}
                 
-                {searchTerm.length >= 3 && !loading && searchResults.length === 0 && (
+                {searchTerm.length >= 3 && !cardSearchLoading && searchResults.length === 0 && (
                   <div className="mt-2 p-3 text-center text-gray-500 bg-gray-50 rounded-md border border-gray-200">
                     No cards found matching your search
                   </div>
@@ -1221,6 +1132,65 @@ const getComparisonData = () => {
                     Please enter at least 3 characters to search
                   </p>
                 )}
+              </div>
+            </div>
+            
+            {/* Optimization Settings - Moved down as requested */}
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6" data-highlight="optimization-settings">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
+              
+              {/* Card Type Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
+                <CardTypeToggle 
+                  value={cardType}
+                  onChange={setCardType}
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">What would you like to optimize for?</label>
+                <select
+                  value={optimizationPreference}
+                  onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
+                >
+                  <option value="points">Maximize Points</option>
+                  <option value="creditScore">Build Credit Score</option>
+                  <option value="cashback">Maximize Cash Back</option>
+                  <option value="perks">Best Perks</option>
+                </select>
+              </div>
+
+              {/* Credit Score Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">What&apos;s your credit score range?</label>
+                <select
+                  value={creditScore}
+                  onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
+                >
+                  <option value="excellent">Excellent (720+)</option>
+                  <option value="good">Good (690-719)</option>
+                  <option value="fair">Fair (630-689)</option>
+                  <option value="poor">Poor (Below 630)</option>
+                </select>
+              </div>
+
+              {/* Annual Fee Preference */}
+              <div className="mt-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={zeroAnnualFee}
+                    onChange={(e) => setZeroAnnualFee(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700">Only show cards with no annual fee</span>
+                </label>
               </div>
             </div>
           </div>
@@ -1256,7 +1226,20 @@ const getComparisonData = () => {
                   <p className="text-gray-500 mb-2">No expenses added yet</p>
                   <button 
                     className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                    onClick={() => setActiveTab('input')}
+                    onClick={() => {
+                      setActiveTab('input');
+                      // Set a timeout to make sure the highlight happens after tab switch
+                      setTimeout(() => {
+                        const expenseSection = document.querySelector('[data-highlight="add-expense"]');
+                        if (expenseSection) {
+                          expenseSection.classList.add('highlight-section');
+                          // Remove the highlight after 2 seconds
+                          setTimeout(() => {
+                            expenseSection.classList.remove('highlight-section');
+                          }, 2000);
+                        }
+                      }, 100);
+                    }}
                   >
                     Add Your First Expense
                   </button>
@@ -1335,7 +1318,20 @@ const getComparisonData = () => {
                   <p className="text-gray-500 mb-2">No cards added yet</p>
                   <button 
                     className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                    onClick={() => setActiveTab('input')}
+                    onClick={() => {
+                      setActiveTab('input');
+                      // Set a timeout to make sure the highlight happens after tab switch
+                      setTimeout(() => {
+                        const cardSection = document.querySelector('[data-highlight="add-cards"]');
+                        if (cardSection) {
+                          cardSection.classList.add('highlight-section');
+                          // Remove the highlight after 2 seconds
+                          setTimeout(() => {
+                            cardSection.classList.remove('highlight-section');
+                          }, 2000);
+                        }
+                      }, 100);
+                    }}
                   >
                     Add Your First Card
                   </button>
@@ -1358,63 +1354,48 @@ const getComparisonData = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Recommended Cards</h2>
                 
-                {notInterestedCards.length > 0 && (
-                  <button
-                    onClick={prepareAndShowNotInterestedList}
-                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                  >
-                    <span>Not Interested ({notInterestedCards.length})</span>
-                    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              ) : (!expenses.length && !userCards.length) ? (
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
-                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  <p className="text-gray-500 mb-2">
-                    Add expenses and cards to get personalized recommendations
-                  </p>
-                  <button 
-                    className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                    onClick={() => setActiveTab('input')}
-                  >
-                    Start by Adding Data
-                  </button>
-                </div>
-              ) : manualRecommendations.length === 0 ? (
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
-                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <p className="text-gray-500 mb-2">
-                    {notInterestedCards.length > 0 
-                      ? "No more recommendations available. Try reconsidering some cards."
-                      : "Click the 'Update Recommendations' button to generate recommendations."}
-                  </p>
-                  {notInterestedCards.length > 0 ? (
+                <div className="flex items-center mt-2 sm:mt-0">
+                  {notInterestedCards.length > 0 && (
                     <button
-                      onClick={() => setShowNotInterestedList(true)}
-                      className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
+                      onClick={prepareAndShowNotInterestedList}
+                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center mr-4"
                     >
-                      View Not Interested Cards
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleRefreshRecommendations}
-                      className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      Generate Recommendations
+                      <span>Not Interested ({notInterestedCards.length})</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
                     </button>
                   )}
+                  
+                  {/* Generate Recommendations Button */}
+                  <button
+                    onClick={() => {
+                      setShowUpdateButton(false);
+                      // This will trigger the useEffect to run with the latest data
+                      handleRefreshRecommendations();
+                    }}
+                    disabled={refreshingRecommendations || loadingAllCards}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white 
+                      rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 
+                      focus:ring-offset-2 transition-colors disabled:opacity-50"
+                  >
+                    {refreshingRecommendations || loadingAllCards ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Generating Recommendations...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Generate Recommendations</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -1433,7 +1414,7 @@ const getComparisonData = () => {
                     </div>
                   ))}
                 </div>
-              )}
+              )
             </div>
 
             {/* Feature Comparison Table */}
@@ -1449,9 +1430,29 @@ const getComparisonData = () => {
                   {userCards.length === 0 ? (
                     <button 
                       className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                      onClick={() => setActiveTab('input')}
+                      onClick={() => {
+                        setActiveTab('input');
+                        
+                        // Add a timeout to ensure the input section is visible first
+                        setTimeout(() => {
+                          // Find and highlight the expense section
+                          const expenseSection = document.querySelector('.bg-white.rounded-lg.shadow-sm.border.p-4.sm\\:p-6');
+                          if (expenseSection) {
+                            // Add highlight class
+                            expenseSection.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+                            
+                            // Scroll to the section
+                            expenseSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            
+                            // Remove highlight after a delay
+                            setTimeout(() => {
+                              expenseSection.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+                            }, 3000);
+                          }
+                        }, 100);
+                      }}
                     >
-                      Add Your Cards
+                      Add Your First Expense
                     </button>
                   ) : (
                     <button 
@@ -1500,6 +1501,7 @@ const getComparisonData = () => {
               </div>
             )}
           </div>
+        </div> 
         </div>
       </main>
       

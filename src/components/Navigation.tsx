@@ -51,7 +51,7 @@ const Navigation: React.FC = () => {
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
-          {navLinks.slice(1).map((link) => (
+          {navLinks.map((link) => (
             <Link 
               key={link.href}
               href={link.href} 
