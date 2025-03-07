@@ -897,31 +897,39 @@ const getComparisonData = () => {
       {/* Notification Banner */}
       {notification && (
         <div 
-          className={`fixed top-16 left-0 right-0 z-50 p-4 flex items-center justify-between transition-all transform ${
-            notification.type === 'success' ? 'bg-green-100 text-green-800 border-b border-green-200' :
-            notification.type === 'error' ? 'bg-red-100 text-red-800 border-b border-red-200' :
-            'bg-blue-100 text-blue-800 border-b border-blue-200'
+          className={`fixed top-4 right-4 z-50 max-w-md flex items-center shadow-lg rounded-lg px-4 py-3 transform transition-all duration-300 ${
+            notification.type === 'success' ? 'bg-white border-l-4 border-green-500 text-green-800' :
+            notification.type === 'error' ? 'bg-white border-l-4 border-red-500 text-red-800' :
+            'bg-white border-l-4 border-blue-500 text-blue-800'
           }`}
         >
           <div className="flex items-center">
-            <svg className={`w-5 h-5 mr-2 ${
+            <div className={`mr-3 ${
               notification.type === 'success' ? 'text-green-500' :
               notification.type === 'error' ? 'text-red-500' :
               'text-blue-500'
-            }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {notification.type === 'success' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />}
-              {notification.type === 'error' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />}
-              {notification.type === 'info' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
-            </svg>
-            <p>{notification.message}</p>
+            }`}>
+              {notification.type === 'success' && (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {notification.type === 'error' && (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              {notification.type === 'info' && (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </div>
+            <p className="text-sm font-medium">{notification.message}</p>
           </div>
           <button 
             onClick={() => setNotification(null)}
-            className={`ml-4 p-1 rounded-full hover:bg-opacity-10 ${
-              notification.type === 'success' ? 'hover:bg-green-500 text-green-500' :
-              notification.type === 'error' ? 'hover:bg-red-500 text-red-500' :
-              'hover:bg-blue-500 text-blue-500'
-            }`}
+            className="ml-auto pl-3 text-gray-400 hover:text-gray-500"
             aria-label="Dismiss notification"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1009,93 +1017,6 @@ const getComparisonData = () => {
           <div className={`lg:col-span-4 space-y-6 ${activeTab === 'input' || window.innerWidth >= 1024 ? 'block' : 'hidden'}`}>
             {/* Card Type Toggle moved to Optimization Settings */}
             
-            {/* Optimization Settings - Moved up for better flow */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
-              
-              {/* Card Type Selection - Moved here from elsewhere */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
-                <CardTypeToggle 
-                  value={cardType}
-                  onChange={setCardType}
-                  className="w-full"
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">What would you like to optimize for?</label>
-                <select
-                  value={optimizationPreference}
-                  onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  disabled={loading}
-                >
-                  <option value="points">Maximize Points</option>
-                  <option value="creditScore">Build Credit Score</option>
-                  <option value="cashback">Maximize Cash Back</option>
-                  <option value="perks">Best Perks</option>
-                </select>
-              </div>
-
-              {/* Credit Score Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">What&apos;s your credit score range?</label>
-                <select
-                  value={creditScore}
-                  onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  disabled={loading}
-                >
-                  <option value="excellent">Excellent (720+)</option>
-                  <option value="good">Good (690-719)</option>
-                  <option value="fair">Fair (630-689)</option>
-                  <option value="poor">Poor (Below 630)</option>
-                </select>
-              </div>
-
-              {/* Annual Fee Preference */}
-              <div className="mt-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={zeroAnnualFee}
-                    onChange={(e) => setZeroAnnualFee(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Only show cards with no annual fee</span>
-                </label>
-              </div>
-              
-              {/* Update Recommendations Button - Moved here from the top of recommendations section */}
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <button
-                  onClick={handleRefreshRecommendations}
-                  disabled={refreshingRecommendations}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white 
-                    rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 
-                    focus:ring-offset-2 transition-colors disabled:opacity-50"
-                >
-                  {refreshingRecommendations ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Updating Recommendations...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span>Update Recommendations</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
             {/* Add Expense Section */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6" data-section="expense-form">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Track Expense</h2>
@@ -1178,7 +1099,7 @@ const getComparisonData = () => {
                     placeholder="Type at least 3 characters to search..."
                     className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   />
-                  {cardSearchLoading && (
+                  {cardSearchLoading && searchTerm.length >= 3 && (
                     <div className="absolute right-3 top-2.5">
                       <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
                     </div>
@@ -1221,6 +1142,65 @@ const getComparisonData = () => {
                     Please enter at least 3 characters to search
                   </p>
                 )}
+              </div>
+            </div>
+
+            {/* Optimization Settings */}
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Optimization Settings</h2>
+              
+              {/* Card Type Selection - Moved here from elsewhere */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
+                <CardTypeToggle 
+                  value={cardType}
+                  onChange={setCardType}
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">What would you like to optimize for?</label>
+                <select
+                  value={optimizationPreference}
+                  onChange={(e) => setOptimizationPreference(e.target.value as OptimizationPreference)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
+                >
+                  <option value="points">Maximize Points</option>
+                  <option value="creditScore">Build Credit Score</option>
+                  <option value="cashback">Maximize Cash Back</option>
+                  <option value="perks">Best Perks</option>
+                </select>
+              </div>
+
+              {/* Credit Score Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">What&apos;s your credit score range?</label>
+                <select
+                  value={creditScore}
+                  onChange={(e) => setCreditScore(e.target.value as typeof creditScore)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
+                >
+                  <option value="excellent">Excellent (720+)</option>
+                  <option value="good">Good (690-719)</option>
+                  <option value="fair">Fair (630-689)</option>
+                  <option value="poor">Poor (Below 630)</option>
+                </select>
+              </div>
+
+              {/* Annual Fee Preference */}
+              <div className="mt-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={zeroAnnualFee}
+                    onChange={(e) => setZeroAnnualFee(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700">Only show cards with no annual fee</span>
+                </label>
               </div>
             </div>
           </div>
@@ -1428,7 +1408,7 @@ const getComparisonData = () => {
                   <p className="text-gray-500 mb-2">
                     {notInterestedCards.length > 0 
                       ? "No more recommendations available. Try reconsidering some cards."
-                      : "Click the 'Update Recommendations' button to generate recommendations."}
+                      : "Update your preferences to generate recommendations."}
                   </p>
                   {notInterestedCards.length > 0 ? (
                     <button
@@ -1439,7 +1419,10 @@ const getComparisonData = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={handleRefreshRecommendations}
+                      onClick={() => {
+                        handleRefreshRecommendations();
+                        handleUpdateRecommendations();
+                      }}
                       className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
                       Generate Recommendations
@@ -1494,12 +1477,9 @@ const getComparisonData = () => {
                       Add Your Cards
                     </button>
                   ) : (
-                    <button 
-                      className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                      onClick={handleRefreshRecommendations}
-                    >
-                      Generate Recommendations
-                    </button>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Generate recommendations in the Recommended Cards section to see a comparison.
+                    </p>
                   )}
                 </div>
               ) : (
