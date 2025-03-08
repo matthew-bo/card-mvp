@@ -32,6 +32,7 @@ const StarRating: React.FC<StarRatingProps> = ({
   };
   
   // Handle mouse enter for hover effect
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleMouseEnter = (selectedRating: number) => {
     if (editable && onChange) {
       // You can add hover effects here if needed
