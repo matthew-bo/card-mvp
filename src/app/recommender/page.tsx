@@ -1359,17 +1359,29 @@ const getComparisonData = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Recommended Cards</h2>
                 
-                {notInterestedCards.length > 0 && (
+                <div className="flex items-center space-x-3">
                   <button
-                    onClick={prepareAndShowNotInterestedList}
-                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                    onClick={() => {
+                      handleRefreshRecommendations();
+                      handleUpdateRecommendations();
+                    }}
+                    className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    <span>Not Interested ({notInterestedCards.length})</span>
-                    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
+                    {manualRecommendations.length > 0 ? "Update Recommendations" : "Generate Recommendations"}
                   </button>
-                )}
+                  
+                  {notInterestedCards.length > 0 && (
+                    <button
+                      onClick={prepareAndShowNotInterestedList}
+                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                    >
+                      <span>Not Interested ({notInterestedCards.length})</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
               
               {loading ? (
@@ -1409,24 +1421,14 @@ const getComparisonData = () => {
                   <p className="text-gray-500 mb-2">
                     {notInterestedCards.length > 0 
                       ? "No more recommendations available. Try reconsidering some cards."
-                      : "Update your preferences to generate recommendations."}
+                      : "Click the 'Generate Recommendations' button to see recommendations."}
                   </p>
-                  {notInterestedCards.length > 0 ? (
+                  {notInterestedCards.length > 0 && (
                     <button
                       onClick={() => setShowNotInterestedList(true)}
                       className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
                     >
                       View Not Interested Cards
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        handleRefreshRecommendations();
-                        handleUpdateRecommendations();
-                      }}
-                      className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      Generate Recommendations
                     </button>
                   )}
                 </div>
