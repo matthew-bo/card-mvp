@@ -1,13 +1,16 @@
+// src/app/api/reviews/like/[reviewId]/route.ts
 import { NextResponse } from 'next/server';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export async function POST(
-  request: Request,
-  { params }: { params: { reviewId: string } }
-) {
+  request: Request
+): Promise<NextResponse> {
   try {
-    const reviewId = params.reviewId;
+    // Get reviewId from the URL path
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const reviewId = pathParts[pathParts.length - 1];
     
     // Get the review document
     const reviewRef = doc(db, 'card_reviews', reviewId);
