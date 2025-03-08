@@ -87,21 +87,22 @@ export default function CardDetailPage() {
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
   
-  // Format timestamp to readable date
-  const formatTimestamp = (timestamp: any): string => {
-    if (!timestamp) return '';
+// Format timestamp to readable date
+const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | number | unknown): string => {
+  if (!timestamp) return '';
     
-    let date: Date;
-    if (typeof timestamp === 'number') {
-      date = new Date(timestamp);
-    } else if (timestamp.seconds) {
-      date = new Date(timestamp.seconds * 1000);
-    } else {
-      date = new Date();
-    }
+  let date: Date;
+  if (typeof timestamp === 'number') {
+    date = new Date(timestamp);
+  } else if (typeof timestamp === 'object' && timestamp !== null && 'seconds' in timestamp) {
+    // Type guard to check if 'seconds' property exists
+    date = new Date((timestamp as {seconds: number}).seconds * 1000);
+  } else {
+    date = new Date();
+  }
     
-    return date.toLocaleDateString();
-  };
+  return date.toLocaleDateString();
+};
   
   // Submit a review
   const handleSubmitReview = async (e: React.FormEvent) => {

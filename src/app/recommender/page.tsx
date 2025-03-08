@@ -782,7 +782,6 @@ export default function RecommenderPage() {
     }
   };
 
-   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleUpdateRecommendations = () => {
     setShowUpdateButton(false);
     // This will trigger the useEffect to run with the latest data
