@@ -231,12 +231,12 @@ export default function ConsultationPage() {
                   <h2 className="text-lg font-semibold text-gray-800">Get Personalized Credit Card Recommendations</h2>
                   <p className="text-gray-600">
                     Book a free 30-minute consultation with our credit card expert to receive tailored 
-                    recommendations based on your spending habits and financial goals. We'll help you 
+                    recommendations based on your spending habits and financial goals. We&apos;ll help you 
                     optimize your rewards, minimize fees, and maximize the value of every dollar you spend.
                   </p>
                   
                   <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                    <h3 className="font-medium text-blue-700">What you'll get:</h3>
+                    <h3 className="font-medium text-blue-700">What you&apos;ll get:</h3>
                     <ul className="mt-2 space-y-1 text-blue-600">
                       <li className="flex items-start">
                         <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -282,7 +282,7 @@ export default function ConsultationPage() {
                     <div>
                       <h3 className="font-semibold text-gray-800">30-Minute Video Call</h3>
                       <p className="mt-1 text-gray-600">
-                        We'll meet over Zoom or Google Meet to discuss your financial situation and goals.
+                        We&apos;ll meet over Zoom or Google Meet to discuss your financial situation and goals.
                       </p>
                     </div>
                   </div>
@@ -296,7 +296,7 @@ export default function ConsultationPage() {
                     <div>
                       <h3 className="font-semibold text-gray-800">Post-Consultation Follow-Up</h3>
                       <p className="mt-1 text-gray-600">
-                        Within 48 hours, you'll receive an email with your personalized credit card strategy and specific recommendations.
+                        Within 48 hours, you&apos;ll receive an email with your personalized credit card strategy and specific recommendations.
                       </p>
                     </div>
                   </div>
@@ -310,7 +310,7 @@ export default function ConsultationPage() {
                     <div>
                       <h3 className="font-semibold text-gray-800">Two Weeks of Support</h3>
                       <p className="mt-1 text-gray-600">
-                        You'll have access to email support for two weeks after your consultation to ask any follow-up questions.
+                        You&apos;ll have access to email support for two weeks after your consultation to ask any follow-up questions.
                       </p>
                     </div>
                   </div>
