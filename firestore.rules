@@ -31,3 +31,16 @@ service cloud.firestore {
     }
   }
 }
+
+match /databases/{database}/documents {
+  // Allow anyone to read card reviews
+  match /card_reviews/{reviewId} {
+    allow read: if true;
+    
+    // Allow anyone to create a review
+    allow create: if true;
+    
+    // Only allow updating the likes count
+    allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+  }
+}

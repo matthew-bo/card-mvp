@@ -39,7 +39,8 @@ export const FIREBASE_COLLECTIONS = {
   USER_CARDS: 'user_cards',
   USER_PREFERENCES: 'user_preferences',
   EXPENSES: 'expenses',
-  USER_PROFILES: 'user_profiles'
+  USER_PROFILES: 'user_profiles',
+  CARD_REVIEWS: 'card_reviews'
 };
 
 // Variable to store the storage instance after it's been initialized
