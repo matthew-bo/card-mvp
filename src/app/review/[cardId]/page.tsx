@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { CreditCardDetails } from '@/types/cards';
-import { StarRating } from '@/components/StarRating';
+import StarRating from '@/components/StarRating';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface Review {

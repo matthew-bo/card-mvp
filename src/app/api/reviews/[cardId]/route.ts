@@ -1,4 +1,3 @@
-// src/app/api/reviews/[cardId]/route.ts
 import { NextResponse } from 'next/server';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
