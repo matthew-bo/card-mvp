@@ -69,6 +69,7 @@ export default function CardDetailPage() {
   // Load reviews
   useEffect(() => {
     const fetchReviews = async () => {
+        const response = await fetch(`/api/reviews/${cardId}`);
       setReviewsLoading(true);
       try {
         const response = await fetch(`/api/reviews/${cardId}`);
