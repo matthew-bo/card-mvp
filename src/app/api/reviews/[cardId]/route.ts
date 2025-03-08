@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { cardId: string } }
 ) {
   try {
