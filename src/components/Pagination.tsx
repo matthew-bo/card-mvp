@@ -38,8 +38,8 @@ const Pagination: React.FC<PaginationProps> = ({
     pages.push(1);
     
     // Calculate start and end of the page range
-    let start = Math.max(2, currentPage - 1);
-    let end = Math.min(totalPages - 1, currentPage + 1);
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
     
     // Add ellipsis after first page if needed
     if (start > 2) {

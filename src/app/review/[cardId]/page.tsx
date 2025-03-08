@@ -1,4 +1,3 @@
-// src/app/review/[cardId]/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -19,15 +18,16 @@ interface Review {
   likes: number;
 }
 
+/*
 interface UserRating {
   id: string;
   rating: number;
   comment?: string;
 }
+*/
 
 export default function CardDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const cardId = params.cardId as string;
   
   const [card, setCard] = useState<CreditCardDetails | null>(null);
@@ -154,6 +154,7 @@ export default function CardDetailPage() {
         method: 'POST'
       });
       
+      // Use the response or just check if it's OK
       if (!response.ok) {
         throw new Error('Failed to like review');
       }

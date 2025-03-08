@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { FIREBASE_COLLECTIONS } from '@/lib/firebase';
 
 export async function GET(
   request: Request,
@@ -10,7 +9,6 @@ export async function GET(
   try {
     const cardId = params.cardId;
     
-    // Query Firestore for reviews of this card
     const reviewsRef = collection(db, 'card_reviews');
     const q = query(
       reviewsRef, 
