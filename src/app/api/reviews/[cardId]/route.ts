@@ -1,13 +1,21 @@
-import { NextResponse } from 'next/server';
+// src/app/api/reviews/[cardId]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
+// Define the interface according to Next.js App Router expectations
+interface RouteContext {
+  params: {
+    cardId: string;
+  };
+}
+
 export async function GET(
-  request: Request,
-  context: { params: { cardId: string } }
-) {
+  _request: NextRequest,
+  { params }: RouteContext
+): Promise<NextResponse> {
   try {
-    const cardId = context.params.cardId;
+    const cardId = params.cardId;
     
     const reviewsRef = collection(db, 'card_reviews');
     const q = query(
