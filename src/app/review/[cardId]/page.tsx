@@ -184,6 +184,7 @@ const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | num
       console.error('Error liking review:', err);
     }
   };
+
   
   if (loading) {
     return (
@@ -215,6 +216,16 @@ const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | num
       </div>
     );
   }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const TextRating = ({ rating }: { rating: number }) => {
+    return (
+      <span className="text-yellow-500 font-bold">
+        {rating.toFixed(1)} / 5.0 ★
+      </span>
+    );
+  };
+  
   
   return (
     <div className="min-h-screen bg-gray-50">
