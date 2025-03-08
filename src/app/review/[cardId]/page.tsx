@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { CreditCardDetails } from '@/types/cards';
@@ -14,17 +14,12 @@ interface Review {
   userName: string;
   rating: number;
   comment: string;
-  timestamp: number;
+  timestamp: {
+    seconds: number;
+    nanoseconds: number;
+  } | number;
   likes: number;
 }
-
-/*
-interface UserRating {
-  id: string;
-  rating: number;
-  comment?: string;
-}
-*/
 
 export default function CardDetailPage() {
   const params = useParams();
@@ -69,7 +64,6 @@ export default function CardDetailPage() {
   // Load reviews
   useEffect(() => {
     const fetchReviews = async () => {
-        const response = await fetch(`/api/reviews/${cardId}`);
       setReviewsLoading(true);
       try {
         const response = await fetch(`/api/reviews/${cardId}`);
@@ -93,6 +87,22 @@ export default function CardDetailPage() {
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
   
+  // Format timestamp to readable date
+  const formatTimestamp = (timestamp: any): string => {
+    if (!timestamp) return '';
+    
+    let date: Date;
+    if (typeof timestamp === 'number') {
+      date = new Date(timestamp);
+    } else if (timestamp.seconds) {
+      date = new Date(timestamp.seconds * 1000);
+    } else {
+      date = new Date();
+    }
+    
+    return date.toLocaleDateString();
+  };
+  
   // Submit a review
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +117,7 @@ export default function CardDetailPage() {
         comment: userComment.trim() || undefined
       };
       
-      const response = await fetch('/api/reviews/submit', {
+      const submission = await fetch('/api/reviews/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -115,20 +125,21 @@ export default function CardDetailPage() {
         body: JSON.stringify(newReview)
       });
       
-      if (!response.ok) {
+      if (!submission.ok) {
         throw new Error('Failed to submit review');
       }
       
-      const result = await response.json();
+      const result = await submission.json();
       
       // Add the new review to the list
-      setReviews(prev => [...prev, {
+      setReviews(prev => [{
         ...newReview,
         id: result.reviewId,
         userId: 'anonymous',
         timestamp: Date.now(),
-        likes: 0
-      } as Review]);
+        likes: 0,
+        comment: userComment.trim() || ''
+      } as Review, ...prev]);
       
       // Reset form
       setUserRating(0);
@@ -154,7 +165,6 @@ export default function CardDetailPage() {
         method: 'POST'
       });
       
-      // Use the response or just check if it's OK
       if (!response.ok) {
         throw new Error('Failed to like review');
       }
@@ -212,8 +222,11 @@ export default function CardDetailPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back link */}
         <div className="mb-6">
-          <Link href="/review" className="text-blue-600 hover:text-blue-800">
-            ← Back to all cards
+          <Link href="/review" className="text-blue-600 hover:text-blue-800 flex items-center">
+            <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to all cards
           </Link>
         </div>
         
@@ -293,15 +306,16 @@ export default function CardDetailPage() {
             </div>
             
             {/* Write a review section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-6 rounded-lg">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Write a Review</h2>
               
               <form onSubmit={handleSubmitReview} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
                     Your Name (optional)
                   </label>
                   <input
+                    id="userName"
                     type="text"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
@@ -323,10 +337,11 @@ export default function CardDetailPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="userComment" className="block text-sm font-medium text-gray-700 mb-1">
                     Your Review (optional)
                   </label>
                   <textarea
+                    id="userComment"
                     value={userComment}
                     onChange={(e) => setUserComment(e.target.value)}
                     placeholder="Share your experience with this card..."
@@ -365,7 +380,18 @@ export default function CardDetailPage() {
           ) : (
             <div className="space-y-6">
               {reviews
-                .sort((a, b) => b.timestamp - a.timestamp) // Sort by newest first
+                .sort((a, b) => {
+                  // Convert timestamps to comparable numbers
+                  const timeA = typeof a.timestamp === 'number' ? 
+                    a.timestamp : 
+                    a.timestamp?.seconds ? a.timestamp.seconds * 1000 : 0;
+                  
+                  const timeB = typeof b.timestamp === 'number' ? 
+                    b.timestamp : 
+                    b.timestamp?.seconds ? b.timestamp.seconds * 1000 : 0;
+                    
+                  return timeB - timeA; // Sort by newest first
+                })
                 .map(review => (
                   <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0">
                     <div className="flex items-center justify-between">
@@ -376,7 +402,7 @@ export default function CardDetailPage() {
                         </span>
                       </div>
                       <span className="text-sm text-gray-500">
-                        {new Date(review.timestamp).toLocaleDateString()}
+                        {formatTimestamp(review.timestamp)}
                       </span>
                     </div>
                     
