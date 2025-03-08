@@ -12,6 +12,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 
 export default function ConsultationPage() {
   const { user } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const { showNotification } = useNotification();
   
@@ -371,7 +372,7 @@ export default function ConsultationPage() {
                         data-url="https://calendly.com/matthewpieguy" 
                         style={{minWidth: '320px', height: '100%'}}
                       ></div>
-                      <script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
+                      <script type="text/javascript" src="https://calendly.com/matthewpieguy/30min" async></script>
                     </div>
                     
                     <p className="mt-4 text-sm text-gray-500">
