@@ -33,6 +33,7 @@ const Navigation: React.FC = () => {
   const navLinks = [
     { href: '/', label: 'Home', active: pathname === '/' },
     { href: '/recommender', label: 'Recommender', active: pathname === '/recommender' },
+    { href: '/consultation', label: 'Consultation', active: pathname === '/consultation' },
     { href: '/blog', label: 'Blog', active: pathname === '/blog' },
     { href: '/contact', label: 'Contact', active: pathname === '/contact' }
   ];
