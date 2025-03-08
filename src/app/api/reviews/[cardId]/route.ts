@@ -1,19 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-type RouteParams = {
-  params: {
-    cardId: string;
-  };
-};
-
 export async function GET(
-  request: NextRequest, 
-  { params }: RouteParams
+  request: Request,
+  context: { params: { cardId: string } }
 ) {
   try {
-    const cardId = params.cardId;
+    const cardId = context.params.cardId;
     
     const reviewsRef = collection(db, 'card_reviews');
     const q = query(
