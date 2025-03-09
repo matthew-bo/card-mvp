@@ -47,6 +47,7 @@ const RecommenderNav: React.FC = () => {
   
   // Function to navigate with router
   const handleNavigation = (href: string) => {
+    console.log(`Navigating to: ${href}`); // Debug log
     router.push(href);
   };
 
@@ -67,7 +68,10 @@ const RecommenderNav: React.FC = () => {
           {navLinks.map((link) => (
             <button 
               key={link.href}
-              onClick={() => handleNavigation(link.href)}
+              onClick={() => {
+                console.log(`Clicked on: ${link.label}`); // Debug log
+                handleNavigation(link.href);
+              }}
               className={`${link.active 
                 ? 'text-blue-600 font-medium' 
                 : 'text-gray-600 hover:text-gray-900'} transition-colors`}
@@ -134,6 +138,7 @@ const RecommenderNav: React.FC = () => {
               <button 
                 key={link.href}
                 onClick={() => {
+                  console.log(`Clicked on: ${link.label}`); // Debug log
                   handleNavigation(link.href);
                   setIsMobileMenuOpen(false);
                 }}
@@ -150,6 +155,7 @@ const RecommenderNav: React.FC = () => {
               {user ? (
                 <button
                   onClick={() => {
+                    console.log('Clicked on Sign Out'); // Debug log
                     handleSignOut();
                     setIsMobileMenuOpen(false);
                   }}
@@ -161,6 +167,7 @@ const RecommenderNav: React.FC = () => {
                 <>
                   <button 
                     onClick={() => {
+                      console.log('Clicked on Log in'); // Debug log
                       handleNavigation('/auth/login');
                       setIsMobileMenuOpen(false);
                     }}
@@ -170,6 +177,7 @@ const RecommenderNav: React.FC = () => {
                   </button>
                   <button 
                     onClick={() => {
+                      console.log('Clicked on Sign up'); // Debug log
                       handleNavigation('/auth/signup');
                       setIsMobileMenuOpen(false);
                     }}
