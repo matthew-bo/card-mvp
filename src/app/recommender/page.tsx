@@ -15,25 +15,6 @@ import SimpleNotInterestedList from '@/components/SimpleNotInterestedList';
 import CardTypeToggle from '@/components/CardTypeToggle';
 import { filterPersonalCards, filterBusinessCards } from '@/utils/cardUtils';
 
-// Safe localStorage handling
-const safeLocalStorage = {
-  getItem: (key: string): string | null => {
-    if (typeof window !== 'undefined') {
-      return safeStorage.getItem(key);
-    }
-    return null;
-  },
-  setItem: (key: string, value: string): void => {
-    if (typeof window !== 'undefined') {
-      try {
-        safeStorage.setItem(key, value);
-      } catch (e) {
-        console.error('Error setting localStorage item:', e);
-      }
-    }
-  }
-};
-
 interface FirestoreExpense {
   amount: number;
   category: string;
@@ -91,7 +72,6 @@ export default function RecommenderPage() {
   const [preparedNotInterestedCards, setPreparedNotInterestedCards] = useState<CreditCardDetails[]>([]);
   const [manualRecommendations, setManualRecommendations] = useState<RecommendedCard[]>([]);
   const [showUpdateButton, setShowUpdateButton] = useState(true);
-  const [refreshingRecommendations, setRefreshingRecommendations] = useState(false);
   const [cardType, setCardType] = useState<'personal' | 'business' | 'both'>('personal');
   const [loadingState, setLoadingState] = useState<string>('initializing');
   
@@ -101,7 +81,6 @@ export default function RecommenderPage() {
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
   const [allCards, setAllCards] = useState<CreditCardDetails[]>([]);
   const [loadingAllCards, setLoadingAllCards] = useState(true);
-  const [_selectedCard, setSelectedCard] = useState<string>('');
   const [cardSearchLoading, setCardSearchLoading] = useState(false);
   
   // UI States
@@ -138,12 +117,7 @@ export default function RecommenderPage() {
         throw new Error(`Failed to load card database: ${response.status}`);
       }
       
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        throw new Error('Failed to parse card data');
-      }
+      let data = await response.json();
       
       let filteredCards = [];
       
@@ -170,7 +144,6 @@ export default function RecommenderPage() {
 
   // Handle refresh recommendations callback
   const handleRefreshRecommendations = useCallback(async () => {
-    setRefreshingRecommendations(true);
     setError(null);
   
     try {
@@ -179,8 +152,6 @@ export default function RecommenderPage() {
     } catch (err) {
       console.error('Error refreshing recommendations:', err);
       setError('Failed to update recommendations. Please try again.');
-    } finally {
-      setRefreshingRecommendations(false);
     }
   }, [loadAllCards, showNotification]);
 
@@ -1301,27 +1272,19 @@ const getComparisonData = () => {
               ) : (!expenses.length && !userCards.length) ? (
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
                   <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   <p className="text-gray-500 mb-2">
                     Add expenses and cards to get personalized recommendations
                   </p>
-                  <button 
-                    className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
-                    onClick={() => {
-                      setActiveTab('input');
-                      setTimeout(() => {
-                        const element = document.querySelector('[data-section="expense-form"]');
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth' });
-                          element.classList.add('bg-blue-50');
-                          setTimeout(() => element.classList.remove('bg-blue-50'), 2000);
-                        }
-                      }, 100);
-                    }}
-                  >
-                    Start by Adding Data
-                  </button>
+                  {notInterestedCards.length > 0 && (
+                    <button
+                      onClick={() => setShowNotInterestedList(true)}
+                      className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
+                    >
+                      View Not Interested Cards
+                    </button>
+                  )}
                 </div>
               ) : manualRecommendations.length === 0 ? (
                 <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
@@ -1495,7 +1458,7 @@ const getComparisonData = () => {
               
               <a href="#" className="text-gray-400 hover:text-gray-500" aria-label="GitHub">
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.756-1.333-1.756-1.333-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.239 1.237 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                 </svg>
               </a>
             </div>
@@ -1519,7 +1482,7 @@ const getComparisonData = () => {
       <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-10 pointer-events-none">
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 flex items-center pointer-events-auto">
           <svg className="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V9a4 4 0 00-8 0v4h8z" />
           </svg>
           <span className="text-xs text-gray-600">256-bit Secure | SSL Encrypted</span>
         </div>
