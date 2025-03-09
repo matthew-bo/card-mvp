@@ -66,8 +66,8 @@ export const safeStorage = {
         localStorage.setItem(testKey, testKey);
         localStorage.removeItem(testKey);
         return true;
-      } catch (_) {
-        // Use underscore to indicate intentionally unused parameter
+      } catch {
+        // Empty catch block since we don't need the error parameter
         return false;
       }
     }
