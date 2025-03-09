@@ -7,7 +7,6 @@ import { CreditCardDetails } from '@/types/cards';
 import ReviewCardDisplay from '@/components/ReviewCardDisplay';
 import ReviewFilters from '@/components/ReviewFilters';
 import Pagination from '@/components/Pagination';
-import { filterBusinessCards, filterPersonalCards } from '@/utils/cardUtils';
 
 export default function ReviewPage() {
   const router = useRouter();
