@@ -14,7 +14,9 @@ export async function GET(request: Request) {
     // If not found in query, try to get it from the URL path
     if (!cardKey) {
       const pathParts = url.pathname.split('/');
-      cardKey = pathParts[pathParts.length - 1];
+      // Remove empty strings and 'api', 'cards', 'details' from path
+      const filteredParts = pathParts.filter(part => part && !['api', 'cards', 'details'].includes(part));
+      cardKey = filteredParts[filteredParts.length - 1];
     }
     
     console.log('Received card request for ID:', cardKey);
@@ -28,9 +30,26 @@ export async function GET(request: Request) {
       );
     }
     
-    // Try to get the card from the API first
+    // Check if we're in development mode
+    if (process.env.NODE_ENV === 'development') {
+      // Try to find the card in our fallback database
+      const fallbackCard = fallbackCards.find(card => card.id === cardKey);
+      
+      console.log('Looking for card in fallback database:', cardKey);
+      console.log('Available fallback cards:', fallbackCards.map(card => card.id));
+      console.log('Found fallback card:', fallbackCard ? 'yes' : 'no');
+      
+      if (fallbackCard) {
+        return NextResponse.json({
+          success: true,
+          data: fallbackCard,
+          source: 'fallback'
+        });
+      }
+    }
+    
+    // Try to get the card from the API
     try {
-      // Use the API directly for getting card details
       const API_KEY = process.env.REWARDS_API_KEY;
       const API_HOST = 'rewards-credit-card-api.p.rapidapi.com';
       const API_BASE_URL = 'https://rewards-credit-card-api.p.rapidapi.com';
@@ -55,8 +74,6 @@ export async function GET(request: Request) {
       }
       
       const apiCard = cardData[0];
-      
-      // Map API response to our app's card format
       const mappedCard = mapApiCardToAppFormat(apiCard);
       
       return NextResponse.json({
@@ -69,10 +86,6 @@ export async function GET(request: Request) {
       // Try to find the card in our fallback database
       const fallbackCard = fallbackCards.find(card => card.id === cardKey);
       
-      console.log('Looking for card in fallback database:', cardKey);
-      console.log('Available fallback cards:', fallbackCards.map(card => card.id));
-      console.log('Found fallback card:', fallbackCard ? 'yes' : 'no');
-      
       if (fallbackCard) {
         return NextResponse.json({
           success: true,
@@ -80,7 +93,10 @@ export async function GET(request: Request) {
           source: 'fallback'
         });
       } else {
-        throw new Error('Card not found in fallback database');
+        return NextResponse.json(
+          { success: false, error: 'Card not found' },
+          { status: 404 }
+        );
       }
     }
   } catch (error) {
