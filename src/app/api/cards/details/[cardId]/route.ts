@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { mapApiCardToAppFormat } from '@/services/cardApiService';
 import { creditCards as fallbackCards } from '@/lib/cardDatabase';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  request: Request,
+  request: NextRequest, 
   { params }: { params: { cardId: string } }
 ) {
   try {
