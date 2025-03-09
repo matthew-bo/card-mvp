@@ -117,7 +117,7 @@ export default function RecommenderPage() {
         throw new Error(`Failed to load card database: ${response.status}`);
       }
       
-      let data = await response.json();
+      const data = await response.json();
       
       let filteredCards = [];
       
