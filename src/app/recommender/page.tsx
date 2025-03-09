@@ -893,7 +893,7 @@ const getComparisonData = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" style={{ pointerEvents: 'auto' }}>
       {/* Notification Banner */}
       {notification && (
         <div 

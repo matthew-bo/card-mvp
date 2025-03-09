@@ -51,7 +51,7 @@ const RecommenderNav: React.FC = () => {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 px-6 py-5 transition-all duration-200 ${isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
+    <nav className={`sticky top-0 z-[999] px-6 py-5 transition-all duration-200 ${isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center">
           <button 
@@ -128,7 +128,7 @@ const RecommenderNav: React.FC = () => {
       
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-white pt-20">
+        <div className="md:hidden fixed inset-0 z-[998] bg-white pt-20">
           <div className="px-6 py-4 space-y-4">
             {navLinks.map((link) => (
               <button 
