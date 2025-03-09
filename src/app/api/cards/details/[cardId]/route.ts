@@ -4,12 +4,18 @@ import { creditCards as fallbackCards } from '@/lib/cardDatabase';
 
 export const dynamic = 'force-dynamic';
 
+interface RouteContext {
+  params: {
+    cardId: string;
+  };
+}
+
 export async function GET(
   request: Request,
-  { params }: { params: { cardId: string } }
+  context: RouteContext
 ) {
   try {
-    const cardKey = params.cardId;
+    const cardKey = context.params.cardId;
     
     console.log('Received card request for ID:', cardKey);
     
