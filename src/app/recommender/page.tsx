@@ -775,33 +775,23 @@ const getComparisonData = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      {/* Error Display */}
-      {error && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-          <div className="bg-red-50 text-red-700 p-4 rounded-md shadow-sm border border-red-200">
-            <div className="flex items-start">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <span>{error}</span>
+    <>
+      {/* Main Content - Removed the outer div that might be capturing events */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 bg-gray-50 min-h-screen">
+        {/* Error Display */}
+        {error && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            <div className="bg-red-50 text-red-700 p-4 rounded-md shadow-sm border border-red-200">
+              <div className="flex items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>{error}</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Loading Overlay - Only show for global operations, not card search */}
-      {loading && !cardSearchLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 z-[800] flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-gray-600">Processing your request...</p>
-          </div>
-        </div>
-      )}
-      
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Mobile Navigation Tabs - Only visible on mobile */}
         <div className="lg:hidden mb-6 bg-white rounded-lg shadow overflow-hidden">
           <div className="flex">
@@ -848,7 +838,7 @@ const getComparisonData = () => {
           </div>
         </div>
 
-        {/* Content Grid - Side by Side Layout */}
+        {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Input Sections */}
           <div className={`lg:col-span-4 space-y-6 ${activeTab === 'input' || window.innerWidth >= 1024 ? 'block' : 'hidden'}`}>
@@ -1421,6 +1411,16 @@ const getComparisonData = () => {
         </div>
       </footer>
       
+      {/* Loading Overlay - Only show for global operations, not card search */}
+      {loading && !cardSearchLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 z-[800] flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Processing your request...</p>
+          </div>
+        </div>
+      )}
+      
       {/* Not Interested Modal */}
       {showNotInterestedList && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[900] flex items-center justify-center">
@@ -1474,6 +1474,6 @@ const getComparisonData = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
