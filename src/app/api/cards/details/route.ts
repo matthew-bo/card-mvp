@@ -17,6 +17,10 @@ export async function GET(request: Request) {
       cardKey = pathParts[pathParts.length - 1];
     }
     
+    console.log('Received card request for ID:', cardKey);
+    console.log('URL path:', url.pathname);
+    console.log('URL search params:', url.searchParams.toString());
+    
     if (!cardKey) {
       return NextResponse.json(
         { success: false, error: 'Card key is required' },
@@ -30,6 +34,8 @@ export async function GET(request: Request) {
       const API_KEY = process.env.REWARDS_API_KEY;
       const API_HOST = 'rewards-credit-card-api.p.rapidapi.com';
       const API_BASE_URL = 'https://rewards-credit-card-api.p.rapidapi.com';
+      
+      console.log('Attempting to fetch from API for card:', cardKey);
       
       const response = await fetch(`${API_BASE_URL}/creditcard-detail-bycard/${cardKey}`, {
         headers: {
@@ -62,6 +68,10 @@ export async function GET(request: Request) {
       
       // Try to find the card in our fallback database
       const fallbackCard = fallbackCards.find(card => card.id === cardKey);
+      
+      console.log('Looking for card in fallback database:', cardKey);
+      console.log('Available fallback cards:', fallbackCards.map(card => card.id));
+      console.log('Found fallback card:', fallbackCard ? 'yes' : 'no');
       
       if (fallbackCard) {
         return NextResponse.json({

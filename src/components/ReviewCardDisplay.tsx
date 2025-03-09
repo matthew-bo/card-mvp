@@ -12,6 +12,8 @@ interface ReviewCardDisplayProps {
 }
 
 const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
+  console.log('Rendering card:', card.id, card.name);
+  
   interface Review {
     id: string;
     userId: string;
@@ -243,6 +245,7 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
             <Link 
               href={`/review/${card.id}`}
               className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+              onClick={() => console.log('Navigating to card details:', card.id)}
             >
               View Details & Reviews
               <ChevronRight size={16} className="ml-1" />
