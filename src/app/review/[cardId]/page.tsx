@@ -7,6 +7,7 @@ import Navigation from '@/components/Navigation';
 import { CreditCardDetails } from '@/types/cards';
 import StarRating from '@/components/StarRating';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { ChevronLeft, ThumbsUp } from 'lucide-react';
 
 interface Review {
   id: string;
@@ -38,6 +39,9 @@ export default function CardDetailPage() {
   
   // Track user's liked comments to prevent multiple likes
   const [likedComments, setLikedComments] = useLocalStorage<string[]>('liked_comments', []);
+  
+  // Add sorting options
+  const [sortBy, setSortBy] = useState<'newest' | 'highest' | 'lowest' | 'mostLiked'>('newest');
   
   // Load card details
   useEffect(() => {
@@ -154,38 +158,57 @@ const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | num
     }
   };
   
-  // Like a review
-  const handleLikeReview = async (reviewId: string) => {
-    // Check if the user has already liked this comment
-    if (likedComments.includes(reviewId)) {
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/api/reviews/like/${reviewId}`, {
-        method: 'POST'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to like review');
+  // Get sorted reviews
+  const getSortedReviews = () => {
+    return [...reviews].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          const timeA = typeof a.timestamp === 'number' ? 
+            a.timestamp : 
+            a.timestamp?.seconds ? a.timestamp.seconds * 1000 : 0;
+          
+          const timeB = typeof b.timestamp === 'number' ? 
+            b.timestamp : 
+            b.timestamp?.seconds ? b.timestamp.seconds * 1000 : 0;
+            
+          return timeB - timeA;
+        case 'highest':
+          return b.rating - a.rating;
+        case 'lowest':
+          return a.rating - b.rating;
+        case 'mostLiked':
+          return b.likes - a.likes;
+        default:
+          return 0;
       }
-      
-      // Update the reviews list with the new like count
-      setReviews(prev => prev.map(review => 
+    });
+  };
+
+  // Handle like review
+  const handleLikeReview = async (reviewId: string) => {
+    if (likedComments.includes(reviewId)) return;
+
+    try {
+      const response = await fetch(`/api/reviews/${cardId}/${reviewId}/like`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) throw new Error('Failed to like review');
+
+      // Update reviews list with new like count
+      setReviews(reviews.map(review => 
         review.id === reviewId 
-          ? { ...review, likes: review.likes + 1 } 
+          ? { ...review, likes: review.likes + 1 }
           : review
       ));
-      
-      // Add this comment to the liked comments list
+
+      // Add to liked comments
       setLikedComments([...likedComments, reviewId]);
-      
-    } catch (err) {
-      console.error('Error liking review:', err);
+    } catch (error) {
+      console.error('Error liking review:', error);
     }
   };
 
-  
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -232,228 +255,211 @@ const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | num
       <Navigation />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Back link */}
-        <div className="mb-6">
+        {/* Breadcrumb */}
+        <nav className="mb-8">
           <Link href="/review" className="text-blue-600 hover:text-blue-800 flex items-center">
-            <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to all cards
+            <ChevronLeft size={16} className="mr-1" />
+            Back to All Cards
           </Link>
-        </div>
-        
-        {/* Card details section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Card basic information */}
-            <div className="lg:col-span-2">
-              <h1 className="text-3xl font-bold text-gray-900">{card.name}</h1>
-              <p className="text-xl text-gray-600 mt-1">{card.issuer}</p>
-              
-              <div className="flex items-center mt-4">
-                <StarRating rating={averageRating} size="large" />
-                <span className="ml-2 text-gray-600">
-                  {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                </span>
-              </div>
-              
-              <div className="mt-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Card Details</h2>
-                <p className="text-gray-700 mb-4">{card.description}</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Key Information</h3>
-                    <dl className="space-y-2">
-                      <div className="flex">
-                        <dt className="w-1/2 text-sm font-medium text-gray-500">Annual Fee</dt>
-                        <dd className="w-1/2 text-sm text-gray-900">${card.annualFee}</dd>
-                      </div>
-                      <div className="flex">
-                        <dt className="w-1/2 text-sm font-medium text-gray-500">Credit Score Required</dt>
-                        <dd className="w-1/2 text-sm text-gray-900 capitalize">{card.creditScoreRequired}</dd>
-                      </div>
-                      <div className="flex">
-                        <dt className="w-1/2 text-sm font-medium text-gray-500">Foreign Transaction Fee</dt>
-                        <dd className="w-1/2 text-sm text-gray-900">{card.foreignTransactionFee ? 'Yes' : 'No'}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Reward Rates</h3>
-                    <ul className="space-y-1">
-                      {Object.entries(card.rewardRates)
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([category, rate]) => (
-                          <li key={category} className="text-sm text-gray-700">
-                            <span className="font-medium capitalize">{category}:</span> {rate}%
-                          </li>
-                        ))
-                      }
-                    </ul>
-                  </div>
-                </div>
-                
-                {/* Sign up bonus */}
-                {card.signupBonus && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Sign-up Bonus</h3>
-                    <p className="text-sm text-gray-700">{card.signupBonus.description}</p>
-                  </div>
-                )}
-                
-                {/* Perks */}
-                {card.perks && card.perks.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Card Perks</h3>
-                    <ul className="space-y-1 list-disc pl-4">
-                      {card.perks.map((perk, index) => (
-                        <li key={index} className="text-sm text-gray-700">{perk}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Write a review section */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Write a Review</h2>
-              
-              <form onSubmit={handleSubmitReview} className="space-y-4">
-                <div>
-                  <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Your Name (optional)
-                  </label>
-                  <input
-                    id="userName"
-                    type="text"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    placeholder="Anonymous User"
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Your Rating
-                  </label>
-                  <StarRating 
-                    rating={userRating} 
-                    onChange={setUserRating} 
-                    editable 
-                    size="large" 
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="userComment" className="block text-sm font-medium text-gray-700 mb-1">
-                    Your Review (optional)
-                  </label>
-                  <textarea
-                    id="userComment"
-                    value={userComment}
-                    onChange={(e) => setUserComment(e.target.value)}
-                    placeholder="Share your experience with this card..."
-                    rows={5}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  ></textarea>
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={submitting || !userRating}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                >
-                  {submitting ? 'Submitting...' : 'Submit Review'}
-                </button>
-              </form>
-            </div>
+        </nav>
+
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-        </div>
-        
-        {/* Reviews section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Reviews ({reviews.length})
-          </h2>
-          
-          {reviewsLoading ? (
-            <div className="text-center py-10">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading reviews...</p>
-            </div>
-          ) : reviews.length === 0 ? (
-            <div className="text-center py-10 bg-gray-50 rounded-lg">
-              <p className="text-gray-600">No reviews yet. Be the first to review this card!</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {reviews
-                .sort((a, b) => {
-                  // Convert timestamps to comparable numbers
-                  const timeA = typeof a.timestamp === 'number' ? 
-                    a.timestamp : 
-                    a.timestamp?.seconds ? a.timestamp.seconds * 1000 : 0;
+        ) : error ? (
+          <div className="bg-red-50 text-red-700 p-4 rounded-lg">
+            {error}
+          </div>
+        ) : card && (
+          <>
+            {/* Card Details Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column - Card Info */}
+                <div className="lg:col-span-2">
+                  <h1 className="text-3xl font-bold text-gray-900">{card.name}</h1>
+                  <p className="text-xl text-gray-600 mt-1">{card.issuer}</p>
                   
-                  const timeB = typeof b.timestamp === 'number' ? 
-                    b.timestamp : 
-                    b.timestamp?.seconds ? b.timestamp.seconds * 1000 : 0;
-                    
-                  return timeB - timeA; // Sort by newest first
-                })
-                .map(review => (
-                  <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <StarRating rating={review.rating} size="medium" />
-                        <span className="ml-2 font-medium text-gray-900">
-                          {review.userName}
-                        </span>
+                  <div className="flex items-center mt-4">
+                    <StarRating rating={averageRating} size="large" />
+                    <span className="ml-2 text-gray-600">
+                      {averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                    </span>
+                  </div>
+
+                  {/* Card Description */}
+                  <div className="mt-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">About This Card</h2>
+                    <p className="text-gray-700">{card.description}</p>
+                  </div>
+
+                  {/* Key Features */}
+                  <div className="mt-8">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Key Features</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium text-gray-900">Annual Fee</h3>
+                        <p className="text-gray-700">{card.annualFee === 0 ? 'No Annual Fee' : `$${card.annualFee}`}</p>
                       </div>
-                      <span className="text-sm text-gray-500">
-                        {formatTimestamp(review.timestamp)}
-                      </span>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium text-gray-900">Credit Score Required</h3>
+                        <p className="text-gray-700 capitalize">{card.creditScoreRequired}</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium text-gray-900">Foreign Transaction Fee</h3>
+                        <p className="text-gray-700">{card.foreignTransactionFee ? 'Yes' : 'No'}</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium text-gray-900">Card Type</h3>
+                        <p className="text-gray-700 capitalize">{card.cardType || 'Personal'}</p>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Rewards Section */}
+                  <div className="mt-8">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Rewards & Benefits</h2>
+                    <div className="space-y-4">
+                      {Object.entries(card.rewardRates || {}).map(([category, rate]) => (
+                        <div key={category} className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                          <span className="text-gray-700 capitalize">{category}:</span>
+                          <span className="ml-2 font-medium text-blue-600">{rate}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Write Review */}
+                <div className="lg:col-span-1">
+                  <div className="bg-gray-50 p-6 rounded-lg sticky top-6">
+                    <h2 className="text-lg font-medium text-gray-900 mb-4">Write a Review</h2>
                     
-                    {review.comment && (
-                      <p className="mt-2 text-gray-700">{review.comment}</p>
-                    )}
-                    
-                    <div className="mt-3 flex items-center">
+                    <form onSubmit={handleSubmitReview} className="space-y-4">
+                      <div>
+                        <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1">
+                          Your Name (optional)
+                        </label>
+                        <input
+                          id="userName"
+                          type="text"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          placeholder="Anonymous User"
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Your Rating
+                        </label>
+                        <StarRating 
+                          rating={userRating} 
+                          onChange={setUserRating} 
+                          editable 
+                          size="large" 
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="userComment" className="block text-sm font-medium text-gray-700 mb-1">
+                          Your Review (optional)
+                        </label>
+                        <textarea
+                          id="userComment"
+                          value={userComment}
+                          onChange={(e) => setUserComment(e.target.value)}
+                          placeholder="Share your experience with this card..."
+                          rows={5}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        ></textarea>
+                      </div>
+                      
                       <button
-                        onClick={() => handleLikeReview(review.id)}
-                        disabled={likedComments.includes(review.id)}
-                        className={`flex items-center text-sm ${
-                          likedComments.includes(review.id)
-                            ? 'text-blue-600 cursor-default'
-                            : 'text-gray-500 hover:text-blue-600'
+                        type="submit"
+                        disabled={!userRating || submitting}
+                        className={`w-full py-2 px-4 rounded-md text-white font-medium ${
+                          !userRating || submitting
+                            ? 'bg-blue-400 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700'
                         }`}
                       >
-                        <svg 
-                          className="w-4 h-4 mr-1" 
-                          fill={likedComments.includes(review.id) ? 'currentColor' : 'none'} 
-                          viewBox="0 0 24 24" 
-                          stroke="currentColor"
-                        >
-                          <path 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth="2" 
-                            d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" 
-                          />
-                        </svg>
-                        {review.likes} {review.likes === 1 ? 'like' : 'likes'}
+                        {submitting ? 'Submitting...' : 'Submit Review'}
                       </button>
-                    </div>
+                    </form>
                   </div>
-                ))
-              }
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Reviews Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900">Reviews</h2>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="highest">Highest Rated</option>
+                  <option value="lowest">Lowest Rated</option>
+                  <option value="mostLiked">Most Liked</option>
+                </select>
+              </div>
+
+              {reviewsLoading ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-10 bg-gray-50 rounded-lg">
+                  <p className="text-gray-600">No reviews yet. Be the first to review this card!</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {getSortedReviews().map(review => (
+                    <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <StarRating rating={review.rating} size="medium" />
+                          <span className="ml-2 font-medium text-gray-900">
+                            {review.userName || 'Anonymous User'}
+                          </span>
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {formatTimestamp(review.timestamp)}
+                        </span>
+                      </div>
+                      
+                      {review.comment && (
+                        <p className="mt-2 text-gray-700">{review.comment}</p>
+                      )}
+                      
+                      <div className="mt-3 flex items-center">
+                        <button
+                          onClick={() => handleLikeReview(review.id)}
+                          disabled={likedComments.includes(review.id)}
+                          className={`flex items-center text-sm ${
+                            likedComments.includes(review.id)
+                              ? 'text-blue-600 cursor-not-allowed'
+                              : 'text-gray-500 hover:text-blue-600'
+                          }`}
+                        >
+                          <ThumbsUp size={14} className="mr-1" />
+                          Helpful ({review.likes})
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

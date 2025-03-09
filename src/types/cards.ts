@@ -38,6 +38,7 @@ export interface CreditCardDetails {
   foreignTransactionFee: boolean;
   categories: string[];
   description: string;
+  cardType?: 'business' | 'personal';
 }
 
 export interface RecommendedCard {

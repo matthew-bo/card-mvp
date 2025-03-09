@@ -28,6 +28,12 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [showQuickReview, setShowQuickReview] = useState(false);
+  const [quickRating, setQuickRating] = useState(0);
+  const [quickComment, setQuickComment] = useState('');
+  const [userName, setUserName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   
   // Fetch reviews for this card
   useEffect(() => {
@@ -67,6 +73,43 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
   
   // Get credit score badge class
   const creditScoreBadgeClass = getCreditScoreBadgeClass(card.creditScoreRequired);
+  
+  const handleQuickReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickRating) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/reviews/${card.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rating: quickRating,
+          comment: quickComment,
+          userName: userName || 'Anonymous User',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit review');
+
+      // Update reviews list
+      const newReview = await response.json();
+      setReviews([...reviews, newReview]);
+      
+      // Reset form
+      setQuickRating(0);
+      setQuickComment('');
+      setShowQuickReview(false);
+      setSubmitSuccess(true);
+      setTimeout(() => setSubmitSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error submitting review:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   return (
     <motion.div 
@@ -204,6 +247,85 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
               View Details & Reviews
               <ChevronRight size={16} className="ml-1" />
             </Link>
+          </div>
+
+          {/* Quick Review Section */}
+          <div className="px-6 pb-4">
+            {!showQuickReview ? (
+              <div className="flex items-center justify-between mt-4">
+                <button
+                  onClick={() => setShowQuickReview(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  <MessageSquare size={16} className="mr-1" />
+                  Write a Quick Review
+                </button>
+                {submitSuccess && (
+                  <span className="text-sm text-green-600">Review submitted successfully!</span>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleQuickReview} className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Rating
+                  </label>
+                  <StarRating 
+                    rating={quickRating} 
+                    onChange={setQuickRating}
+                    editable
+                    size="medium"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Name (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="Anonymous User"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Quick Comment (optional)
+                  </label>
+                  <textarea
+                    value={quickComment}
+                    onChange={(e) => setQuickComment(e.target.value)}
+                    placeholder="Share your thoughts..."
+                    rows={2}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickReview(false)}
+                    className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!quickRating || isSubmitting}
+                    className={`px-3 py-1 text-sm text-white rounded-md ${
+                      !quickRating || isSubmitting
+                        ? 'bg-blue-400 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>
