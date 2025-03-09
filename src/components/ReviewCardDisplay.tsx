@@ -12,7 +12,20 @@ interface ReviewCardDisplayProps {
 }
 
 const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
-  const [reviews, setReviews] = useState<any[]>([]);
+  interface Review {
+    id: string;
+    userId: string;
+    userName: string;
+    rating: number;
+    comment: string;
+    timestamp: {
+      seconds: number;
+      nanoseconds: number;
+    } | number;
+    likes: number;
+  }
+  
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -29,7 +42,7 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
           
           // Calculate average rating if there are reviews
           if (data.reviews.length > 0) {
-            const total = data.reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
+            const total = data.reviews.reduce((sum: number, review: Review) => sum + review.rating, 0);
             setAverageRating(total / data.reviews.length);
           }
         }

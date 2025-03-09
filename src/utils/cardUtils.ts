@@ -101,8 +101,8 @@ export function getTopRewardCategories(card: CreditCardDetails, limit = 3): [str
   
   // Convert reward rates to array of [category, rate] pairs, filter out 0 rates
   return Object.entries(card.rewardRates)
-    .filter(([category, rate]) => rate > 0)  // Only include non-zero rates
-    .sort(([categoryA, a], [categoryB, b]) => Number(b) - Number(a))  // Sort by rate descending
+    .filter(([, rate]) => rate > 0)  // Only include non-zero rates
+    .sort(([, rateA], [, rateB]) => Number(rateB) - Number(rateA))  // Sort by rate descending
     .slice(0, limit);  // Take only the top N
 }
 
