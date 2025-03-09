@@ -48,7 +48,7 @@ export default function CardDetailPage() {
     const fetchCardDetails = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/cards/details?cardKey=${cardId}`);
+        const response = await fetch(`/api/cards/details/${cardId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch card details');
         }
