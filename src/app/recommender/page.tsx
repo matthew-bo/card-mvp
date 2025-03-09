@@ -130,6 +130,11 @@ export default function RecommenderPage() {
     };
   }, []);
 
+  // Don't render anything during SSR
+  if (!mounted) {
+    return null;
+  }
+
   // =========== CATEGORIES ===========
   const categories = [
     { id: 'dining', name: 'Dining' },
@@ -893,7 +898,7 @@ const getComparisonData = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ pointerEvents: 'auto' }}>
+    <div style={{ pointerEvents: 'auto' }} className="min-h-screen bg-gray-50 pt-20">
       {/* Notification Banner */}
       {notification && (
         <div 
