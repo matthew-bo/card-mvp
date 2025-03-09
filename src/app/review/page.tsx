@@ -1,4 +1,3 @@
-// src/app/review/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,6 +7,7 @@ import { CreditCardDetails } from '@/types/cards';
 import ReviewCardDisplay from '@/components/ReviewCardDisplay';
 import ReviewFilters from '@/components/ReviewFilters';
 import Pagination from '@/components/Pagination';
+import { filterBusinessCards, filterPersonalCards } from '@/utils/cardUtils';
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -25,6 +25,8 @@ export default function ReviewPage() {
   const cardType = searchParams.get('type') || 'all';
   const issuer = searchParams.get('issuer') || '';
   const searchTerm = searchParams.get('search') || '';
+  const annualFee = searchParams.get('annualFee') || 'all';
+  const rewardsFilter = searchParams.get('rewards') || 'all';
   
   // Fetch cards from API
   useEffect(() => {
@@ -85,8 +87,27 @@ export default function ReviewPage() {
       );
     }
     
+    // Filter by annual fee
+    if (annualFee !== 'all') {
+      result = result.filter(card => {
+        if (annualFee === 'no-fee') return card.annualFee === 0;
+        if (annualFee === 'low-fee') return card.annualFee > 0 && card.annualFee <= 100;
+        if (annualFee === 'high-fee') return card.annualFee > 100;
+        return true;
+      });
+    }
+    
+    // Filter by rewards type
+    if (rewardsFilter !== 'all') {
+      result = result.filter(card => {
+        if (rewardsFilter === 'cashback') return card.categories.includes('cashback');
+        if (rewardsFilter === 'points') return card.categories.includes('points') || card.categories.includes('travel');
+        return true;
+      });
+    }
+    
     setFilteredCards(result);
-  }, [cards, cardType, issuer, searchTerm]);
+  }, [cards, cardType, issuer, searchTerm, annualFee, rewardsFilter]); // Add the new dependencies
   
   // Get current page cards
   const indexOfLastCard = page * cardsPerPage;
@@ -99,6 +120,8 @@ export default function ReviewPage() {
     type?: string;
     issuer?: string;
     search?: string;
+    annualFee?: string;  
+    rewards?: string;   
   }) => {
     const params = new URLSearchParams(searchParams.toString());
     
@@ -126,6 +149,23 @@ export default function ReviewPage() {
       }
     }
     
+    // Add handling for new filter types
+    if (newFilters.annualFee !== undefined) {
+      if (newFilters.annualFee && newFilters.annualFee !== 'all') {
+        params.set('annualFee', newFilters.annualFee);
+      } else {
+        params.delete('annualFee');
+      }
+    }
+    
+    if (newFilters.rewards !== undefined) {
+      if (newFilters.rewards && newFilters.rewards !== 'all') {
+        params.set('rewards', newFilters.rewards);
+      } else {
+        params.delete('rewards');
+      }
+    }
+    
     // Reset to page 1 when changing filters
     params.set('page', '1');
     
@@ -140,16 +180,23 @@ export default function ReviewPage() {
       <Navigation />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Credit Card Reviews</h1>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Credit Card Reviews</h1>
+          <p className="text-gray-600 mt-2 md:mt-0">
+            {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} available
+          </p>
+        </div>
         
-        {/* Filters */}
-        <ReviewFilters 
-          cardType={cardType}
-          issuer={issuer}
-          searchTerm={searchTerm}
-          issuers={uniqueIssuers}
-          onFilterChange={handleFilterChange}
-        />
+      {/* Filters */}
+      <ReviewFilters 
+        cardType={cardType}
+        issuer={issuer}
+        searchTerm={searchTerm}
+        issuers={uniqueIssuers}
+        annualFee="all" 
+        rewardsFilter="all"  
+        onFilterChange={handleFilterChange}
+      />
         
         {/* Card listing */}
         {loading ? (
@@ -179,7 +226,7 @@ export default function ReviewPage() {
         )}
         
         {/* Pagination */}
-        {filteredCards.length > 0 && (
+        {filteredCards.length > cardsPerPage && (
           <div className="mt-8">
             <Pagination 
               currentPage={page} 
