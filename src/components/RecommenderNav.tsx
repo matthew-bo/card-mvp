@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { auth } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
