@@ -178,7 +178,7 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
                   <StarRating rating={featuredReview.rating} size="small" />
                 </div>
               </div>
-              <p className="text-sm text-gray-600 line-clamp-2">"{featuredReview.comment}"</p>
+              <p className="text-sm text-gray-600 line-clamp-2">&quot;{featuredReview.comment}&quot;</p>
             </div>
           )}
           
