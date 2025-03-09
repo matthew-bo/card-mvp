@@ -43,8 +43,8 @@ export default function SafeModal({ isOpen, onClose, title, children }: SafeModa
   
   // Use portal to render the modal outside of the current DOM hierarchy
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 z-[60] overflow-y-auto overflow-x-hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full max-h-[80vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
           {title && <h3 className="text-lg font-semibold">{title}</h3>}
           <button 

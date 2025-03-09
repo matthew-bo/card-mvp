@@ -897,7 +897,7 @@ const getComparisonData = () => {
       {/* Notification Banner */}
       {notification && (
         <div 
-          className={`fixed top-4 right-4 z-50 max-w-md flex items-center shadow-lg rounded-lg px-4 py-3 transform transition-all duration-300 ${
+          className={`fixed top-4 right-4 z-30 max-w-md flex items-center shadow-lg rounded-lg px-4 py-3 transform transition-all duration-300 ${
             notification.type === 'success' ? 'bg-white border-l-4 border-green-500 text-green-800' :
             notification.type === 'error' ? 'bg-white border-l-4 border-red-500 text-red-800' :
             'bg-white border-l-4 border-blue-500 text-blue-800'
@@ -955,8 +955,8 @@ const getComparisonData = () => {
 
       {/* Loading Overlay - Only show for global operations, not card search */}
       {loading && !cardSearchLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-30 z-40 flex items-center justify-center backdrop-blur-sm pointer-events-none">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center pointer-events-auto">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
             <p className="text-gray-600">Processing your request...</p>
           </div>
@@ -1594,17 +1594,19 @@ const getComparisonData = () => {
       
       {/* Not Interested Modal */}
       {showNotInterestedList && (
-        <SimpleNotInterestedList
-          notInterestedIds={notInterestedCards}
-          notInterestedCards={preparedNotInterestedCards}
-          onRemove={handleRemoveFromNotInterested}
-          onClose={() => setShowNotInterestedList(false)}
-        />
+        <div className="z-35">
+          <SimpleNotInterestedList
+            notInterestedIds={notInterestedCards}
+            notInterestedCards={preparedNotInterestedCards}
+            onRemove={handleRemoveFromNotInterested}
+            onClose={() => setShowNotInterestedList(false)}
+          />
+        </div>
       )}
       
       {/* Data Security Badge - Adds credibility */}
-      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-10">
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 flex items-center">
+      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-10 pointer-events-none">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 flex items-center pointer-events-auto">
           <svg className="w-5 h-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
