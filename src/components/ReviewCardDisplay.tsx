@@ -37,6 +37,23 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   
+  // Load user data from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUserName = sessionStorage.getItem('review_user_name');
+      if (storedUserName) {
+        setUserName(storedUserName);
+      }
+    }
+  }, []);
+  
+  // Save user data to sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userName) {
+      sessionStorage.setItem('review_user_name', userName);
+    }
+  }, [userName]);
+  
   // Fetch reviews for this card
   useEffect(() => {
     const fetchReviews = async () => {

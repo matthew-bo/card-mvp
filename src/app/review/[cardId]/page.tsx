@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { CreditCardDetails } from '@/types/cards';
 import StarRating from '@/components/StarRating';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { ChevronLeft, ThumbsUp } from 'lucide-react';
 
 interface Review {
@@ -35,13 +34,44 @@ export default function CardDetailPage() {
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [userName, setUserName] = useLocalStorage('review_user_name', '');
-  
-  // Track user's liked comments to prevent multiple likes
-  const [likedComments, setLikedComments] = useLocalStorage<string[]>('liked_comments', []);
+  const [userName, setUserName] = useState('');
+  const [likedComments, setLikedComments] = useState<string[]>([]);
   
   // Add sorting options
   const [sortBy, setSortBy] = useState<'newest' | 'highest' | 'lowest' | 'mostLiked'>('newest');
+  
+  // Load user data from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUserName = sessionStorage.getItem('review_user_name');
+      const storedLikedComments = sessionStorage.getItem('liked_comments');
+      
+      if (storedUserName) {
+        setUserName(storedUserName);
+      }
+      
+      if (storedLikedComments) {
+        try {
+          setLikedComments(JSON.parse(storedLikedComments));
+        } catch (error) {
+          console.error('Error parsing liked comments:', error);
+        }
+      }
+    }
+  }, []);
+  
+  // Save user data to sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (userName) {
+        sessionStorage.setItem('review_user_name', userName);
+      }
+      
+      if (likedComments.length > 0) {
+        sessionStorage.setItem('liked_comments', JSON.stringify(likedComments));
+      }
+    }
+  }, [userName, likedComments]);
   
   // Load card details
   useEffect(() => {
@@ -91,22 +121,21 @@ export default function CardDetailPage() {
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
   
-// Format timestamp to readable date
-const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | number | unknown): string => {
-  if (!timestamp) return '';
+  // Format timestamp to readable date
+  const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | number | unknown): string => {
+    if (!timestamp) return '';
     
-  let date: Date;
-  if (typeof timestamp === 'number') {
-    date = new Date(timestamp);
-  } else if (typeof timestamp === 'object' && timestamp !== null && 'seconds' in timestamp) {
-    // Type guard to check if 'seconds' property exists
-    date = new Date((timestamp as {seconds: number}).seconds * 1000);
-  } else {
-    date = new Date();
-  }
+    let date: Date;
+    if (typeof timestamp === 'number') {
+      date = new Date(timestamp);
+    } else if (typeof timestamp === 'object' && timestamp !== null && 'seconds' in timestamp) {
+      date = new Date((timestamp as {seconds: number}).seconds * 1000);
+    } else {
+      date = new Date();
+    }
     
-  return date.toLocaleDateString();
-};
+    return date.toLocaleDateString();
+  };
   
   // Submit a review
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -183,25 +212,25 @@ const formatTimestamp = (timestamp: {seconds: number; nanoseconds: number} | num
       }
     });
   };
-
+  
   // Handle like review
   const handleLikeReview = async (reviewId: string) => {
     if (likedComments.includes(reviewId)) return;
-
+    
     try {
       const response = await fetch(`/api/reviews/${cardId}/${reviewId}/like`, {
         method: 'POST',
       });
-
+      
       if (!response.ok) throw new Error('Failed to like review');
-
+      
       // Update reviews list with new like count
       setReviews(reviews.map(review => 
         review.id === reviewId 
           ? { ...review, likes: review.likes + 1 }
           : review
       ));
-
+      
       // Add to liked comments
       setLikedComments([...likedComments, reviewId]);
     } catch (error) {
