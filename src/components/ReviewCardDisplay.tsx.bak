@@ -199,4 +199,3 @@ const ReviewCardDisplay: React.FC<ReviewCardDisplayProps> = ({ card }) => {
 };
 
 export default ReviewCardDisplay;
-
