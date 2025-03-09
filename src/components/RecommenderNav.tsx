@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { auth } from '@/lib/firebase';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const RecommenderNav: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -12,6 +12,7 @@ const RecommenderNav: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Only run client-side
   useEffect(() => {
@@ -40,31 +41,49 @@ const RecommenderNav: React.FC = () => {
   ];
 
   // Function to handle sign out
-  const handleSignOut = () => {
-    auth.signOut();
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  // Function to handle navigation
+  const handleNavigation = (href: string) => {
+    setIsMobileMenuOpen(false); // Close mobile menu
+    router.push(href);
   };
 
   return (
-    <nav className={`sticky top-0 z-[999] px-6 py-5 transition-all duration-200 ${isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-[999] px-6 py-5 transition-all duration-200 ${
+      isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'
+    }`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center">
-          <Link href="/" className="text-2xl font-bold text-gray-900">
+          <button 
+            onClick={() => handleNavigation('/')}
+            className="text-2xl font-bold text-gray-900"
+          >
             Stoid
-          </Link>
+          </button>
         </div>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
           {navLinks.map((link) => (
-            <Link
+            <button
               key={link.href}
-              href={link.href}
-              className={`${link.active 
-                ? 'text-blue-600 font-medium' 
-                : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+              onClick={() => handleNavigation(link.href)}
+              className={`${
+                link.active 
+                  ? 'text-blue-600 font-medium' 
+                  : 'text-gray-600 hover:text-gray-900'
+              } transition-colors`}
             >
               {link.label}
-            </Link>
+            </button>
           ))}
           
           {/* Authentication Links */}
@@ -78,18 +97,18 @@ const RecommenderNav: React.FC = () => {
               </button>
             ) : (
               <>
-                <Link
-                  href="/auth/login"
+                <button
+                  onClick={() => handleNavigation('/auth/login')}
                   className="text-gray-600 hover:text-gray-900 transition-colors"
                 >
                   Log in
-                </Link>
-                <Link
-                  href="/auth/signup"
+                </button>
+                <button
+                  onClick={() => handleNavigation('/auth/signup')}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
                   Sign up
-                </Link>
+                </button>
               </>
             )}
           </div>
@@ -122,18 +141,17 @@ const RecommenderNav: React.FC = () => {
         <div className="md:hidden fixed inset-0 z-[998] bg-white pt-20">
           <div className="px-6 py-4 space-y-4">
             {navLinks.map((link) => (
-              <Link
+              <button
                 key={link.href}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block py-2 text-lg ${
+                onClick={() => handleNavigation(link.href)}
+                className={`block py-2 text-lg w-full text-left ${
                   link.active 
                     ? 'text-blue-600 font-medium' 
                     : 'text-gray-600'
                 }`}
               >
                 {link.label}
-              </Link>
+              </button>
             ))}
             <div className="pt-4 border-t border-gray-100">
               {user ? (
@@ -142,26 +160,24 @@ const RecommenderNav: React.FC = () => {
                     handleSignOut();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block py-2 text-lg text-gray-600"
+                  className="block py-2 text-lg text-gray-600 w-full text-left"
                 >
                   Sign Out
                 </button>
               ) : (
                 <>
-                  <Link
-                    href="/auth/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-2 text-lg text-gray-600"
+                  <button
+                    onClick={() => handleNavigation('/auth/login')}
+                    className="block py-2 text-lg text-gray-600 w-full text-left"
                   >
                     Log in
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center"
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/auth/signup')}
+                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center w-full"
                   >
                     Sign up
-                  </Link>
+                  </button>
                 </>
               )}
             </div>
