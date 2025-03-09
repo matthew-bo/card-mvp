@@ -74,8 +74,6 @@ interface ScoredCard {
 
 export default function RecommenderPage() {
   const { user } = useAuth();
-  
-  // Use the cards hook instead of static import
   const { cards: creditCards, loading: cardsLoading } = useCards();
   
   // =========== STATE MANAGEMENT ===========
@@ -93,7 +91,6 @@ export default function RecommenderPage() {
   const [preparedNotInterestedCards, setPreparedNotInterestedCards] = useState<CreditCardDetails[]>([]);
   const [manualRecommendations, setManualRecommendations] = useState<RecommendedCard[]>([]);
   const [showUpdateButton, setShowUpdateButton] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [refreshingRecommendations, setRefreshingRecommendations] = useState(false);
   const [cardType, setCardType] = useState<'personal' | 'business' | 'both'>('personal');
   const [loadingState, setLoadingState] = useState<string>('initializing');
@@ -104,11 +101,8 @@ export default function RecommenderPage() {
   const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
   const [allCards, setAllCards] = useState<CreditCardDetails[]>([]);
   const [loadingAllCards, setLoadingAllCards] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedCard, setSelectedCard] = useState<string>('');
   const [cardSearchLoading, setCardSearchLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const shouldShowRecommendations = expenses.length > 0 || userCards.length > 0;
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -120,43 +114,7 @@ export default function RecommenderPage() {
     id: number;
   } | null>(null);
 
-  // Add cleanup effect to ensure body styles are reset
-  useEffect(() => {
-    return () => {
-      // Reset body styles when component unmounts
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = '';
-      }
-    };
-  }, []);
-
-  // Don't render anything during SSR
-  if (!mounted) {
-    return null;
-  }
-
-  // =========== CATEGORIES ===========
-  const categories = [
-    { id: 'dining', name: 'Dining' },
-    { id: 'travel', name: 'Travel' },
-    { id: 'grocery', name: 'Grocery' },
-    { id: 'gas', name: 'Gas' },
-    { id: 'entertainment', name: 'Entertainment' },
-    { id: 'rent', name: 'Rent' },
-    { id: 'other', name: 'Other' }
-  ] as const;
-
-  const prepareAndShowNotInterestedList = () => {
-    // Filter cards from the static creditCards array
-    const notInterestedCardsData = notInterestedCards
-      .map(id => creditCards.find(card => card.id === id))
-      .filter(Boolean) as CreditCardDetails[];
-    
-    setPreparedNotInterestedCards(notInterestedCardsData);
-    setShowNotInterestedList(true);
-  };
-
-  // Show notification
+  // Show notification callback
   const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     const id = Date.now();
     setNotification({ message, type, id });
@@ -167,8 +125,77 @@ export default function RecommenderPage() {
     }, 4000);
   }, []);
 
-  // =========== LOCAL STORAGE DATA PERSISTENCE ===========
-  // Move useEffect to top level and put condition inside
+  // Load all cards callback
+  const loadAllCards = useCallback(async () => {
+    console.log('🔄 Loading all cards started');
+    setLoadingState('loading-cards');
+    setLoadingAllCards(true);
+    
+    try {
+      const response = await fetch('/api/cards/all');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load card database: ${response.status}`);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error('Failed to parse card data');
+      }
+      
+      let filteredCards = [];
+      
+      if (!data.data || !Array.isArray(data.data)) {
+        filteredCards = [];
+      } else if (cardType === 'personal') {
+        filteredCards = filterPersonalCards(data.data);
+      } else if (cardType === 'business') {
+        filteredCards = filterBusinessCards(data.data);
+      } else {
+        filteredCards = data.data;
+      }
+      
+      setAllCards(filteredCards);
+      setLoadingState('cards-loaded');
+    } catch (error) {
+      setAllCards([]);
+      setError(`Failed to load card database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setLoadingState('cards-error');
+    } finally {
+      setLoadingAllCards(false);
+    }
+  }, [cardType]);
+
+  // Handle refresh recommendations callback
+  const handleRefreshRecommendations = useCallback(async () => {
+    setRefreshingRecommendations(true);
+    setError(null);
+  
+    try {
+      await loadAllCards();
+      showNotification('Recommendations updated based on your latest inputs', 'success');
+    } catch (err) {
+      console.error('Error refreshing recommendations:', err);
+      setError('Failed to update recommendations. Please try again.');
+    } finally {
+      setRefreshingRecommendations(false);
+    }
+  }, [loadAllCards, showNotification]);
+
+  // =========== EFFECTS ===========
+  // Component mount effect
+  useEffect(() => {
+    setMounted(true);
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
+    };
+  }, []);
+
+  // Load user data effect
   useEffect(() => {
     if (!user && mounted) {
       const savedData = safeStorage.getItem('cardPickerUserData');
@@ -188,7 +215,7 @@ export default function RecommenderPage() {
     }
   }, [user, mounted]);
 
-  // Save data for non-logged in users  
+  // Save data effect
   useEffect(() => {
     if (!user && mounted) {
       const dataToSave = {
@@ -208,145 +235,36 @@ export default function RecommenderPage() {
     }
   }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification, mounted]);
 
-  // Add useEffect to load all cards
-  const loadAllCards = useCallback(async () => {
-    console.log('🔄 Loading all cards started');
-    setLoadingState('loading-cards');
-    setLoadingAllCards(true);
-    
-    try {
-      // Use a server endpoint that returns all cards
-      console.log('📡 Fetching card data from API');
-      const response = await fetch('/api/cards/all');
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load card database: ${response.status}`);
-      }
-      
-      console.log('✅ Card API response received');
-      let data;
-      try {
-        data = await response.json();
-        console.log(`📊 Loaded ${data.data?.length || 0} cards from ${data.source || 'unknown'} source`);
-      } catch (parseError) {
-        console.error('❌ Error parsing API response:', parseError);
-        throw new Error('Failed to parse card data');
-      }
-      
-      // Filter based on card type
-      let filteredCards = [];
-      
-      if (!data.data || !Array.isArray(data.data)) {
-        console.error('❌ Invalid data format received:', data);
-        filteredCards = [];
-      } else if (cardType === 'personal') {
-        filteredCards = filterPersonalCards(data.data);
-        console.log(`👤 Filtered to ${filteredCards.length} personal cards`);
-      } else if (cardType === 'business') {
-        filteredCards = filterBusinessCards(data.data);
-        console.log(`💼 Filtered to ${filteredCards.length} business cards`);
-      } else {
-        filteredCards = data.data;
-        console.log(`🔄 Using all ${filteredCards.length} cards`);
-      }
-      
-      console.log(`💾 Setting ${filteredCards.length} cards to state`);
-      setAllCards(filteredCards);
-      setLoadingState('cards-loaded');
-    } catch (error) {
-      console.error('❌ Error loading all cards:', error);
-      // Important: Set a fallback value so the UI doesn't get stuck
-      setAllCards([]);
-      setError(`Failed to load card database: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setLoadingState('cards-error');
-    } finally {
-      console.log('🏁 Finished loading cards attempt');
-      setLoadingAllCards(false);
-    }
-  }, [cardType]); // Only include cardType as a dependency
-  
-  const handleRefreshRecommendations = useCallback(async () => {
-    setRefreshingRecommendations(true);
-    setError(null);
-  
-    try {
-      // Refresh all cards from API
-      await loadAllCards();
-      
-      showNotification('Recommendations updated based on your latest inputs', 'success');
-    } catch (err) {
-      console.error('Error refreshing recommendations:', err);
-      setError('Failed to update recommendations. Please try again.');
-    } finally {
-      setRefreshingRecommendations(false);
-    }
-  }, [loadAllCards, showNotification]);
-  
-  // All useEffect hooks
-  // Add a failsafe timeout to unstick loading states
+  // Loading timeout effect
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
       if (loading) {
-        console.log('⚠️ Loading timeout reached - forcing completion');
         setLoading(false);
         setLoadingAllCards(false);
         setError('Loading timed out. Please refresh the page or try again later.');
         setLoadingState('timeout');
       }
-    }, 15000); // 15 seconds timeout
+    }, 15000);
     
     return () => clearTimeout(loadingTimeout);
   }, [loading]);
-  
-  // Monitor loading state changes
-  useEffect(() => {
-    console.log(`🔄 Loading state changed to: ${loadingState}`);
-  }, [loadingState]);
-  
-  // Initial data loading - make sure this only runs once
-  useEffect(() => {
-    console.log('📱 Component mounted effect triggered');
-    setMounted(true);
-    
-    // Don't automatically load cards here, let other effects trigger it
-    
-    return () => {
-      console.log('🧹 Component unmount cleanup');
-    };
-  }, []); // Empty dependency array means this only runs once
-  
-  // Load cards when necessary dependencies change
+
+  // Load cards effect
   useEffect(() => {
     if (mounted) {
-      console.log('🔄 Dependencies changed, loading cards');
       loadAllCards();
     }
   }, [cardType, mounted, loadAllCards]);
-  
 
-  // Fix the useEffect dependencies
-  useEffect(() => {
-    if (mounted) {
-      loadAllCards();
-    }
-  }, [cardType, mounted, loadAllCards]); 
-    
-  // When generating recommendations, use allCards parameter 
-  // Inside the recommender useEffect
+  // Generate recommendations effect
   useEffect(() => {
     if (!showUpdateButton && !loadingAllCards && allCards.length > 0) {
       try {
-        console.log(`Generating recommendations with ${allCards.length} available cards`);
-        
-        // Filter out cards the user already has or isn't interested in
         const availableForRecommendation = allCards.filter((card: CreditCardDetails) => 
           !userCards.some(uc => uc.id === card.id) && 
           !notInterestedCards.includes(card.id)
         );
         
-        console.log(`After filtering user cards and not interested, ${availableForRecommendation.length} cards remain`);
-        
-        // Get algorithm recommendations
         const algorithmRecommendations = getCardRecommendations({
           expenses,
           currentCards: userCards,
@@ -359,21 +277,14 @@ export default function RecommenderPage() {
           availableCards: allCards
         });
         
-        console.log(`Algorithm generated ${algorithmRecommendations.length} recommendations`);
-        
-        // Ensure we have at least 6-10 recommendations by adding random cards if needed
         let finalRecommendations = [...algorithmRecommendations];
         
         if (finalRecommendations.length < 6 && availableForRecommendation.length > 0) {
-          console.log('Adding random cards to ensure sufficient recommendations');
-          
-          // Randomly select cards that aren't already in the recommendations
           const recommendedCardIds = finalRecommendations.map(rec => rec.card.id);
           const additionalCandidates = availableForRecommendation.filter(
             (card: CreditCardDetails) => !recommendedCardIds.includes(card.id)
           );
           
-          // Randomly select from remaining cards
           const randomCards = additionalCandidates
             .sort(() => Math.random() - 0.5)
             .slice(0, 10 - finalRecommendations.length);
@@ -383,19 +294,16 @@ export default function RecommenderPage() {
             reason: "Additional option for your consideration",
             score: 50,
             matchPercentage: 70,
-            potentialAnnualValue: 500, // Default value
-            complementScore: 40,       // Default value
-            longTermValue: 600,        // Default value
-            portfolioContribution: ["Adds diversity to your portfolio"] // Default value
+            potentialAnnualValue: 500,
+            complementScore: 40,
+            longTermValue: 600,
+            portfolioContribution: ["Adds diversity to your portfolio"]
           })) as ScoredCard[];
           
           finalRecommendations = [...finalRecommendations, ...randomRecommendations];
         }
         
-        console.log(`Final recommendation count: ${finalRecommendations.length}`);
         setManualRecommendations(finalRecommendations);
-        
-        // Reset update button state after generating recommendations
         setShowUpdateButton(true);
       } catch (err) {
         console.error('Error updating recommendations:', err);
@@ -403,35 +311,10 @@ export default function RecommenderPage() {
         setShowUpdateButton(true);
       }
     }
-  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards, showUpdateButton, loadAllCards, loadAllCards]);
+  }, [expenses, userCards, optimizationPreference, creditScore, zeroAnnualFee, notInterestedCards, loadingAllCards, allCards, showUpdateButton]);
 
-  // Call load cards
+  // Search effect
   useEffect(() => {
-    loadAllCards();
-  }, [loadAllCards]);
-
-  // Save data for non-logged in users  
-  useEffect(() => {
-    if (!user && typeof window !== 'undefined') {
-      const dataToSave = {
-        optimizationPreference,
-        creditScore,
-        zeroAnnualFee,
-        expenses,
-        userCards,
-        notInterestedCards
-      };
-      try {
-        safeLocalStorage.setItem('cardPickerUserData', JSON.stringify(dataToSave));
-      } catch (err) {
-        console.error('Error saving data:', err);
-        showNotification('Error saving your data locally.', 'error');
-      }
-    }
-  }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, user, notInterestedCards, showNotification]);
-
-  useEffect(() => {
-    // Only search if we have at least 3 characters
     if (searchTerm.length < 3) {
       setSearchResults([]);
       return;
@@ -446,9 +329,7 @@ export default function RecommenderPage() {
         }
         
         const data = await response.json();
-        console.log('Search response:', data);
         
-        // If we have results, filter out cards the user already has
         if (data.success && data.data) {
           const filtered = data.data.filter(
             (card: SearchResultCard) => !userCards.some(userCard => userCard.id === card.cardKey)
@@ -463,39 +344,12 @@ export default function RecommenderPage() {
       } finally {
         setLoading(false);
       }
-    }, 500); // Debounce time
+    }, 500);
     
     return () => clearTimeout(timer);
-  }, [searchTerm, userCards, loadAllCards]);
-  
-  // Function to fetch card details when a card is selected
-  const fetchCardDetails = async (cardKey: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/cards/details?cardKey=${cardKey}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch card details: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        handleCardSelection(data.data);
-        setSearchTerm(''); // Clear search after selection
-        setSearchResults([]); // Clear results
-      } else {
-        setError('Failed to get card details');
-      }
-    } catch (error) {
-      console.error('Error fetching card details:', error);
-      setError(`Failed to get card details: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [searchTerm, userCards]);
 
-  // =========== FIREBASE DATA LOADING ===========
-  // Load user data from Firebase for logged-in users
+  // Firebase data loading effect
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) return;
@@ -524,7 +378,6 @@ export default function RecommenderPage() {
           setExpenses(loadedExpenses);
         } catch (expError) {
           console.error('Error loading expenses:', expError);
-          // Don't throw here, just log the error
         }
   
         // Loading cards
@@ -536,14 +389,12 @@ export default function RecommenderPage() {
           
           const userCardIds = cardsSnap.docs.map(doc => doc.data().cardId);
           
-          // Use our dynamic card data source
           if (creditCards && creditCards.length > 0) {
             const loadedCards = creditCards.filter(card => userCardIds.includes(card.id));
             setUserCards(loadedCards);
           }
         } catch (cardError) {
           console.error('Error loading cards:', cardError);
-          // Don't throw here, just log the error
         }
   
         // Loading preferences
@@ -561,7 +412,6 @@ export default function RecommenderPage() {
           }
         } catch (prefError) {
           console.error('Error loading preferences:', prefError);
-          // Don't throw here, just log the error
         }
   
       } catch (err) {
@@ -580,6 +430,7 @@ export default function RecommenderPage() {
     }
   }, [user, creditCards]);
 
+  // Debug logging effects
   useEffect(() => {
     console.log("Recommendations updated:", recommendations);
   }, [recommendations]);
@@ -592,7 +443,62 @@ export default function RecommenderPage() {
     console.log('Loading state changed:', loading);
   }, [loading]);
 
-  // =========== EVENT HANDLERS ===========
+  useEffect(() => {
+    console.log(`Loading state changed to: ${loadingState}`);
+  }, [loadingState]);
+
+  // Don't render anything during SSR
+  if (!mounted) {
+    return null;
+  }
+
+  // =========== CATEGORIES ===========
+  const categories = [
+    { id: 'dining', name: 'Dining' },
+    { id: 'travel', name: 'Travel' },
+    { id: 'grocery', name: 'Grocery' },
+    { id: 'gas', name: 'Gas' },
+    { id: 'entertainment', name: 'Entertainment' },
+    { id: 'rent', name: 'Rent' },
+    { id: 'other', name: 'Other' }
+  ] as const;
+
+  const prepareAndShowNotInterestedList = () => {
+    // Filter cards from the static creditCards array
+    const notInterestedCardsData = notInterestedCards
+      .map(id => creditCards.find(card => card.id === id))
+      .filter(Boolean) as CreditCardDetails[];
+    
+    setPreparedNotInterestedCards(notInterestedCardsData);
+    setShowNotInterestedList(true);
+  };
+
+  // Function to fetch card details when a card is selected
+  const fetchCardDetails = async (cardKey: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/cards/details?cardKey=${cardKey}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch card details: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        handleCardSelection(data.data);
+        setSearchTerm(''); // Clear search after selection
+        setSearchResults([]); // Clear results
+      } else {
+        setError('Failed to get card details');
+      }
+    } catch (error) {
+      console.error('Error fetching card details:', error);
+      setError(`Failed to get card details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle adding expense
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
