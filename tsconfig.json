@@ -21,8 +21,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/lib/*": ["./src/lib/*"],
-      "@/utils/*": ["./src/lib/utils/*"],
-      "@/contexts/*": ["./src/lib/contexts/*"]
+      "@/utils/*": ["./src/utils/*"],
+      "@/contexts/*": ["./src/contexts/*"]
     },
     "baseUrl": "."
   },
