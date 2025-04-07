@@ -2,6 +2,9 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db, FIREBASE_COLLECTIONS } from '@/lib/firebase';
 import { CreditCardDetails, ApiResponse, SearchResultCard } from '@/types/cards';
 
+// Add simple isBrowser helper inline to avoid dependency issues
+const isBrowser = () => typeof window !== 'undefined';
+
 class CardDataService {
   private static instance: CardDataService;
   private cardsCache: CreditCardDetails[] | null = null;
@@ -26,6 +29,11 @@ class CardDataService {
   // Load cache from localStorage if available
   private loadCacheFromStorage(): { cards: CreditCardDetails[] | null, timestamp: number | null } {
     try {
+      // Check if browser environment before accessing localStorage
+      if (!isBrowser()) {
+        return { cards: null, timestamp: null };
+      }
+      
       const metaStr = localStorage.getItem('cardDataCache_meta');
       if (!metaStr) {
         return { cards: null, timestamp: null };
@@ -71,35 +79,73 @@ class CardDataService {
     }
   }
 
-  // Save cache to localStorage
+  // Save cache to localStorage with compression to reduce size
   private saveCacheToStorage(cards: CreditCardDetails[]): void {
     try {
-      // Chunk size to avoid localStorage quota issues (approximately 5MB per domain)
-      const CHUNK_SIZE = 50; // Store 50 cards per chunk
-      const totalChunks = Math.ceil(cards.length / CHUNK_SIZE);
-      
-      // Clear any existing chunks first
-      for (let i = 0; i < 100; i++) { // Assume maximum 100 chunks as safety
-        localStorage.removeItem(`cardDataCache_chunk_${i}`);
+      if (!isBrowser()) {
+        return;
       }
       
-      // Save metadata
-      localStorage.setItem('cardDataCache_meta', JSON.stringify({
-        timestamp: Date.now(),
-        totalChunks,
-        totalCards: cards.length
+      // Reduce card data to only essential fields before storing
+      const essentialCardData = cards.map(card => ({
+        id: card.id,
+        name: card.name,
+        issuer: card.issuer,
+        annualFee: card.annualFee,
+        rewardRates: card.rewardRates,
+        creditScoreRequired: card.creditScoreRequired,
+        foreignTransactionFee: card.foreignTransactionFee,
+        cardType: card.cardType,
+        // Only include perks if they're short
+        perks: card.perks?.length > 3 ? card.perks.slice(0, 3) : card.perks,
+        // Only include a short description
+        description: card.description?.substring(0, 100),
+        // Only include basic categories
+        categories: card.categories?.slice(0, 5),
+        // Include signup bonus if present
+        signupBonus: card.signupBonus
       }));
       
-      // Save each chunk
-      for (let i = 0; i < totalChunks; i++) {
-        const startIdx = i * CHUNK_SIZE;
-        const endIdx = Math.min(startIdx + CHUNK_SIZE, cards.length);
-        const chunk = cards.slice(startIdx, endIdx);
-        
-        localStorage.setItem(`cardDataCache_chunk_${i}`, JSON.stringify(chunk));
+      try {
+        // First try to clear all previous cache
+        this.clearCache();
+      } catch (e) {
+        console.warn('Error clearing previous cache:', e);
       }
       
-      console.log(`Saved card data cache in ${totalChunks} chunks`);
+      // Use smaller chunk size to avoid quota issues
+      const CHUNK_SIZE = 25; // Reduce from 50 to 25 cards per chunk
+      const totalChunks = Math.ceil(essentialCardData.length / CHUNK_SIZE);
+      
+      // Save metadata
+      try {
+        localStorage.setItem('cardDataCache_meta', JSON.stringify({
+          timestamp: Date.now(),
+          totalChunks,
+          totalCards: essentialCardData.length
+        }));
+      } catch (e) {
+        console.warn('Failed to save cache metadata:', e);
+        return; // If we can't save metadata, don't try to save chunks
+      }
+      
+      // Save each chunk with error handling for each chunk
+      for (let i = 0; i < totalChunks; i++) {
+        try {
+          const startIdx = i * CHUNK_SIZE;
+          const endIdx = Math.min(startIdx + CHUNK_SIZE, essentialCardData.length);
+          const chunk = essentialCardData.slice(startIdx, endIdx);
+          
+          // Stringify and save this chunk
+          const chunkStr = JSON.stringify(chunk);
+          localStorage.setItem(`cardDataCache_chunk_${i}`, chunkStr);
+        } catch (e) {
+          console.warn(`Failed to save chunk ${i}:`, e);
+          // Continue with other chunks even if one fails
+        }
+      }
+      
+      console.log(`Attempted to save card data cache in ${totalChunks} chunks`);
     } catch (error) {
       console.error('Error saving cache to localStorage:', error);
     }
@@ -383,7 +429,7 @@ class CardDataService {
     this.lastFetchTime = 0;
     
     // Clear localStorage cache too
-    if (typeof window !== 'undefined') {
+    if (isBrowser()) {
       try {
         localStorage.removeItem('cardDataCache_meta');
         for (let i = 0; i < 100; i++) {

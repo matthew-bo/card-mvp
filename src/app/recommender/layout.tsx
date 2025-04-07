@@ -1,5 +1,6 @@
 import React from 'react';
 import RecommenderNav from '@/components/RecommenderNav';
+import ImprovementsButton from '@/components/ImprovementsButton';
 
 export default function RecommenderLayout({
   children,
@@ -9,6 +10,7 @@ export default function RecommenderLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <RecommenderNav />
+      <ImprovementsButton />
       <main>
         {children}
       </main>

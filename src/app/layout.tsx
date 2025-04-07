@@ -14,6 +14,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.testSkeletonUI = function() {
+              const event = new CustomEvent('demo-skeleton-ui');
+              window.dispatchEvent(event);
+            }
+          `
+        }} />
+      </head>
       <body className={inter.className}>
         <Providers>
           {children}

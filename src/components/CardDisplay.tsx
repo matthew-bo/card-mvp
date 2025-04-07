@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCardDetails } from '@/types/cards';
 import Tooltip from './Tooltip';
+import { CardSkeleton } from './SkeletonLoaders';
 
 interface CardDisplayProps {
   card: CreditCardDetails & { 
@@ -15,74 +16,73 @@ interface CardDisplayProps {
   highlight?: boolean;
 }
 
-// Get issuer colors function with improved color palette
+// Utility to get appropriate colors for each card issuer
 const getIssuerColors = (issuer: string) => {
-  const colors = {
-    'Chase': { bg: 'bg-blue-900', text: 'text-blue-900', accent: 'bg-blue-500', gradient: 'from-blue-900 to-blue-800' },
-    'American Express': { bg: 'bg-slate-800', text: 'text-slate-800', accent: 'bg-slate-500', gradient: 'from-slate-800 to-slate-700' },
-    'Capital One': { bg: 'bg-red-900', text: 'text-red-900', accent: 'bg-red-500', gradient: 'from-red-900 to-red-800' },
-    'Discover': { bg: 'bg-orange-600', text: 'text-orange-600', accent: 'bg-orange-400', gradient: 'from-orange-600 to-orange-500' },
-    'Citi': { bg: 'bg-blue-600', text: 'text-blue-600', accent: 'bg-blue-400', gradient: 'from-blue-600 to-blue-500' },
-    'Wells Fargo': { bg: 'bg-red-700', text: 'text-red-700', accent: 'bg-red-400', gradient: 'from-red-700 to-red-600' },
-    'Bank of America': { bg: 'bg-red-800', text: 'text-red-800', accent: 'bg-red-500', gradient: 'from-red-800 to-red-700' },
-    'default': { bg: 'bg-gray-800', text: 'text-gray-800', accent: 'bg-gray-500', gradient: 'from-gray-800 to-gray-700' }
+  const colorMap: Record<string, {gradient: string, accent: string, text: string}> = {
+    'Chase': {
+      gradient: 'from-blue-600 to-blue-800',
+      accent: 'bg-blue-400',
+      text: 'text-blue-600'
+    },
+    'American Express': {
+      gradient: 'from-emerald-600 to-emerald-900',
+      accent: 'bg-emerald-400',
+      text: 'text-emerald-600'
+    },
+    'Citi': {
+      gradient: 'from-blue-400 to-blue-600',
+      accent: 'bg-blue-300',
+      text: 'text-blue-500'
+    },
+    'Capital One': {
+      gradient: 'from-red-500 to-red-700',
+      accent: 'bg-red-400',
+      text: 'text-red-600'
+    },
+    'Discover': {
+      gradient: 'from-orange-500 to-orange-700',
+      accent: 'bg-orange-400',
+      text: 'text-orange-600'
+    },
+    'Bank of America': {
+      gradient: 'from-red-600 to-red-900',
+      accent: 'bg-red-500',
+      text: 'text-red-700'
+    },
+    'Wells Fargo': {
+      gradient: 'from-yellow-600 to-red-600',
+      accent: 'bg-yellow-500',
+      text: 'text-yellow-700'
+    },
+    'US Bank': {
+      gradient: 'from-blue-500 to-blue-700',
+      accent: 'bg-blue-400',
+      text: 'text-blue-600'
+    }
   };
-  return colors[issuer as keyof typeof colors] || colors.default;
-};
-
-// Convert point values to standardized dollar value
-const getPointValue = (amount: number, type: "points" | "cashback"): { value: number; display: string } => {
-  if (type === "cashback") {
-    return { value: amount, display: `$${amount}` };
-  }
   
-  return { 
-    value: amount * 0.015, 
-    display: `${amount.toLocaleString()} pts (~$${(amount * 0.015).toFixed(0)})`
+  return colorMap[issuer] || {
+    gradient: 'from-gray-600 to-gray-800',
+    accent: 'bg-gray-400',
+    text: 'text-gray-700'
   };
 };
 
-// Skeleton component for loading state
-const CardSkeleton = () => (
-  <div className="h-full border rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
-    {/* Header skeleton */}
-    <div className="bg-gradient-to-r from-gray-200 to-gray-300 p-4 pb-10 text-white relative">
-      {/* Issuer skeleton */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="bg-gray-300 h-4 w-16 rounded animate-pulse"></div>
-      </div>
-      
-      {/* Name skeleton */}
-      <div className="bg-gray-300 h-6 w-40 rounded animate-pulse mt-1"></div>
-    </div>
-    
-    {/* Content skeleton */}
-    <div className="p-4 flex-grow flex flex-col justify-between">
-      {/* Rewards section skeleton */}
-      <div>
-        <div className="bg-gray-200 h-3 w-24 rounded animate-pulse mb-3"></div>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center">
-              <div className="w-2 h-2 rounded-full bg-gray-300 mr-2"></div>
-              <div className="bg-gray-200 h-4 w-24 rounded animate-pulse"></div>
-              <div className="ml-auto bg-gray-200 h-4 w-10 rounded animate-pulse"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Divider */}
-      <div className="my-3 border-t border-gray-100"></div>
-      
-      {/* Bottom section skeleton */}
-      <div className="flex items-center justify-between">
-        <div className="bg-gray-200 h-5 w-16 rounded-full animate-pulse"></div>
-        <div className="bg-gray-200 h-4 w-12 rounded animate-pulse"></div>
-      </div>
-    </div>
-  </div>
-);
+// Format point/cashback value for display
+const getPointValue = (amount: number, type: 'points' | 'cashback' | 'miles') => {
+  if (type === 'cashback') {
+    return {
+      value: amount,
+      display: `$${amount}`
+    };
+  } else {
+    const label = type === 'miles' ? 'miles' : 'points';
+    return {
+      value: amount,
+      display: `${amount.toLocaleString()} ${label}`
+    };
+  }
+};
 
 export const CardDisplay: React.FC<CardDisplayProps> = ({ 
   card, 
@@ -93,18 +93,12 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
   const colors = getIssuerColors(card.issuer);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  // If card is in loading state, show skeleton
-  if (card.isLoading) {
-    return (
-      <motion.div 
-        className="relative group h-full"
-        initial={{ opacity: 0.7 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        <CardSkeleton />
-      </motion.div>
-    );
+  // Check if card is in loading state
+  const isLoading = card.isLoading === true;
+  
+  // Render skeleton UI while loading
+  if (isLoading) {
+    return <CardSkeleton />;
   }
   
   // Format reward rates for easy display

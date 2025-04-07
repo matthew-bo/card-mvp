@@ -1,41 +1,40 @@
 'use client';
 
-import { Component, ReactNode } from 'react';
+import React, { Component, ReactNode } from 'react';
 
-interface Props {
+interface ErrorBoundaryProps {
+  fallback: ReactNode;
   children: ReactNode;
-  fallback?: ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
-  error?: Error;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true };
   }
 
-  componentDidCatch(error: Error): void {
-    console.error('Error caught by boundary:', error);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    // You can also log the error to an error reporting service
+    console.error('Error caught by ErrorBoundary:', error, errorInfo);
   }
 
-  render() {
+  render(): ReactNode {
     if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="p-4 bg-red-50 border border-red-200 rounded m-4">
-          <h2 className="text-lg font-semibold text-red-800">Something went wrong</h2>
-          <p className="text-red-600 mt-1">{this.state.error?.message}</p>
-        </div>
-      );
+      // You can render any custom fallback UI
+      return this.props.fallback;
     }
 
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;

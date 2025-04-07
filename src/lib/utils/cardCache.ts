@@ -64,6 +64,11 @@ class CardCacheManager {
    * Load cache from localStorage
    */
   private loadFromStorage(): void {
+    if (typeof window === 'undefined') {
+      this.cache = {};
+      return;
+    }
+    
     try {
       const stored = localStorage.getItem('card_cache');
       if (stored) {
@@ -79,6 +84,8 @@ class CardCacheManager {
    * Save cache to localStorage
    */
   private saveToStorage(): void {
+    if (typeof window === 'undefined') return;
+    
     try {
       localStorage.setItem('card_cache', JSON.stringify(this.cache));
     } catch (error) {
