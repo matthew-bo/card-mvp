@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+// Import from both places to ensure compatibility
 import { storeCardData } from '@/utils/cardStorage';
 import { useAuth } from '@/components/AuthProvider';
 import { CreditCardDetails } from '@/types/cards';
