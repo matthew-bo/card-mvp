@@ -1,31 +1,39 @@
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useAuth } from '@/contexts/AuthContext';
 import { isAdmin } from '@/utils/adminConfig';
 
-export const AdminLayout = ({ children }) => {
+const AdminLayout = ({ children }) => {
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const { user } = useAuth();
 
-  React.useEffect(() => {
-    if (!user || !isAdmin(user.email)) {
+  useEffect(() => {
+    if (!loading && (!user || !isAdmin(user))) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
-  if (!user || !isAdmin(user.email)) {
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user || !isAdmin(user)) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {children}
-        </div>
-      </div>
+    <div className="admin-layout">
+      <nav className="admin-nav">
+        <h1>Admin Dashboard</h1>
+        {/* Add navigation links here */}
+      </nav>
+      <main className="admin-content">
+        {children}
+      </main>
     </div>
   );
-}; 
+};
+
+export default AdminLayout; 
