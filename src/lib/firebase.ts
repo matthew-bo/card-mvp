@@ -1,8 +1,15 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-// Import the types we need for proper typing
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { Logger } from '@/utils/logger';
+
+export const FIREBASE_COLLECTIONS = {
+  CREDIT_CARDS: 'credit_cards',
+  USER_CARDS: 'user_cards',
+  USERS: 'users',
+  USER_PREFERENCES: 'user_preferences',
+  EXPENSES: 'expenses'
+} as const;
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,55 +18,38 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase only if it hasn't been initialized
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
-const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
-
-// Development environment setup is commented out
-/*
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  Promise.all([
-    import('firebase/auth'),
-    import('firebase/firestore'),
-    import('firebase/storage')
-  ]).then(([{ connectAuthEmulator }, { connectFirestoreEmulator }, { connectStorageEmulator }]) => {
-    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectStorageEmulator(storage, 'localhost', 9199);
-  }).catch(console.error);
-}
-*/
-
-export const FIREBASE_COLLECTIONS = {
-  CREDIT_CARDS: 'credit_cards',
-  USER_CARDS: 'user_cards',
-  USER_PREFERENCES: 'user_preferences',
-  EXPENSES: 'expenses',
-  USER_PROFILES: 'user_profiles',
-  CARD_REVIEWS: 'card_reviews'
+// Initialize Firebase only if it hasn't been initialized already
+const getFirebaseApp = (): FirebaseApp => {
+  if (!getApps().length) {
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      throw new Error('Firebase configuration is missing required fields');
+    }
+    const app = initializeApp(firebaseConfig);
+    Logger.info('Firebase app initialized successfully', { context: 'firebase' });
+    return app;
+  }
+  return getApps()[0];
 };
 
-// Variable to store the storage instance after it's been initialized
-// Adding the correct type or null
-let storageInstance: FirebaseStorage | null = null;
+// Initialize services
+let app: FirebaseApp;
+let db: Firestore;
+let auth: Auth;
 
-// Function to safely get Firebase storage
-export function getFirebaseStorage(): FirebaseStorage | null {
-  if (typeof window === 'undefined') {
-    // Running on server, return null
-    return null;
-  }
-  
-  // Initialize storage if it hasn't been initialized yet
-  if (!storageInstance) {
-    storageInstance = getStorage(app);
-  }
-  
-  return storageInstance;
+try {
+  app = getFirebaseApp();
+  db = getFirestore(app);
+  auth = getAuth(app);
+  Logger.info('Firebase services initialized successfully', { context: 'firebase' });
+} catch (error) {
+  Logger.error('Error initializing Firebase', { 
+    context: 'firebase',
+    data: error 
+  });
+  throw error; // We need to throw here as the app can't function without Firebase
 }
 
-export { app, db, auth, googleProvider };
+export { app, db, auth };

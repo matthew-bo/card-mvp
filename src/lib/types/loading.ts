@@ -1,0 +1,1 @@
+export type LoadingState = 'initializing' | 'loading-cards' | 'loading' | 'ready' | 'error'; 

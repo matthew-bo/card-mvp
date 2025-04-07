@@ -1,15 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/components/AuthProvider';
-import { auth } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 
 const RecommenderNav: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -39,147 +36,83 @@ const RecommenderNav: React.FC = () => {
     { href: '/contact', label: 'Contact', active: pathname === '/contact' }
   ];
 
-  // Function to handle sign out
-  const handleSignOut = async () => {
-    try {
-      await auth.signOut();
-      router.push('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
-  // Function to handle navigation
-  const handleNavigation = (href: string) => {
-    setIsMobileMenuOpen(false); // Close mobile menu
-    router.push(href);
-  };
-
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[999] px-6 py-5 transition-all duration-200 ${
-      isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'
+      isScrolled ? 'bg-white shadow-sm' : 'bg-white'
     }`}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center">
-          <button 
-            onClick={() => handleNavigation('/')}
-            className="text-2xl font-bold text-gray-900"
+          <button
+            onClick={() => router.push('/')}
+            className="text-2xl font-bold text-gray-800"
           >
-            Stoid
+            Card Picker
           </button>
         </div>
-        
+
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="hidden md:flex space-x-8">
           {navLinks.map((link) => (
             <button
               key={link.href}
-              onClick={() => handleNavigation(link.href)}
-              className={`${
-                link.active 
-                  ? 'text-blue-600 font-medium' 
-                  : 'text-gray-600 hover:text-gray-900'
-              } transition-colors`}
+              onClick={() => router.push(link.href)}
+              className={`text-sm font-medium transition-colors ${
+                link.active ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
+              }`}
             >
               {link.label}
             </button>
           ))}
-          
-          {/* Authentication Links */}
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <button
-                onClick={handleSignOut}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Sign Out
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => handleNavigation('/auth/login')}
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Log in
-                </button>
-                <button
-                  onClick={() => handleNavigation('/auth/signup')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  Sign up
-                </button>
-              </>
-            )}
-          </div>
         </div>
-        
+
         {/* Mobile Menu Button */}
-        <button 
+        <button
+          className="md:hidden text-gray-600"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-          aria-label="Toggle mobile menu"
         >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-6 w-6" 
-            fill="none" 
-            viewBox="0 0 24 24" 
+          <svg
+            className="w-6 h-6"
+            fill="none"
             stroke="currentColor"
+            viewBox="0 0 24 24"
           >
             {isMobileMenuOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             )}
           </svg>
         </button>
       </div>
-      
-      {/* Mobile Menu */}
+
+      {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[998] bg-white pt-20">
-          <div className="px-6 py-4 space-y-4">
+        <div className="md:hidden mt-4 pb-4">
+          <div className="flex flex-col space-y-4">
             {navLinks.map((link) => (
               <button
                 key={link.href}
-                onClick={() => handleNavigation(link.href)}
-                className={`block py-2 text-lg w-full text-left ${
-                  link.active 
-                    ? 'text-blue-600 font-medium' 
-                    : 'text-gray-600'
+                onClick={() => {
+                  router.push(link.href);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`text-sm font-medium transition-colors ${
+                  link.active ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
                 {link.label}
               </button>
             ))}
-            <div className="pt-4 border-t border-gray-100">
-              {user ? (
-                <button
-                  onClick={() => {
-                    handleSignOut();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block py-2 text-lg text-gray-600 w-full text-left"
-                >
-                  Sign Out
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => handleNavigation('/auth/login')}
-                    className="block py-2 text-lg text-gray-600 w-full text-left"
-                  >
-                    Log in
-                  </button>
-                  <button
-                    onClick={() => handleNavigation('/auth/signup')}
-                    className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-center w-full"
-                  >
-                    Sign up
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         </div>
       )}

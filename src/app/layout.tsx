@@ -1,15 +1,11 @@
-import { Inter } from 'next/font/google';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { AuthProvider } from '@/components/AuthProvider';
-import { NotificationProvider } from '@/contexts/NotificationContext';
-import './globals.css';
+'use client';
 
-// Load Inter font
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { Providers } from '@/components/Providers';
+import SearchProviderWrapper from '@/components/SearchProviderWrapper';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export default function RootLayout({
   children,
@@ -17,15 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
-      <body className="font-sans">
-        <ErrorBoundary>
-          <AuthProvider>
-            <NotificationProvider>
-              {children}
-            </NotificationProvider>
-          </AuthProvider>
-        </ErrorBoundary>
+    <html lang="en">
+      <body className={inter.className}>
+        <Providers>
+          {children}
+        </Providers>
+        <SearchProviderWrapper />
       </body>
     </html>
   );

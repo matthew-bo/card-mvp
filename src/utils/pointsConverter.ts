@@ -27,14 +27,22 @@ interface PointMultipliers {
     'default': 0.01
   };
   
-  export interface PointValueResult {
-    value: number;         // Calculated dollar value
-    displayValue: string;  // Formatted string for display
-    pointAmount: number;   // Original point amount
-    type: "points" | "cashback";
-    issuer?: string;
+  type PointType = 'points' | 'miles' | 'cashback';
+
+  interface PointValueResult {
+    value: number;
+    description?: string;
   }
-  
+
+  const ISSUER_POINT_VALUES: Record<string, number> = {
+    'Chase': 0.0125,      // Chase Ultimate Rewards
+    'American Express': 0.01,  // Amex Membership Rewards
+    'Capital One': 0.01,  // Capital One Miles
+    'Citi': 0.01,        // Citi ThankYou Points
+    'Discover': 0.01,     // Discover Rewards
+    'Default': 0.01      // Default value for unknown issuers
+  };
+
   /**
    * Converts points to a standardized dollar value based on issuer
    * 
@@ -46,32 +54,22 @@ interface PointMultipliers {
    */
   export function getPointValue(
     amount: number,
-    type: "points" | "cashback",
-    issuer?: string,
-    useTransferValue: boolean = false
+    type: PointType,
+    issuer?: string
   ): PointValueResult {
-    // Cash back is straightforward - 1:1 value
-    if (type === "cashback") {
+    if (type === 'cashback') {
       return {
         value: amount,
-        displayValue: `$${amount.toLocaleString()}`,
-        pointAmount: amount,
-        type: "cashback"
+        description: `$${amount.toFixed(2)} in cashback`
       };
     }
-    
-    // For points, we need to convert based on issuer
-    const multipliers = useTransferValue ? TRANSFER_PARTNER_VALUES : POINT_MULTIPLIERS;
-    const multiplier = issuer ? (multipliers[issuer] || multipliers.default) : multipliers.default;
-    
+
+    const multiplier = issuer ? (ISSUER_POINT_VALUES[issuer] || ISSUER_POINT_VALUES.Default) : ISSUER_POINT_VALUES.Default;
     const value = amount * multiplier;
-    
+
     return {
       value,
-      displayValue: `${amount.toLocaleString()} pts (~$${value.toFixed(0)})`,
-      pointAmount: amount,
-      type: "points",
-      issuer
+      description: `${amount.toLocaleString()} ${type} (≈$${value.toFixed(2)})`
     };
   }
   

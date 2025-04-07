@@ -34,6 +34,7 @@ export const safeStorage = {
       
       try {
         localStorage.setItem(key, value);
+        memoryStorage.set(key, value);
       } catch (error) {
         console.warn('localStorage not available, using memory storage:', error);
         memoryStorage.set(key, value);
@@ -52,6 +53,21 @@ export const safeStorage = {
       } catch (error) {
         console.warn('localStorage not available, using memory storage:', error);
         memoryStorage.delete(key);
+      }
+    },
+
+    clear: (): void => {
+      if (typeof window === 'undefined') {
+        memoryStorage.clear();
+        return;
+      }
+      
+      try {
+        localStorage.clear();
+        memoryStorage.clear();
+      } catch (error) {
+        console.warn('localStorage not available, using memory storage:', error);
+        memoryStorage.clear();
       }
     },
 

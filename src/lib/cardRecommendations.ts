@@ -1,6 +1,6 @@
 // src/lib/cardRecommendations.ts
 import { CreditCardDetails, OptimizationSettings, OptimizationPreference, CreditScoreType } from '@/types/cards';
-import { getPointValue } from '@/utils/pointsConverter';
+import { getPointValue } from '../utils/pointsConverter';
 
 interface SpendingAnalysis {
   totalSpend: number;
@@ -271,8 +271,42 @@ function validateExpense(expense: Expense): boolean {
 function analyzeSpending(expenses: Expense[]): SpendingAnalysis {
   try {
     const validExpenses = expenses.filter(validateExpense);
+    
+    // If no expenses, return default analysis instead of throwing error
     if (validExpenses.length === 0) {
-      throw new Error('No valid expenses found');
+      return {
+        totalSpend: 0,
+        categoryPercentages: {
+          dining: 20,  // Default category distribution
+          travel: 15,
+          grocery: 25,
+          gas: 10,
+          entertainment: 10,
+          rent: 0,
+          other: 20
+        },
+        monthlyAverage: 2500, // Reasonable default monthly spend
+        highSpendCategories: ['grocery', 'dining', 'travel'],
+        canMeetSignupBonus: true, // Assume can meet signup bonus
+        spendingPattern: 'balanced',
+        spendByCategory: {
+          dining: 500,
+          travel: 375,
+          grocery: 625,
+          gas: 250,
+          entertainment: 250,
+          rent: 0,
+          other: 500
+        },
+        categoryRank: [
+          { category: 'grocery', percentage: 25 },
+          { category: 'dining', percentage: 20 },
+          { category: 'travel', percentage: 15 },
+          { category: 'gas', percentage: 10 },
+          { category: 'entertainment', percentage: 10 },
+          { category: 'other', percentage: 20 }
+        ]
+      };
     }
 
     const totalSpend = validExpenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -537,17 +571,53 @@ export function getCardRecommendations(params: RecommendationParams): ScoredCard
     };
     
     const preferenceWeights: PreferenceWeights = {
-      points: { 
-        rewards: 50, perks: 15, value: 25, signup: 20, complement: 30, longTerm: 20 
+      points: {
+        rewards: 0.35,
+        perks: 0.15,
+        value: 0.15,
+        signup: 0.15,
+        complement: 0.1,
+        longTerm: 0.1
       },
-      cashback: { 
-        rewards: 60, perks: 10, value: 30, signup: 10, complement: 25, longTerm: 25 
+      cashback: {
+        rewards: 0.3,
+        perks: 0.1,
+        value: 0.25,
+        signup: 0.15,
+        complement: 0.1,
+        longTerm: 0.1
       },
-      perks: { 
-        rewards: 20, perks: 60, value: 20, signup: 10, complement: 30, longTerm: 15 
+      perks: {
+        rewards: 0.2,
+        perks: 0.35,
+        value: 0.1,
+        signup: 0.15,
+        complement: 0.1,
+        longTerm: 0.1
       },
-      creditScore: { 
-        rewards: 20, perks: 15, value: 45, signup: 5, complement: 20, longTerm: 35 
+      travel: {
+        rewards: 0.3,
+        perks: 0.2,
+        value: 0.15,
+        signup: 0.15,
+        complement: 0.1,
+        longTerm: 0.1
+      },
+      business: {
+        rewards: 0.3,
+        perks: 0.15,
+        value: 0.2,
+        signup: 0.15,
+        complement: 0.1,
+        longTerm: 0.1
+      },
+      creditScore: {
+        rewards: 0.25,
+        perks: 0.15,
+        value: 0.2,
+        signup: 0.15,
+        complement: 0.15,
+        longTerm: 0.1
       }
     };
 

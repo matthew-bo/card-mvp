@@ -1,6 +1,6 @@
 export type CreditScoreType = "poor" | "fair" | "good" | "excellent";
 
-export type OptimizationPreference = "points" | "creditScore" | "cashback" | "perks";
+export type OptimizationPreference = "points" | "creditScore" | "cashback" | "perks" | "travel" | "business";
 
 export interface OptimizationSettings {
   preference: OptimizationPreference;
@@ -100,6 +100,7 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
+  source?: 'cache' | 'firebase' | 'api' | 'none';
 }
 
 // User preferences stored in database
@@ -136,4 +137,10 @@ export interface ApiUsageResponse {
   success: boolean;
   data: ApiUsageMonth[];
   error?: string;
+}
+
+export interface SearchResultCard {
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
 }

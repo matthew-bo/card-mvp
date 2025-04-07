@@ -2,26 +2,56 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Credit Cards collection - Read-only for authenticated users
+    match /credit_cards/{cardId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admins can modify via Firebase Console
+    }
+
+    // User Cards collection - Full access for authenticated users to their own data
+    match /user_cards/{docId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // User Preferences - Full access for authenticated users to their own data
+    match /user_preferences/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Expenses collection - Full access for authenticated users to their own data
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // Allow public read access to credit_cards collection
+    match /credit_cards/{document=**} {
+      allow read: true;
+      allow write: false;
+    }
+
+    // Allow anyone to read card reviews
+    match /card_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+    }
+
     // Allow authenticated users to read/write their own documents
     match /user_profiles/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    match /user_cards/{docId} {
-      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    
-    match /user_preferences/{docId} {
-      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    
-    match /expenses/{docId} {
-      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-    
-    // Add a rule for initial creation of user profiles
-    match /user_profiles/{userId} {
-      allow create: if request.auth != null && request.auth.uid == userId;
     }
     
     // Allow admin access to certain collections
@@ -29,18 +59,10 @@ service cloud.firestore {
       allow read, write: if request.auth != null && exists(/databases/$(database)/documents/user_profiles/$(request.auth.uid)) && 
                             get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.isAdmin == true;
     }
-  }
-}
 
-match /databases/{database}/documents {
-  // Allow anyone to read card reviews
-  match /card_reviews/{reviewId} {
-    allow read: if true;
-    
-    // Allow anyone to create a review
-    allow create: if true;
-    
-    // Only allow updating the likes count
-    allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: false;
+    }
   }
 }

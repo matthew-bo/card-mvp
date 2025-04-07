@@ -1,109 +1,132 @@
-import { NextResponse } from 'next/server';
-import { mapApiCardToAppFormat } from '@/services/cardApiService';
-import { creditCards as fallbackCards } from '@/lib/cardDatabase';
+import { NextRequest, NextResponse } from 'next/server';
+import { getFirestore, doc, getDoc, collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { db, FIREBASE_COLLECTIONS } from '@/lib/firebase';
 
-export const dynamic = 'force-dynamic';
-
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    
-    // Try to get cardKey from query parameter first
-    let cardKey = url.searchParams.get('cardKey');
-    
-    // If not found in query, try to get it from the URL path
-    if (!cardKey) {
-      const pathParts = url.pathname.split('/');
-      // Remove empty strings and 'api', 'cards', 'details' from path
-      const filteredParts = pathParts.filter(part => part && !['api', 'cards', 'details'].includes(part));
-      cardKey = filteredParts[filteredParts.length - 1];
-    }
-    
-    console.log('Received card request for ID:', cardKey);
-    console.log('URL path:', url.pathname);
-    console.log('URL search params:', url.searchParams.toString());
+    // Get the card key from the query parameters
+    const { searchParams } = new URL(request.url);
+    const cardKey = searchParams.get('cardKey');
     
     if (!cardKey) {
-      return NextResponse.json(
-        { success: false, error: 'Card key is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Card key is required' 
+      }, { status: 400 });
     }
     
-    // Check if we're in development mode
-    if (process.env.NODE_ENV === 'development') {
-      // Try to find the card in our fallback database
-      const fallbackCard = fallbackCards.find(card => card.id === cardKey);
-      
-      console.log('Looking for card in fallback database:', cardKey);
-      console.log('Available fallback cards:', fallbackCards.map(card => card.id));
-      console.log('Found fallback card:', fallbackCard ? 'yes' : 'no');
-      
-      if (fallbackCard) {
-        return NextResponse.json({
-          success: true,
-          data: fallbackCard,
-          source: 'fallback'
-        });
-      }
+    // Use the correct collection name from constants
+    const cardRef = doc(db, FIREBASE_COLLECTIONS.CREDIT_CARDS, cardKey);
+    console.log(`Attempting to fetch card with ID ${cardKey} from ${FIREBASE_COLLECTIONS.CREDIT_CARDS} collection`);
+    
+    const cardSnapshot = await getDoc(cardRef);
+    
+    if (!cardSnapshot.exists()) {
+      console.warn(`Card with ID ${cardKey} not found in Firestore`);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Card not found' 
+      }, { status: 404 });
     }
     
-    // Try to get the card from the API
-    try {
-      const API_KEY = process.env.REWARDS_API_KEY;
-      const API_HOST = 'rewards-credit-card-api.p.rapidapi.com';
-      const API_BASE_URL = 'https://rewards-credit-card-api.p.rapidapi.com';
-      
-      console.log('Attempting to fetch from API for card:', cardKey);
-      
-      const response = await fetch(`${API_BASE_URL}/creditcard-detail-bycard/${cardKey}`, {
-        headers: {
-          'X-RapidAPI-Key': API_KEY || '',
-          'X-RapidAPI-Host': API_HOST
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+    // Get the card data
+    const cardData = {
+      id: cardSnapshot.id,
+      ...cardSnapshot.data()
+    };
+    
+    console.log(`Successfully fetched card: ${cardKey}`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      data: cardData 
+    }, { 
+      status: 200,
+      headers: {
+        // Add cache headers to enable browser caching
+        'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+        'CDN-Cache-Control': 'public, max-age=86400, s-maxage=86400',
+        'Vercel-CDN-Cache-Control': 'public, max-age=86400, s-maxage=86400',
       }
-      
-      const cardData = await response.json();
-      
-      if (!cardData || !Array.isArray(cardData) || cardData.length === 0) {
-        throw new Error('Invalid API response format');
-      }
-      
-      const apiCard = cardData[0];
-      const mappedCard = mapApiCardToAppFormat(apiCard);
-      
-      return NextResponse.json({
-        success: true,
-        data: mappedCard
-      });
-    } catch (apiError) {
-      console.log('API request failed, using fallback data:', apiError);
-      
-      // Try to find the card in our fallback database
-      const fallbackCard = fallbackCards.find(card => card.id === cardKey);
-      
-      if (fallbackCard) {
-        return NextResponse.json({
-          success: true,
-          data: fallbackCard,
-          source: 'fallback'
-        });
-      } else {
-        return NextResponse.json(
-          { success: false, error: 'Card not found' },
-          { status: 404 }
-        );
-      }
-    }
+    });
   } catch (error) {
-    console.error('Error getting card details:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to get card details' },
-      { status: 500 }
-    );
+    console.error('Error fetching card details:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Failed to fetch card details',
+      error: (error as Error).message
+    }, { status: 500 });
+  }
+}
+
+// Add batch endpoint to fetch multiple cards at once for preloading
+export async function POST(request: NextRequest) {
+  try {
+    // Get the card keys from the request body
+    const body = await request.json();
+    const { cardKeys } = body;
+    
+    if (!cardKeys || !Array.isArray(cardKeys) || cardKeys.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Card keys array is required' 
+      }, { status: 400 });
+    }
+    
+    // Limit the number of cards to fetch at once
+    const limitedCardKeys = cardKeys.slice(0, 20);
+    
+    console.log(`Batch fetching ${limitedCardKeys.length} cards from ${FIREBASE_COLLECTIONS.CREDIT_CARDS} collection`);
+    
+    // Fetch all cards in parallel
+    const cardPromises = limitedCardKeys.map(async (cardKey) => {
+      const cardRef = doc(db, FIREBASE_COLLECTIONS.CREDIT_CARDS, cardKey);
+      const cardSnapshot = await getDoc(cardRef);
+      
+      if (!cardSnapshot.exists()) {
+        console.warn(`Batch card ${cardKey} not found`);
+        return null;
+      }
+      
+      return {
+        id: cardSnapshot.id,
+        ...cardSnapshot.data()
+      };
+    });
+    
+    // Wait for all card fetches to complete
+    const cards = await Promise.all(cardPromises);
+    
+    // Filter out null values and create a map of card id to card data
+    const cardMap = cards
+      .filter(card => card !== null)
+      .reduce((acc, card) => {
+        if (card) {
+          acc[card.id] = card;
+        }
+        return acc;
+      }, {} as Record<string, any>);
+    
+    console.log(`Successfully batch fetched ${Object.keys(cardMap).length} cards`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      data: cardMap 
+    }, { 
+      status: 200,
+      headers: {
+        // Add cache headers to enable browser caching
+        'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+        'CDN-Cache-Control': 'public, max-age=86400, s-maxage=86400',
+        'Vercel-CDN-Cache-Control': 'public, max-age=86400, s-maxage=86400',
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching batch card details:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Failed to fetch batch card details',
+      error: (error as Error).message
+    }, { status: 500 });
   }
 }

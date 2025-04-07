@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import cardDataService from '@/services/cardDataService';
 
 // Define an interface for the card data structure
 interface CardSearchResult {
@@ -8,6 +9,29 @@ interface CardSearchResult {
 }
 
 export const dynamic = 'force-dynamic';
+
+// Set a reasonable timeout for search operations
+const SEARCH_TIMEOUT = 15000; // 15 seconds
+
+// Helper function to implement a timeout
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    
+    promise.then(
+      (result) => {
+        clearTimeout(timeoutId);
+        resolve(result);
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    );
+  });
+};
 
 export async function GET(request: Request) {
   try {
@@ -23,44 +47,26 @@ export async function GET(request: Request) {
       );
     }
     
-    // Use the API directly for searching
-    const API_KEY = process.env.REWARDS_API_KEY;
-    const API_HOST = 'rewards-credit-card-api.p.rapidapi.com';
-    const API_BASE_URL = 'https://rewards-credit-card-api.p.rapidapi.com';
-    
-    const response = await fetch(`${API_BASE_URL}/creditcard-detail-namesearch/${encodeURIComponent(searchTerm)}`, {
-      headers: {
-        'X-RapidAPI-Key': API_KEY || '',
-        'X-RapidAPI-Host': API_HOST
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API search error: ${response.status}`);
-    }
-    
-    const searchResults = await response.json() as CardSearchResult[];
-    
-    // Map the search results to the expected format
-    // and ensure no duplicates
-    const uniqueResults = Array.from(
-      new Map(searchResults.map((card: CardSearchResult) => [card.cardKey, card])).values()
+    // Use the timeout wrapper for search operation
+    const result = await withTimeout(
+      cardDataService.searchCards(searchTerm),
+      SEARCH_TIMEOUT
     );
     
-    const formattedResults = uniqueResults.map((card: CardSearchResult) => ({
-      cardKey: card.cardKey,
-      cardName: card.cardName,
-      cardIssuer: card.cardIssuer
-    }));
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error || 'Search failed' },
+        { status: 500 }
+      );
+    }
     
-    return NextResponse.json({
-      success: true,
-      data: formattedResults
-    });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Search error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to search cards';
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to search cards' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

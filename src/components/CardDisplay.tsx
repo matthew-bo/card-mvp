@@ -6,7 +6,10 @@ import { CreditCardDetails } from '@/types/cards';
 import Tooltip from './Tooltip';
 
 interface CardDisplayProps {
-  card: CreditCardDetails;
+  card: CreditCardDetails & { 
+    isLoading?: boolean;
+    network?: string; 
+  };
   onDelete?: (cardId: string) => void;
   onNotInterested?: (cardId: string) => void;
   highlight?: boolean;
@@ -39,6 +42,48 @@ const getPointValue = (amount: number, type: "points" | "cashback"): { value: nu
   };
 };
 
+// Skeleton component for loading state
+const CardSkeleton = () => (
+  <div className="h-full border rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
+    {/* Header skeleton */}
+    <div className="bg-gradient-to-r from-gray-200 to-gray-300 p-4 pb-10 text-white relative">
+      {/* Issuer skeleton */}
+      <div className="flex items-center justify-between mb-1">
+        <div className="bg-gray-300 h-4 w-16 rounded animate-pulse"></div>
+      </div>
+      
+      {/* Name skeleton */}
+      <div className="bg-gray-300 h-6 w-40 rounded animate-pulse mt-1"></div>
+    </div>
+    
+    {/* Content skeleton */}
+    <div className="p-4 flex-grow flex flex-col justify-between">
+      {/* Rewards section skeleton */}
+      <div>
+        <div className="bg-gray-200 h-3 w-24 rounded animate-pulse mb-3"></div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center">
+              <div className="w-2 h-2 rounded-full bg-gray-300 mr-2"></div>
+              <div className="bg-gray-200 h-4 w-24 rounded animate-pulse"></div>
+              <div className="ml-auto bg-gray-200 h-4 w-10 rounded animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Divider */}
+      <div className="my-3 border-t border-gray-100"></div>
+      
+      {/* Bottom section skeleton */}
+      <div className="flex items-center justify-between">
+        <div className="bg-gray-200 h-5 w-16 rounded-full animate-pulse"></div>
+        <div className="bg-gray-200 h-4 w-12 rounded animate-pulse"></div>
+      </div>
+    </div>
+  </div>
+);
+
 export const CardDisplay: React.FC<CardDisplayProps> = ({ 
   card, 
   onDelete, 
@@ -47,6 +92,20 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
   const [expanded, setExpanded] = useState(false);
   const colors = getIssuerColors(card.issuer);
   const cardRef = useRef<HTMLDivElement>(null);
+  
+  // If card is in loading state, show skeleton
+  if (card.isLoading) {
+    return (
+      <motion.div 
+        className="relative group h-full"
+        initial={{ opacity: 0.7 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <CardSkeleton />
+      </motion.div>
+    );
+  }
   
   // Format reward rates for easy display
   const topRewardRates = Object.entries(card.rewardRates)
@@ -173,7 +232,6 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
               <Tooltip 
                 content={`Spend $${card.signupBonus.spendRequired.toLocaleString()} in ${card.signupBonus.timeframe} months to earn this bonus.`} 
                 position="left"
-                // Remove the maxWidth property for now
               >
                 <p className={`text-sm font-medium ${colors.text}`}>
                   {formattedBonus?.display}
@@ -199,7 +257,7 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
               onClick={() => setExpanded(!expanded)}
               aria-label={expanded ? "Show less" : "Show more"}
             >
-              {expanded ? "Less" : "More"}
+              {expanded ? 'Show less' : 'Show more'}
             </button>
           </div>
           
@@ -207,40 +265,43 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
           <AnimatePresence>
             {expanded && (
               <motion.div 
-                className="mt-3 pt-3 border-t border-gray-100"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+                className="mt-4 pt-3 border-t border-gray-100"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
               >
                 {/* Foreign Transaction Fee */}
-                <div className="flex items-center mt-2 text-sm">
+                <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600">Foreign Transaction Fee:</span>
-                  <span className="ml-auto font-medium">
+                  <span className="font-medium">
                     {card.foreignTransactionFee ? 'Yes' : 'None'}
                   </span>
                 </div>
                 
-                {/* Perks List */}
-                {card.perks.length > 0 && (
+                {/* Card Network */}
+                {card.network && (
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-600">Network:</span>
+                    <span className="font-medium capitalize">
+                      {card.network}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Perks */}
+                {card.perks && card.perks.length > 0 && (
                   <div className="mt-3">
-                    <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-1">Top Perks</h4>
-                    <ul className="text-xs text-gray-600 space-y-1">
+                    <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-2">Key Perks</h4>
+                    <ul className="text-xs text-gray-700 space-y-1">
                       {card.perks.slice(0, 3).map((perk, index) => (
-                        <motion.li 
-                          key={index} 
-                          className="flex items-start"
-                          initial={{ opacity: 0, x: -5 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.2, delay: index * 0.1 }}
-                        >
-                          <span className="text-green-500 mr-1">✓</span>
+                        <li key={index} className="flex items-start">
+                          <svg className="w-3 h-3 text-green-500 mr-1 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
                           <span>{perk}</span>
-                        </motion.li>
+                        </li>
                       ))}
-                      {card.perks.length > 3 && (
-                        <li className="text-xs text-gray-500">+{card.perks.length - 3} more</li>
-                      )}
                     </ul>
                   </div>
                 )}
