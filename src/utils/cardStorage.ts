@@ -1,48 +1,54 @@
 import { db } from '@/lib/firebase';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { Monitor } from './monitoring/monitor';
 
-export async function storeCardData(userId: string, cardData: { cardId: string }) {
+interface CardData {
+  cardId: string;
+  lastFour: string;
+  type: 'credit' | 'debit';
+  dateAdded: Date;
+}
+
+/**
+ * Stores card data to Firestore or falls back to local storage if unavailable
+ */
+export async function storeCardData(userId: string, cardData: CardData): Promise<void> {
   try {
-    // Validate user
-    if (!userId) {
-      throw new Error('No user ID provided');
-    }
-
-    // Check for duplicate card
-    const cardsRef = collection(db, 'user_cards');
-    const q = query(
-      cardsRef, 
-      where('userId', '==', userId),
-      where('cardId', '==', cardData.cardId)
-    );
-    const querySnapshot = await getDocs(q);
+    if (!db) throw new Error('Firestore not available');
     
-    if (!querySnapshot.empty) {
-      throw new Error('Card already exists for user');
-    }
-
-    // Store card selection
-    const result = await addDoc(collection(db, 'user_cards'), {
+    await addDoc(collection(db, 'user_cards'), {
       userId,
       cardId: cardData.cardId,
-      dateAdded: new Date()
+      lastFour: cardData.lastFour,
+      type: cardData.type,
+      dateAdded: serverTimestamp(),
+      createdAt: serverTimestamp()
     });
-
-    Monitor.logEvent(
-      'card_selection',
-      'Card added to user profile',
-      'info',
-      { userId, cardId: cardData.cardId }
-    );
-
-    return result.id;
-
+    
+    console.log('Card data saved to Firestore');
   } catch (error) {
-    Monitor.trackError(error as Error, { 
-      operation: 'storeCardData',
-      userId 
-    });
-    throw error;
+    console.warn('Failed to store card in Firestore, falling back to localStorage', error);
+    
+    // Fallback to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const storageKey = `user_cards_${userId}`;
+        const existingData = localStorage.getItem(storageKey);
+        const cards = existingData ? JSON.parse(existingData) : [];
+        
+        cards.push({
+          ...cardData,
+          dateAdded: cardData.dateAdded.toISOString()
+        });
+        
+        localStorage.setItem(storageKey, JSON.stringify(cards));
+        console.log('Card data saved to localStorage');
+      } catch (storageError) {
+        console.error('Failed to store card in localStorage', storageError);
+        throw new Error('Could not store card data');
+      }
+    } else {
+      throw new Error('No storage method available');
+    }
   }
 }
