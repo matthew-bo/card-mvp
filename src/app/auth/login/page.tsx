@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn, signInWithGoogle } from '@/utils/auth/authService';
+import { signIn, signInWithGoogle } from '@/components/auth/authService';
 import AuthCard from '@/components/auth/AuthCard';
 import GoogleButton from '@/components/auth/GoogleButton';
 

@@ -1,21 +1,31 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  User,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut
-} from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { signIn, signUp, signOut, signInWithGoogle } from '@/components/auth/authService';
 import { Logger } from '@/utils/logger';
+
+// Define a User type to match what our mock service returns
+interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  emailVerified?: boolean;
+  providerData?: Array<{
+    providerId: string;
+    uid: string;
+    displayName: string | null;
+    email: string | null;
+    photoURL: string | null;
+  }>;
+}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string, displayName: string) => Promise<any>;
+  signInWithGoogle: () => Promise<any>;
   logout: () => Promise<void>;
 }
 
@@ -23,89 +33,155 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
+  // Check for stored user on mount
   useEffect(() => {
-    if (!auth) {
-      Logger.error('Firebase auth is not initialized', { context: 'AuthProvider' });
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, 
-      (user) => {
-        setUser(user);
-        setLoading(false);
-      },
-      (error) => {
-        Logger.error('Auth state change error', { 
-          context: 'AuthProvider',
-          data: error 
-        });
-        setLoading(false);
+    try {
+      const storedUser = localStorage.getItem('stoid_user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
       }
-    );
-
-    return () => unsubscribe();
+    } catch (error) {
+      Logger.error('Error retrieving stored user', { 
+        context: 'AuthProvider',
+        data: error 
+      });
+    }
+    setLoading(false);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    if (!auth) throw new Error('Firebase auth is not initialized');
-    
+  // Authentication methods
+  const handleSignIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       Logger.info('Attempting sign in', { 
         context: 'AuthProvider',
         data: { email } 
       });
-      await signInWithEmailAndPassword(auth, email, password);
+      
+      const result = await signIn(email, password);
+      // Ensure user has all required fields before setting state
+      const userData: User = {
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL || null,
+        emailVerified: result.user.emailVerified,
+        providerData: result.user.providerData
+      };
+      setUser(userData);
+      
+      // Store user in localStorage
+      localStorage.setItem('stoid_user', JSON.stringify(userData));
+      
+      return result;
     } catch (error) {
       Logger.error('Sign in error', { 
         context: 'AuthProvider',
         data: error 
       });
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string) => {
-    if (!auth) throw new Error('Firebase auth is not initialized');
-    
+  const handleSignUp = async (email: string, password: string, displayName: string) => {
     try {
+      setLoading(true);
       Logger.info('Attempting sign up', { 
         context: 'AuthProvider',
         data: { email } 
       });
-      await createUserWithEmailAndPassword(auth, email, password);
+      
+      const result = await signUp(email, password, displayName);
+      // Ensure user has all required fields before setting state
+      const userData: User = {
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL || null,
+        emailVerified: result.user.emailVerified,
+        providerData: result.user.providerData
+      };
+      setUser(userData);
+      
+      // Store user in localStorage
+      localStorage.setItem('stoid_user', JSON.stringify(userData));
+      
+      return result;
     } catch (error) {
       Logger.error('Sign up error', { 
         context: 'AuthProvider',
         data: error 
       });
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const logout = async () => {
-    if (!auth) throw new Error('Firebase auth is not initialized');
-    
+  const handleSignInWithGoogle = async () => {
     try {
+      setLoading(true);
+      Logger.info('Attempting Google sign in', { context: 'AuthProvider' });
+      
+      const result = await signInWithGoogle();
+      // Ensure user has all required fields before setting state
+      const userData: User = {
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL || null,
+        emailVerified: result.user.emailVerified,
+        providerData: result.user.providerData
+      };
+      setUser(userData);
+      
+      // Store user in localStorage
+      localStorage.setItem('stoid_user', JSON.stringify(userData));
+      
+      return result;
+    } catch (error) {
+      Logger.error('Google sign in error', { 
+        context: 'AuthProvider',
+        data: error 
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
       Logger.info('Attempting logout', { context: 'AuthProvider' });
-      await signOut(auth);
+      
+      await signOut();
+      setUser(null);
+      
+      // Remove user from localStorage
+      localStorage.removeItem('stoid_user');
     } catch (error) {
       Logger.error('Logout error', { 
         context: 'AuthProvider',
         data: error 
       });
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const value = {
     user,
     loading,
-    signIn,
-    signUp,
-    logout
+    signIn: handleSignIn,
+    signUp: handleSignUp,
+    signInWithGoogle: handleSignInWithGoogle,
+    logout: handleLogout
   };
 
   return (
