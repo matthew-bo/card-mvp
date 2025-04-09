@@ -3,20 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-
-// Create a fallback auth context to ensure navigation works even if auth fails
-const useAuthFallback = () => {
-  try {
-    // Try to import the real auth context
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { useAuth } = require('@/contexts/AuthContext');
-    return useAuth();
-  } catch (error) {
-    console.warn('Auth context not available, using fallback');
-    // Fallback with default values that won't break the navigation
-    return { user: null, loading: false };
-  }
-};
+import { useAuth } from '@/contexts/AuthContext';
 
 const RecommenderNav: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -24,8 +11,7 @@ const RecommenderNav: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname() || '';
   const router = useRouter();
-  // Use our fallback auth hook
-  const { user, loading } = useAuthFallback();
+  const { user, loading } = useAuth();
 
   // Only run client-side
   useEffect(() => {
@@ -62,7 +48,7 @@ const RecommenderNav: React.FC = () => {
           <div className="bg-blue-600 text-white font-bold text-xl rounded-md w-8 h-8 flex items-center justify-center mr-2">
             S
           </div>
-          <span className="text-2xl font-bold tracking-tight text-gray-900">STOID</span>
+          <span className="text-2xl font-bold tracking-tight text-gray-900">Stoid</span>
         </Link>
 
         {/* Desktop Navigation */}

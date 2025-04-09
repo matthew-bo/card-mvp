@@ -38,7 +38,7 @@ class AuthErrorBoundary extends Component<Props, State> {
                 <div className="w-10 h-10 rounded-md bg-blue-600 flex items-center justify-center mr-3">
                   <span className="text-white font-bold text-lg">S</span>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">STOID</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Stoid</h1>
               </div>
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
                 <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">

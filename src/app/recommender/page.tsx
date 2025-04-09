@@ -76,7 +76,7 @@ const DynamicFeatureTable = dynamic(
 );
 
 const DynamicCardDisplay = dynamic(
-  () => import('@/components/CardDisplay').then(mod => mod.CardDisplay),
+  () => import('@/components/CardDisplay').then(mod => mod.default || mod.CardDisplay),
   { ssr: false }
 );
 
