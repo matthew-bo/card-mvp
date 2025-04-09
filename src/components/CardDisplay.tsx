@@ -102,7 +102,7 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
   }
   
   // Format reward rates for easy display
-  const topRewardRates = Object.entries(card.rewardRates)
+  const topRewardRates = Object.entries(card.rewardRates || {})
     .filter(([, rate]) => rate > 1) // Only show rates better than the base rate
     .sort(([, a], [, b]) => Number(b) - Number(a))
     .slice(0, 4); // Show up to 4 top categories
@@ -114,10 +114,17 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
 
   // Credit score badge styling
   const creditScoreColor = 
+    !card.creditScoreRequired ? 'bg-gray-100 text-gray-800' :
     card.creditScoreRequired === 'excellent' ? 'bg-emerald-100 text-emerald-800' :
     card.creditScoreRequired === 'good' ? 'bg-blue-100 text-blue-800' :
     card.creditScoreRequired === 'fair' ? 'bg-yellow-100 text-yellow-800' :
     'bg-red-100 text-red-800';
+    
+  // Safe function to capitalize credit score
+  const formatCreditScore = (score?: string) => {
+    if (!score) return 'Unknown';
+    return score.charAt(0).toUpperCase() + score.slice(1);
+  };
   
   return (
     <motion.div 
@@ -239,9 +246,9 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
           
           {/* Credit Score Badge */}
           <div className="flex items-center justify-between">
-            <Tooltip content={`This card typically requires a ${card.creditScoreRequired} credit score.`} position="bottom">
+            <Tooltip content={`This card typically requires a ${card.creditScoreRequired || 'unknown'} credit score.`} position="bottom">
               <span className={`text-xs px-2 py-1 rounded-full ${creditScoreColor}`}>
-                {card.creditScoreRequired.charAt(0).toUpperCase() + card.creditScoreRequired.slice(1)}
+                {formatCreditScore(card.creditScoreRequired)}
               </span>
             </Tooltip>
             
@@ -269,7 +276,7 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600">Foreign Transaction Fee:</span>
                   <span className="font-medium">
-                    {card.foreignTransactionFee ? 'Yes' : 'None'}
+                    {card.foreignTransactionFee !== undefined ? (card.foreignTransactionFee ? 'Yes' : 'None') : 'Unknown'}
                   </span>
                 </div>
                 

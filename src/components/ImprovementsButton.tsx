@@ -3,14 +3,20 @@
 import React, { useState } from 'react';
 import ImprovementsModal from './ImprovementsModal';
 
+declare global {
+  interface Window {
+    testSkeletonUI: () => void;
+  }
+}
+
 const ImprovementsButton: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
 
   const handleDemoClick = () => {
     setShowModal(false);
     // Call the global function exposed by layout.tsx
-    if (typeof window !== 'undefined' && typeof (window as any).testSkeletonUI === 'function') {
-      (window as any).testSkeletonUI();
+    if (typeof window !== 'undefined' && typeof window.testSkeletonUI === 'function') {
+      window.testSkeletonUI();
     }
   };
 

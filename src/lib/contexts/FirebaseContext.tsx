@@ -4,7 +4,12 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signOut
+  signOut,
+  signInWithPopup,
+  GoogleAuthProvider,
+  updateProfile,
+  updateEmail,
+  updatePassword
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Logger } from '@/lib/utils/logger';
@@ -14,7 +19,11 @@ interface FirebaseContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  updateUserProfile: (displayName: string) => Promise<void>;
+  updateUserEmail: (newEmail: string) => Promise<void>;
+  updateUserPassword: (newPassword: string) => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -32,6 +41,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, 
       (user) => {
+        console.log('[DEBUG] Auth state changed:', user?.uid);
         setUser(user);
         setLoading(false);
       },
@@ -83,6 +93,22 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    if (!auth) throw new Error('Firebase auth is not initialized');
+    
+    try {
+      Logger.info('Attempting Google sign in', { context: 'FirebaseProvider' });
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      Logger.error('Google sign in error', { 
+        context: 'FirebaseProvider',
+        data: error 
+      });
+      throw error;
+    }
+  };
+
   const logout = async () => {
     if (!auth) throw new Error('Firebase auth is not initialized');
     
@@ -98,12 +124,49 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUserProfile = async (displayName: string) => {
+    if (!auth.currentUser) throw new Error('No user is currently signed in');
+    try {
+      Logger.info('Attempting to update user profile', { context: 'FirebaseProvider' });
+      await updateProfile(auth.currentUser, { displayName });
+    } catch (error) {
+      Logger.error('Update profile error', { context: 'FirebaseProvider', data: error });
+      throw error;
+    }
+  };
+
+  const updateUserEmail = async (newEmail: string) => {
+    if (!auth.currentUser) throw new Error('No user is currently signed in');
+    try {
+      Logger.info('Attempting to update user email', { context: 'FirebaseProvider' });
+      await updateEmail(auth.currentUser, newEmail);
+    } catch (error) {
+      Logger.error('Update email error', { context: 'FirebaseProvider', data: error });
+      throw error;
+    }
+  };
+
+  const updateUserPassword = async (newPassword: string) => {
+    if (!auth.currentUser) throw new Error('No user is currently signed in');
+    try {
+      Logger.info('Attempting to update user password', { context: 'FirebaseProvider' });
+      await updatePassword(auth.currentUser, newPassword);
+    } catch (error) {
+      Logger.error('Update password error', { context: 'FirebaseProvider', data: error });
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
     signIn,
     signUp,
-    logout
+    signInWithGoogle,
+    logout,
+    updateUserProfile,
+    updateUserEmail,
+    updateUserPassword
   };
 
   return (

@@ -37,4 +37,14 @@ export class SimpleMonitor {
       console.log(`[Timer] ${operationName}: ${duration.toFixed(2)}ms`);
     };
   }
+
+  /**
+   * Track performance metrics for an operation
+   */
+  static trackPerformance(operation: string, durationMs: number): void {
+    console.log(`[Performance] ${operation}: ${durationMs.toFixed(2)}ms`);
+    
+    // In a real app, you might send this to a monitoring service
+    // For now, we'll just log to console
+  }
 }

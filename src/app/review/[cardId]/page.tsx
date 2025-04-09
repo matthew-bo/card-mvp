@@ -21,9 +21,8 @@ interface Review {
   likes: number;
 }
 
-export default function CardDetailPage() {
-  const params = useParams();
-  const cardId = params.cardId as string;
+export default function ReviewPage({ params }: { params: { cardId: string } }) {
+  const cardId = params.cardId;
   
   const [card, setCard] = useState<CreditCardDetails | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);

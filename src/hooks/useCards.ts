@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CreditCardDetails } from '@/types/cards';
-import cardDataService, { CardDataResponse } from '@/services/cardDataService';
+import { ApiResponse, CreditCardDetails } from '@/types/cards';
+import cardDataService from '@/services/cardDataService';
 
 // Types for the card cache
 interface CardCache {
@@ -39,20 +39,20 @@ export function useCards(cardKeys: string[] = []) {
     
     try {
       const results = await Promise.all(
-        cardKeys.map(cardKey => cardDataService.fetchCardById(cardKey))
+        cardKeys.map(id => cardDataService.fetchCardById(id))
       );
       
-      const fetchedCards = results
-        .filter((result: CardDataResponse) => result.success)
-        .map((result: CardDataResponse) => result.data as CreditCardDetails);
+      const validCards = results
+        .filter((card): card is CreditCardDetails => card !== null)
+        .map(card => card as CreditCardDetails);
       
       setCards(prevCards => {
-        const newCardsString = JSON.stringify(fetchedCards);
+        const newCardsString = JSON.stringify(validCards);
         const prevCardsString = JSON.stringify(prevCards);
         if (newCardsString === prevCardsString) {
           return prevCards;
         }
-        return fetchedCards;
+        return validCards;
       });
     } catch (err) {
       console.error('Error fetching cards:', err);

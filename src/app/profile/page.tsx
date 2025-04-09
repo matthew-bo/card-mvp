@@ -2,13 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useAuthGuard } from '@/utils/auth/useAuthGuard';
-import { 
-  updateUserProfile, 
-  updateUserEmail, 
-  updateUserPassword, 
-} from '@/utils/auth/authService';
 import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
 
 export default function ProfilePage() {
@@ -63,80 +58,32 @@ export default function ProfilePage() {
     );
   }
 
-  // Handle profile update
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setProfileUpdating(true);
-    setProfileSuccess(false);
-    setProfileError('');
+  const { updateUserProfile, updateUserEmail, updateUserPassword } = useAuth();
 
+  const handleProfileUpdate = async () => {
     try {
       await updateUserProfile(displayName);
       setProfileSuccess(true);
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setProfileSuccess(false), 3000);
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      const error = err as Error;
-      setProfileError(error.message);
-    } finally {
-      setProfileUpdating(false);
+    } catch (error) {
+      setProfileError('Failed to update profile.');
     }
   };
 
-  // Handle email update
-  const handleEmailUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEmailUpdating(true);
-    setEmailSuccess(false);
-    setEmailError('');
-
+  const handleEmailUpdate = async () => {
     try {
-      await updateUserEmail(currentPasswordForEmail, newEmail);
+      await updateUserEmail(newEmail);
       setEmailSuccess(true);
-      setNewEmail('');
-      setCurrentPasswordForEmail('');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setEmailSuccess(false), 3000);
-    } catch (err) {
-      console.error('Error updating email:', err);
-      const error = err as Error;
-      setEmailError(error.message);
-    } finally {
-      setEmailUpdating(false);
+    } catch (error) {
+      setEmailError('Failed to update email.');
     }
   };
 
-  // Handle password update
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (newPassword !== confirmNewPassword) {
-      setPasswordError('New passwords do not match');
-      return;
-    }
-    
-    setPasswordUpdating(true);
-    setPasswordSuccess(false);
-    setPasswordError('');
-
+  const handlePasswordUpdate = async () => {
     try {
-      await updateUserPassword(currentPassword, newPassword);
+      await updateUserPassword(newPassword);
       setPasswordSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setPasswordSuccess(false), 3000);
-    } catch (err) {
-      console.error('Error updating password:', err);
-      const error = err as Error;
-      setPasswordError(error.message);
-    } finally {
-      setPasswordUpdating(false);
+    } catch (error) {
+      setPasswordError('Failed to update password.');
     }
   };
 
@@ -147,9 +94,7 @@ export default function ProfilePage() {
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Profile Settings</h1>
           
           {/* Email verification banner */}
-          {user.emailVerified === false && (
-            <EmailVerificationBanner email={user.email || ''} />
-          )}
+          {!user?.emailVerified && <EmailVerificationBanner />}
           
           {/* Profile Information Form */}
           <div className="border-b border-gray-200 pb-6 mb-6">
@@ -229,7 +174,7 @@ export default function ProfilePage() {
               
               {emailSuccess && (
                 <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md">
-                  Email update initiated! Please check your new email address for verification.
+                  Email updated successfully!
                 </div>
               )}
               

@@ -11,7 +11,6 @@ import {
   signInWithGoogle
 } from '@/components/auth/authService';
 
-import { auth } from '@/lib/firebase';
 import { updateProfile, updateEmail, updatePassword, sendEmailVerification } from 'firebase/auth';
 
 /**

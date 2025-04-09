@@ -1,8 +1,8 @@
 'use client';
 
 import AdminLayout from '@/components/AdminLayout';
-import { useEffect, useState } from 'react';
-import { collection, getDocs, } from 'firebase/firestore';
+import { useEffect, useState, Suspense } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { isAdmin } from '@/utils/adminConfig';
 import { ApiUsageStats } from '@/components/ApiUsageStats';
 import AdminCardManager from '@/components/AdminCardManager';
-
+import { redirect } from 'next/navigation';
 
 interface UserPreference {
   id: string;
@@ -171,9 +171,8 @@ const UserManagement = () => {
 };
 
 // Main AdminDashboard Component
-export default function AdminDashboard() {
+function AdminDashboardContent() {
   const { user } = useAuth();
-  const router = useRouter();
   const [cacheTimestamp, setCacheTimestamp] = useState<Date | null>(null);
   
   const [stats, setStats] = useState<DashboardStats>({
@@ -186,82 +185,15 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
   
-  // Add the fetchCacheInfo function here
-  const fetchCacheInfo = async () => {
-    try {
-      const response = await fetch('/api/cards/cache-info');
-      if (response.ok) {
-        const data = await response.json();
-        setCacheTimestamp(data.timestamp ? new Date(data.timestamp) : null);
-      }
-    } catch (error) {
-      console.error('Error fetching cache info:', error);
-    }
-  };
-  
-  const handleRefreshCardData = async () => {
-    try {
-      const response = await fetch('/api/cards/refresh', {
-        method: 'POST',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        alert(`Card database refreshed successfully! ${data.cardCount} cards loaded.`);
-        // Update the cache timestamp
-        fetchCacheInfo();
-      } else {
-        alert('Failed to refresh card database. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error refreshing card database:', error);
-      alert('Failed to refresh card database. Please try again.');
-    }
-  };
-
   useEffect(() => {
-    // If not logged in or not admin, redirect to home
-    if (!user) {
-      router.push('/');
-      return;
+    if (!user || !isAdmin(user)) {
+      redirect('/');
     }
+  }, [user]);
 
-    if (!isAdmin(user.email)) {
-      console.log('Not an admin:', user.email);
-      router.push('/');
-      return;
-    }
-    
-    // Call fetchCacheInfo
-    fetchCacheInfo();
-  }, [user, router]);
-
-  useEffect(() => {
-    async function loadStats() {
-      try {
-        const usersSnap = await getDocs(collection(db, 'user_preferences'));
-        const expensesSnap = await getDocs(collection(db, 'expenses'));
-        const cardsSnap = await getDocs(collection(db, 'user_cards'));
-
-        const expenses = expensesSnap.docs.map(doc => doc.data());
-        const totalSpent = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-
-        setStats({
-          totalUsers: usersSnap.size,
-          totalExpenses: expensesSnap.size,
-          totalCards: cardsSnap.size,
-          totalSpent,
-          averageExpense: totalSpent / expensesSnap.size || 0
-        });
-      } catch (error) {
-        console.error('Error loading stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadStats();
-  }, []);
+  if (!user || !isAdmin(user)) {
+    return null;
+  }
 
   return (
     <AdminLayout>
@@ -287,25 +219,6 @@ export default function AdminDashboard() {
             </p>
           </div>
         </div>
-        
-        {/* Database Management Section */}
-        <div className="mb-8 bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Database Management</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600">Refresh the credit card database from the API</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Last updated: {cacheTimestamp ? cacheTimestamp.toLocaleString() : 'Never'}
-              </p>
-            </div>
-            <button 
-              onClick={handleRefreshCardData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Refresh Card Database
-            </button>
-          </div>
-        </div>
 
         {/* Analytics Section */}
         <div className="mb-8">
@@ -318,5 +231,13 @@ export default function AdminDashboard() {
         </div>
       </main>
     </AdminLayout>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminDashboardContent />
+    </Suspense>
   );
 }

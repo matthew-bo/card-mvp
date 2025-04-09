@@ -3,60 +3,41 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signUp, signInWithGoogle } from '@/components/auth/authService';
 import AuthCard from '@/components/auth/AuthCard';
 import GoogleButton from '@/components/auth/GoogleButton';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function SignUpPage() {
-  const [displayName, setDisplayName] = useState('');
+export const dynamic = 'force-dynamic';
+
+export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
+  const { signUp, signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-
-    // Basic validation
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const userCredential = await signUp(email, password, displayName);
-      console.log('Signup successful:', userCredential.user.uid);
-      setSuccess('Account created successfully! Redirecting to login...');
-      
-      // Redirect after a short delay to show the success message
-      setTimeout(() => {
-        router.push('/auth/login');
-      }, 1500);
+      await signUp(email, password);
+      router.push('/');
     } catch (err: unknown) {
       console.error('Signup error:', err);
       const error = err as { message: string; code?: string };
       
+      // More helpful error message
       if (error.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists. Try signing in instead.');
-      } else if (error.code === 'auth/invalid-email') {
-        setError('Please enter a valid email address.');
+        setError('An account with this email already exists.');
       } else if (error.code === 'auth/weak-password') {
-        setError('Password is too weak. Please choose a stronger password.');
+        setError('Password should be at least 6 characters.');
       } else {
-        setError('Failed to create account: ' + error.message);
+        setError('Failed to sign up: ' + error.message);
       }
     } finally {
       setLoading(false);
@@ -82,7 +63,7 @@ export default function SignUpPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
       <AuthCard 
-        title="Create Account"
+        title="Sign Up"
         footer={
           <Link href="/auth/login" className="text-blue-600 hover:text-blue-500">
             Already have an account? Sign in
@@ -96,15 +77,9 @@ export default function SignUpPage() {
             </div>
           )}
           
-          {success && (
-            <div className="bg-green-50 text-green-500 p-3 rounded">
-              {success}
-            </div>
-          )}
-          
           <div>
             <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
-              Name
+              Display Name
             </label>
             <input
               id="displayName"
@@ -145,22 +120,6 @@ export default function SignUpPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             />
-            <p className="mt-1 text-xs text-gray-500">Must be at least 6 characters</p>
-          </div>
-
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            />
           </div>
 
           <button
@@ -174,9 +133,9 @@ export default function SignUpPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Creating account...
+                Signing up...
               </>
-            ) : 'Create Account'}
+            ) : 'Sign Up'}
           </button>
         </form>
         

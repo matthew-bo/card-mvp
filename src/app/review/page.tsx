@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { CreditCardDetails } from '@/types/cards';
@@ -8,7 +8,7 @@ import ReviewCardDisplay from '@/components/ReviewCardDisplay';
 import ReviewFilters from '@/components/ReviewFilters';
 import Pagination from '@/components/Pagination';
 
-export default function ReviewPage() {
+function ReviewPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [cards, setCards] = useState<CreditCardDetails[]>([]);
@@ -16,16 +16,16 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get current page from URL query params
-  const page = parseInt(searchParams.get('page') || '1', 10);
+  // Get current page from URL query params with null check
+  const page = searchParams ? parseInt(searchParams.get('page') || '1', 10) : 1;
   const cardsPerPage = 15;
   
-  // Get filter values from URL query params
-  const cardType = searchParams.get('type') || 'all';
-  const issuer = searchParams.get('issuer') || '';
-  const searchTerm = searchParams.get('search') || '';
-  const annualFee = searchParams.get('annualFee') || 'all';
-  const rewardsFilter = searchParams.get('rewards') || 'all';
+  // Get filter values from URL query params with null checks
+  const cardType = searchParams?.get('type') || 'all';
+  const issuer = searchParams?.get('issuer') || '';
+  const searchTerm = searchParams?.get('search') || '';
+  const annualFee = searchParams?.get('annualFee') || 'all';
+  const rewardsFilter = searchParams?.get('rewards') || 'all';
   
   // Fetch cards from API
   useEffect(() => {
@@ -122,50 +122,18 @@ export default function ReviewPage() {
     annualFee?: string;  
     rewards?: string;   
   }) => {
+    if (!searchParams) return;
+    
     const params = new URLSearchParams(searchParams.toString());
     
-    if (newFilters.type !== undefined) {
-      if (newFilters.type) {
-        params.set('type', newFilters.type);
-      } else {
-        params.delete('type');
-      }
-    }
+    // Update each filter if provided
+    if (newFilters.type !== undefined) params.set('type', newFilters.type);
+    if (newFilters.issuer !== undefined) params.set('issuer', newFilters.issuer);
+    if (newFilters.search !== undefined) params.set('search', newFilters.search);
+    if (newFilters.annualFee !== undefined) params.set('annualFee', newFilters.annualFee);
+    if (newFilters.rewards !== undefined) params.set('rewards', newFilters.rewards);
     
-    if (newFilters.issuer !== undefined) {
-      if (newFilters.issuer) {
-        params.set('issuer', newFilters.issuer);
-      } else {
-        params.delete('issuer');
-      }
-    }
-    
-    if (newFilters.search !== undefined) {
-      if (newFilters.search) {
-        params.set('search', newFilters.search);
-      } else {
-        params.delete('search');
-      }
-    }
-    
-    // Add handling for new filter types
-    if (newFilters.annualFee !== undefined) {
-      if (newFilters.annualFee && newFilters.annualFee !== 'all') {
-        params.set('annualFee', newFilters.annualFee);
-      } else {
-        params.delete('annualFee');
-      }
-    }
-    
-    if (newFilters.rewards !== undefined) {
-      if (newFilters.rewards && newFilters.rewards !== 'all') {
-        params.set('rewards', newFilters.rewards);
-      } else {
-        params.delete('rewards');
-      }
-    }
-    
-    // Reset to page 1 when changing filters
+    // Reset to page 1 when filters change
     params.set('page', '1');
     
     router.push(`/review?${params.toString()}`);
@@ -186,16 +154,16 @@ export default function ReviewPage() {
           </p>
         </div>
         
-      {/* Filters */}
-      <ReviewFilters 
-        cardType={cardType}
-        issuer={issuer}
-        searchTerm={searchTerm}
-        issuers={uniqueIssuers}
-        annualFee="all" 
-        rewardsFilter="all"  
-        onFilterChange={handleFilterChange}
-      />
+        {/* Filters */}
+        <ReviewFilters 
+          cardType={cardType}
+          issuer={issuer}
+          searchTerm={searchTerm}
+          issuers={uniqueIssuers}
+          annualFee={annualFee}
+          rewardsFilter={rewardsFilter}
+          onFilterChange={handleFilterChange}
+        />
         
         {/* Card listing */}
         {loading ? (
@@ -230,12 +198,29 @@ export default function ReviewPage() {
             <Pagination 
               currentPage={page} 
               totalPages={totalPages} 
-              baseUrl="/review" 
-              preserveParams={true}
+              baseUrl="/review"
+              searchParams={searchParams}
             />
           </div>
         )}
       </main>
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <ReviewPageContent />
+    </Suspense>
   );
 }

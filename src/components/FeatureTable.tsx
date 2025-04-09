@@ -43,7 +43,11 @@ const FeatureTable: React.FC<FeatureTableProps> = ({ currentCards = [], recommen
     
     for (const category of Object.keys(annualSpend)) {
       bestRates[category] = Math.max(
-        ...cards.map(card => card.rewardRates[category as keyof typeof card.rewardRates] || 0)
+        ...cards.map(card => {
+          // Add null checks to prevent errors
+          if (!card || !card.rewardRates) return 0;
+          return card.rewardRates[category as keyof typeof card.rewardRates] || 0;
+        })
       );
     }
     

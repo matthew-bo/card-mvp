@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotification } from '@/components/NotificationProvider';
-import { fetchAllCards, fetchCardById } from '@/services/cardApiService';
+import { fetchAllCards } from '@/services/cardApiService';
 import { isAdmin } from '@/utils/adminConfig';
 
 /**
@@ -28,7 +28,7 @@ const AdminCardManager = () => {
       try {
         const allCards = await fetchAllCards();
         setCards(allCards);
-      } catch (err) {
+      } catch (error) {
         setError('Failed to load cards');
         showNotification('Error loading cards', 'error');
       } finally {

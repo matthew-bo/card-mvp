@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from './NotificationProvider';
 import AuthErrorBoundary from './auth/AuthErrorBoundary';
+import { FirebaseProvider } from '@/lib/contexts/FirebaseContext';
 
 const fallbackRender = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => {
   return (
@@ -25,11 +26,13 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary fallbackRender={fallbackRender}>
       <AuthErrorBoundary>
-        <AuthProvider>
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
-        </AuthProvider>
+        <FirebaseProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
+          </AuthProvider>
+        </FirebaseProvider>
       </AuthErrorBoundary>
     </ErrorBoundary>
   );

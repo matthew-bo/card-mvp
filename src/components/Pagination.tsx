@@ -2,30 +2,25 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, ReadonlyURLSearchParams } from 'next/navigation';
 
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
   baseUrl: string;
-  preserveParams?: boolean;
+  searchParams?: URLSearchParams | ReadonlyURLSearchParams | null;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
   baseUrl,
-  preserveParams = false
+  searchParams
 }) => {
-  const searchParams = useSearchParams();
+  const params = searchParams ? new URLSearchParams(searchParams.toString()) : new URLSearchParams();
   
   // Function to generate page URL with preserved parameters
   const getPageUrl = (page: number) => {
-    if (!preserveParams) {
-      return `${baseUrl}?page=${page}`;
-    }
-    
-    const params = new URLSearchParams(searchParams.toString());
     params.set('page', page.toString());
     return `${baseUrl}?${params.toString()}`;
   };
@@ -51,18 +46,18 @@ const Pagination: React.FC<PaginationProps> = ({
       pages.push(i);
     }
     
-  // Add ellipsis before last page if needed
-  if (end < totalPages - 1) {
-    pages.push('...');
-  }
-  
-  // Always show last page if there's more than one page
-  if (totalPages > 1) {
-    pages.push(totalPages);
-  }
-  
-  return pages;
-};
+    // Add ellipsis before last page if needed
+    if (end < totalPages - 1) {
+      pages.push('...');
+    }
+    
+    // Always show last page if there's more than one page
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
 
   // Don't render pagination if there's only one page
   if (totalPages <= 1) {

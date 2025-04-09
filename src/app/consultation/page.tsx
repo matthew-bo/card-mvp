@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation';
 
 export default function ConsultationPage() {
-  const { user } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
   
   // Local state for login/signup form
@@ -17,7 +17,7 @@ export default function ConsultationPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   
   // State for Calendly booking status
@@ -35,10 +35,7 @@ export default function ConsultationPage() {
     const handleCalendlyEvent = (e: MessageEvent) => {
       if (e.data.event && e.data.event.indexOf('calendly') === 0) {
         if (e.data.event === 'calendly.event_scheduled') {
-          // Show success message when booking is complete
           setBookingComplete(true);
-          
-          // You could also log the event to Firebase here
           console.log('Calendly booking completed:', e.data);
         }
       }
@@ -59,15 +56,12 @@ export default function ConsultationPage() {
     setLoading(true);
 
     try {
-      // Simplified placeholder for auth functionality
-      console.log('Login attempted with:', email);
-      setTimeout(() => {
-        setSuccessMessage('Login functionality is currently under maintenance.');
-        setLoading(false);
-      }, 1000);
-    } catch (err: unknown) {
+      await signIn(email, password);
+      setSuccessMessage('Login successful!');
+      router.push('/');
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('Login functionality is currently under maintenance.');
+      setError(err.message || 'Failed to login. Please try again.');
       setLoading(false);
     }
   };
@@ -86,15 +80,12 @@ export default function ConsultationPage() {
     setLoading(true);
 
     try {
-      // Simplified placeholder for auth functionality
-      console.log('Signup attempted with:', email, displayName);
-      setTimeout(() => {
-        setSuccessMessage('Signup functionality is currently under maintenance.');
-        setLoading(false);
-      }, 1000);
-    } catch (err: unknown) {
+      await signUp(email, password);
+      setSuccessMessage('Account created successfully!');
+      router.push('/');
+    } catch (err: any) {
       console.error('Signup error:', err);
-      setError('Signup functionality is currently under maintenance.');
+      setError(err.message || 'Failed to create account. Please try again.');
       setLoading(false);
     }
   };
@@ -106,15 +97,12 @@ export default function ConsultationPage() {
     setGoogleLoading(true);
 
     try {
-      // Simplified placeholder for Google auth
-      console.log('Google login attempted');
-      setTimeout(() => {
-        setSuccessMessage('Google login functionality is currently under maintenance.');
-        setGoogleLoading(false);
-      }, 1000);
-    } catch (err) {
+      await signInWithGoogle();
+      setSuccessMessage('Google login successful!');
+      router.push('/');
+    } catch (err: any) {
       console.error('Google login error:', err);
-      setError('Google login functionality is currently under maintenance.');
+      setError(err.message || 'Failed to login with Google. Please try again.');
       setGoogleLoading(false);
     }
   };

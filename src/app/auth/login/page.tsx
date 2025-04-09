@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn, signInWithGoogle } from '@/components/auth/authService';
 import AuthCard from '@/components/auth/AuthCard';
 import GoogleButton from '@/components/auth/GoogleButton';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
+  const { signIn, signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +22,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const userCredential = await signIn(email, password);
-      console.log('Login successful:', userCredential.user.uid);
+      await signIn(email, password);
       router.push('/');
     } catch (err: unknown) {
       console.error('Login error:', err);

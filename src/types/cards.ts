@@ -144,3 +144,10 @@ export interface SearchResultCard {
   cardName: string;
   cardIssuer: string;
 }
+
+export interface CardData extends CreditCardDetails {
+  cardId: string;
+  lastFour: string;
+  type: 'credit' | 'debit';
+  dateAdded: Date;
+}

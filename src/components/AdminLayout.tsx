@@ -4,18 +4,19 @@ import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { isAdmin } from '@/utils/adminConfig';
+import { User } from 'firebase/auth';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!user || !isAdmin(user.email)) {
+    if (!user || !isAdmin(user as User)) {
       router.push('/');
     }
   }, [user, router]);
 
-  if (!user || !isAdmin(user.email)) {
+  if (!user || !isAdmin(user as User)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

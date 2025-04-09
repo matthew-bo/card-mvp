@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server';
 import cardDataService from '@/services/cardDataService';
 
-// Define an interface for the card data structure
-interface CardSearchResult {
-  cardKey: string;
-  cardName: string;
-  cardIssuer: string;
-}
-
 export const dynamic = 'force-dynamic';
 
 // Set a reasonable timeout for search operations

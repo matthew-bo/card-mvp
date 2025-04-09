@@ -5,7 +5,7 @@ import Link from 'next/link';
 // Import from both places to ensure compatibility
 import { storeCardData } from '@/utils/cardStorage';
 import { useAuth } from '@/components/AuthProvider';
-import { CreditCardDetails } from '@/types/cards';
+import { CreditCardDetails, CardData } from '@/types/cards';
 import { CardDisplay } from '@/components/CardDisplay';
 import CardSearch from '@/components/CardSearch';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -110,11 +110,29 @@ export default function CardsPage() {
     setError(null);
 
     try {
-      const cardData = {
+      const cardData: CardData = {
         cardId: selectedCardKey,
         lastFour: "1234", // You'll need to get this from user input
         type: "credit",
-        dateAdded: new Date()
+        dateAdded: new Date(),
+        id: selectedCardKey,
+        name: '',
+        issuer: '',
+        rewardRates: {
+          dining: 0,
+          travel: 0,
+          grocery: 0,
+          gas: 0,
+          entertainment: 0,
+          rent: 0,
+          other: 0
+        },
+        annualFee: 0,
+        creditScoreRequired: 'good',
+        perks: [],
+        foreignTransactionFee: false,
+        categories: [],
+        description: ''
       };
   
       await storeCardData(user?.uid || 'temp-user-id', cardData);

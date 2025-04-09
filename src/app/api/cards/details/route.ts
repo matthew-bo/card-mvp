@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestore, doc, getDoc, collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db, FIREBASE_COLLECTIONS } from '@/lib/firebase';
 
 export async function GET(request: NextRequest) {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           acc[card.id] = card;
         }
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, unknown>);
     
     console.log(`Successfully batch fetched ${Object.keys(cardMap).length} cards`);
     

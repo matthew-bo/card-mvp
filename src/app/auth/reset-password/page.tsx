@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { resetPassword } from '@/utils/auth/authService';
 import AuthCard from '@/components/auth/AuthCard';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('');
@@ -17,16 +18,18 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      await resetPassword(email);
+      await sendPasswordResetEmail(auth, email);
       setSuccess(true);
     } catch (err: unknown) {
       console.error('Reset password error:', err);
-      const error = err as Error;
+      const error = err as { message: string; code?: string };
       
-      if (error.message.includes('user-not-found')) {
+      if (error.code === 'auth/user-not-found') {
         // Don't reveal if the email exists for security reasons
         // Still show success to prevent email enumeration attacks
         setSuccess(true);
+      } else if (error.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
       } else {
         setError('Error sending password reset email: ' + error.message);
       }
