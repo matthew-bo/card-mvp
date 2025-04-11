@@ -10,7 +10,7 @@ export default function ContactPage() {
       <Navigation />
       
       <PageTransition>
-        <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto px-6 py-24">
           <h1 className="text-4xl font-bold text-gray-900 mb-8">Contact Us</h1>
           <div className="bg-white p-8 rounded-lg shadow-sm">
             <form className="max-w-xl mx-auto space-y-6">

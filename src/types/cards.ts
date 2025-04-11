@@ -30,15 +30,16 @@ export interface CreditCardDetails {
   id: string;
   name: string;
   issuer: string;
-  rewardRates: RewardRates;
-  annualFee: number;
-  creditScoreRequired: CreditScoreType;
-  perks: string[];
+  rewardRates?: RewardRates;
+  annualFee?: number;
+  creditScoreRequired?: CreditScoreType;
+  perks?: string[];
   signupBonus?: SignupBonus;
-  foreignTransactionFee: boolean;
-  categories: string[];
-  description: string;
+  foreignTransactionFee?: boolean;
+  categories?: string[];
+  description?: string;
   cardType?: 'business' | 'personal';
+  isLoading?: boolean;
 }
 
 export interface RecommendedCard {
@@ -103,13 +104,22 @@ export interface ApiResponse<T> {
   source?: 'cache' | 'firebase' | 'api' | 'none';
 }
 
+export type CardType = 'personal' | 'business' | 'both';
+
 // User preferences stored in database
 export interface UserPreferences {
-  userId: string;
+  userId?: string;
   optimizationPreference: OptimizationPreference;
   creditScore: CreditScoreType;
   zeroAnnualFee: boolean;
-  updatedAt: Date;
+  updatedAt?: Date;
+  annualIncome?: number;
+  monthlySpend?: number;
+  travelFrequency?: 'never' | 'rarely' | 'sometimes' | 'frequently';
+  preferredCategories?: string[];
+  preferredCardType?: CardType;
+  preferredAnnualFee?: 'any' | 'zero' | 'low' | 'high';
+  preferredRewardType?: 'all' | 'points' | 'cashback' | 'miles';
 }
 
 // Database card reference
@@ -150,4 +160,12 @@ export interface CardData extends CreditCardDetails {
   lastFour: string;
   type: 'credit' | 'debit';
   dateAdded: Date;
+}
+
+export interface Expense {
+  id: string;
+  amount: number;
+  category: string;
+  date: Date;
+  userId: string;
 }

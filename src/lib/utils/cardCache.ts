@@ -61,6 +61,46 @@ class CardCacheManager {
   }
 
   /**
+   * Get all cards from cache
+   */
+  getAllCards(): CreditCardDetails[] | null {
+    if (!this.initialized && typeof window !== 'undefined') {
+      this.loadFromStorage();
+      this.initialized = true;
+    }
+
+    const entries = Object.entries(this.cache);
+    if (entries.length === 0) return null;
+
+    return entries
+      .filter(([, entry]) => Date.now() - entry.timestamp <= CACHE_EXPIRATION)
+      .map(([, entry]) => entry.card);
+  }
+
+  /**
+   * Set all cards in cache
+   */
+  setAllCards(cards: CreditCardDetails[]): void {
+    if (!this.initialized && typeof window !== 'undefined') {
+      this.loadFromStorage();
+      this.initialized = true;
+    }
+
+    // Clear existing cache
+    this.cache = {};
+
+    // Add all cards to cache
+    cards.forEach(card => {
+      this.cache[card.id] = {
+        card,
+        timestamp: Date.now()
+      };
+    });
+
+    this.saveToStorage();
+  }
+
+  /**
    * Load cache from localStorage
    */
   private loadFromStorage(): void {

@@ -1,6 +1,6 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db, FIREBASE_COLLECTIONS } from '@/lib/firebase';
-import { CreditCardDetails, ApiResponse, SearchResultCard } from '@/types/cards';
+import { CreditCardDetails, ApiResponse, SearchResultCard, RewardRates, CreditScoreType } from '@/types/cards';
 
 // Add simple isBrowser helper inline to avoid dependency issues
 const isBrowser = () => typeof window !== 'undefined';
@@ -160,6 +160,219 @@ class CardDataService {
     );
   }
 
+  private validateAndNormalizeCard(card: any): CreditCardDetails | null {
+    try {
+      if (!card || !card.id || !card.name || !card.issuer) {
+        console.warn(`Invalid card data: Missing basic properties`, card);
+        return null;
+      }
+
+      // Ensure all required properties have valid values
+      const normalizedCard: CreditCardDetails = {
+        id: card.id,
+        name: card.name,
+        issuer: card.issuer,
+        rewardRates: card.rewardRates || {
+          dining: 1,
+          travel: 1,
+          grocery: 1,
+          gas: 1,
+          entertainment: 1,
+          rent: 1,
+          other: 1,
+          base: 1
+        },
+        annualFee: typeof card.annualFee === 'number' ? card.annualFee : 0,
+        creditScoreRequired: card.creditScoreRequired || 'good',
+        perks: Array.isArray(card.perks) ? card.perks : [],
+        foreignTransactionFee: typeof card.foreignTransactionFee === 'boolean' ? card.foreignTransactionFee : true,
+        categories: Array.isArray(card.categories) ? card.categories : [],
+        description: card.description || `${card.name} from ${card.issuer}`,
+        cardType: card.cardType || 'personal'
+      };
+
+      return normalizedCard;
+    } catch (error) {
+      console.error(`Error validating card:`, error);
+      return null;
+    }
+  }
+
+  private mapFirebaseCardToCardDetails(firebaseCard: any): CreditCardDetails | null {
+    try {
+      if (!firebaseCard || !firebaseCard.cardKey || !firebaseCard.cardName || !firebaseCard.cardIssuer) {
+        console.warn(`Invalid card data: Missing basic properties`, firebaseCard);
+        return null;
+      }
+
+      // Map spend bonus categories to reward rates
+      const rewardRates: RewardRates = {
+        dining: 1,
+        travel: 1,
+        grocery: 1,
+        gas: 1,
+        entertainment: 1,
+        rent: 1,
+        other: firebaseCard.baseSpendEarnValuation || 1,
+        base: firebaseCard.baseSpendEarnValuation || 1
+      };
+
+      // Process spend bonus categories
+      if (Array.isArray(firebaseCard.spendBonusCategory)) {
+        firebaseCard.spendBonusCategory.forEach((bonus: any) => {
+          const category = bonus.spendBonusCategoryGroup?.toLowerCase();
+          if (category && bonus.earnMultiplier) {
+            switch (category) {
+              case 'dining':
+                rewardRates.dining = bonus.earnMultiplier;
+                break;
+              case 'travel':
+              case 'airlines':
+              case 'hotels':
+                rewardRates.travel = Math.max(rewardRates.travel, bonus.earnMultiplier);
+                break;
+              case 'grocery':
+              case 'supermarket':
+                rewardRates.grocery = bonus.earnMultiplier;
+                break;
+              case 'auto':
+              case 'gas stations':
+                rewardRates.gas = bonus.earnMultiplier;
+                break;
+              case 'entertainment':
+                rewardRates.entertainment = bonus.earnMultiplier;
+                break;
+            }
+          }
+        });
+      }
+
+      // Extract perks from benefits array
+      const perks: string[] = [];
+      if (Array.isArray(firebaseCard.benefit)) {
+        firebaseCard.benefit.forEach((benefit: any) => {
+          if (benefit.benefitDesc) {
+            perks.push(benefit.benefitDesc);
+          }
+        });
+      }
+
+      // Add special perks based on flags
+      if (firebaseCard.isFreeCheckedBag) perks.push('Free Checked Bag');
+      if (firebaseCard.isFreeHotelNight) perks.push('Free Hotel Night');
+      if (firebaseCard.isLoungeAccess) perks.push('Airport Lounge Access');
+      if (firebaseCard.isTrustedTraveler) perks.push('Trusted Traveler Credit');
+
+      // Extract categories
+      const categories = new Set<string>();
+      if (firebaseCard.categoryType) {
+        categories.add(firebaseCard.categoryType.toLowerCase());
+      }
+      if (Array.isArray(firebaseCard.spendBonusCategory)) {
+        firebaseCard.spendBonusCategory.forEach((bonus: any) => {
+          if (bonus.spendBonusCategoryGroup) {
+            categories.add(bonus.spendBonusCategoryGroup.toLowerCase());
+          }
+        });
+      }
+
+      // Map credit score
+      const creditScoreMap: Record<string, CreditScoreType> = {
+        'Excellent': 'excellent',
+        'Good to Excellent': 'excellent',
+        'Good': 'good',
+        'Fair to Good': 'good',
+        'Fair': 'fair',
+        'Poor': 'poor'
+      };
+
+      const cardDetails: CreditCardDetails = {
+        id: firebaseCard.cardKey,
+        name: firebaseCard.cardName,
+        issuer: firebaseCard.cardIssuer,
+        rewardRates,
+        annualFee: firebaseCard.annualFee || 0,
+        creditScoreRequired: creditScoreMap[firebaseCard.creditRange] || 'good',
+        perks,
+        foreignTransactionFee: Boolean(firebaseCard.isFxFee),
+        categories: Array.from(categories),
+        description: firebaseCard.spendBonusDesc || `${firebaseCard.cardName} from ${firebaseCard.cardIssuer}`,
+        cardType: firebaseCard.cardType?.toLowerCase() === 'business' ? 'business' : 'personal'
+      };
+
+      // Add signup bonus if present
+      if (firebaseCard.isSignupBonus) {
+        cardDetails.signupBonus = {
+          amount: Number(firebaseCard.signupBonusAmount) || 0,
+          type: firebaseCard.signupBonusType?.toLowerCase() || 'cashback',
+          spendRequired: firebaseCard.signupBonusSpend || 0,
+          timeframe: firebaseCard.signupBonusLength || 3,
+          description: firebaseCard.signupBonusDesc || ''
+        };
+      }
+
+      return cardDetails;
+    } catch (error) {
+      console.error(`Error mapping Firebase card:`, error);
+      return null;
+    }
+  }
+
+  private mapCreditScore(creditRange: string): CreditScoreType {
+    if (!creditRange) return 'good';
+    const range = creditRange.toLowerCase();
+    if (range.includes('excellent')) return 'excellent';
+    if (range.includes('good')) return 'good';
+    if (range.includes('fair')) return 'fair';
+    return 'poor';
+  }
+
+  private extractPerks(card: any): string[] {
+    const perks: string[] = [];
+    
+    // Add benefits
+    if (Array.isArray(card.benefit)) {
+      card.benefit.forEach((benefit: any) => {
+        if (benefit.benefitDesc) {
+          perks.push(benefit.benefitDesc);
+        }
+      });
+    }
+
+    // Add other perks based on flags
+    if (card.isFreeCheckedBag) perks.push('Free Checked Bag');
+    if (card.isFreeHotelNight) perks.push('Free Hotel Night');
+    if (card.isLoungeAccess) perks.push('Airport Lounge Access');
+    if (card.isTrustedTraveler) perks.push('Trusted Traveler Credit');
+
+    return perks;
+  }
+
+  private extractCategories(card: any): string[] {
+    const categories = new Set<string>();
+
+    // Add base categories
+    if (card.categoryType) {
+      categories.add(card.categoryType.toLowerCase());
+    }
+
+    // Add categories from spend bonus
+    if (Array.isArray(card.spendBonusCategory)) {
+      card.spendBonusCategory.forEach((bonus: any) => {
+        if (bonus.spendBonusCategoryGroup) {
+          categories.add(bonus.spendBonusCategoryGroup.toLowerCase());
+        }
+      });
+    }
+
+    // Add special categories
+    if (!card.annualFee) categories.add('no-annual-fee');
+    if (card.cardType?.toLowerCase() === 'business') categories.add('business');
+    if (!card.isFxFee) categories.add('no-foreign-transaction-fee');
+
+    return Array.from(categories);
+  }
+
   public async getAllCards(): Promise<ApiResponse<CreditCardDetails[]>> {
     try {
       // If we have cached data, return it immediately
@@ -168,7 +381,7 @@ class CardDataService {
         return { success: true, data: this.cardsCache };
       }
       
-      // Check if fetch is already in progress, avoid duplicate requests
+      // Check if fetch is already in progress
       if (this.fetchInProgress) {
         console.log('🔍 CardDataService: Fetch already in progress, reusing promise');
         return this.fetchInProgress;
@@ -180,8 +393,6 @@ class CardDataService {
       const { cards: cachedCards, timestamp } = this.loadCacheFromStorage();
       if (cachedCards) {
         this.cardsCache = cachedCards;
-        
-        // Index cards by ID for faster lookups
         this.cardDetailsCache = {};
         cachedCards.forEach(card => {
           if (card.id) {
@@ -189,73 +400,49 @@ class CardDataService {
           }
         });
         
-        console.log(`🔍 CardDataService: Loaded ${cachedCards.length} cards from cache (from ${new Date(timestamp || 0).toLocaleString()})`);
-        
-        // Still refresh in background if cache is older than 12 hours
-        const cacheAge = Date.now() - (timestamp || 0);
-        if (cacheAge > 12 * 60 * 60 * 1000) {
-          console.log('Cache is older than 12 hours, refreshing in background');
-          this.refreshCardsInBackground();
-        }
-        
         return { success: true, data: cachedCards };
       }
       
       // Otherwise fetch from Firestore
-      // Check if Firestore is initialized
       if (!db) {
         console.error('❌ CardDataService: Firestore is not initialized');
         return { success: false, error: 'Firestore is not initialized' };
       }
 
-      console.log('🔍 CardDataService: Firestore is initialized, fetching cards...');
-      
-      // Create a fetch promise and store it to prevent duplicate fetches
       this.fetchInProgress = new Promise(async (resolve) => {
         try {
-          // Fetch from Firestore
           const cardsRef = collection(db, FIREBASE_COLLECTIONS.CREDIT_CARDS);
           const snapshot = await getDocs(cardsRef);
           
-          console.log(`🔍 CardDataService: Got snapshot with ${snapshot.size} documents`);
-          
           if (snapshot.empty) {
-            console.warn('⚠️ CardDataService: No cards found in Firestore');
             resolve({ success: true, data: [] });
             return;
           }
 
-          const cards = snapshot.docs.map(doc => ({
-            id: doc.id,
+          const rawCards = snapshot.docs.map(doc => ({
+            cardKey: doc.id,
             ...doc.data()
-          })) as CreditCardDetails[];
+          }));
 
-          console.log(`🔍 CardDataService: Mapped ${cards.length} cards`);
+          // Map Firebase cards to our format
+          const validCards = rawCards
+            .map(card => this.mapFirebaseCardToCardDetails(card))
+            .filter((card): card is CreditCardDetails => card !== null);
 
-          if (cards.length === 0) {
-            console.warn('⚠️ CardDataService: No valid cards found after mapping');
-            resolve({ success: true, data: [] });
-            return;
-          }
+          console.log(`🔍 CardDataService: Mapped ${validCards.length} cards out of ${rawCards.length} total`);
 
-          // Update cache and indexes
-          this.cardsCache = cards;
+          // Update cache
+          this.cardsCache = validCards;
           this.lastFetchTime = Date.now();
           this.cardDetailsCache = {};
-          
-          // Index cards by ID for faster lookup
-          cards.forEach(card => {
+          validCards.forEach(card => {
             this.cardDetailsCache[card.id] = card;
           });
           
           // Save to localStorage
-          this.saveCacheToStorage(cards);
-          
-          // Clear search cache when we get new cards
-          this.searchResultsCache = {};
+          this.saveCacheToStorage(validCards);
 
-          console.log('✅ CardDataService: Successfully fetched cards');
-          resolve({ success: true, data: cards });
+          resolve({ success: true, data: validCards });
         } catch (error) {
           console.error('❌ CardDataService: Error fetching all cards:', error);
           resolve({ 
@@ -263,7 +450,6 @@ class CardDataService {
             error: error instanceof Error ? error.message : 'Failed to fetch cards'
           });
         } finally {
-          // Clear the in-progress promise
           this.fetchInProgress = null;
         }
       });
@@ -271,9 +457,6 @@ class CardDataService {
       return this.fetchInProgress;
     } catch (error) {
       console.error('❌ CardDataService: Error in getAllCards:', error);
-      // Reset the in-progress promise in case of error
-      this.fetchInProgress = null;
-      
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to fetch cards'

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { User } from 'firebase/auth';
-import { useFirebase } from '@/lib/contexts/FirebaseContext';
+import { useFirebase } from '@/contexts/FirebaseContext';
 
 interface AuthContextType {
   user: User | null;
@@ -19,12 +19,32 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { user, loading, signIn, signUp, signInWithGoogle, logout, updateUserProfile, updateUserEmail, updateUserPassword } = useFirebase();
+  const { 
+    user, 
+    loading, 
+    signIn, 
+    signUp, 
+    signInWithGoogle, 
+    logout, 
+    updateUserProfile, 
+    updateUserEmail, 
+    updateUserPassword 
+  } = useFirebase();
 
   console.log('[DEBUG] AuthProvider state:', { user, loading });
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, logout, updateUserProfile, updateUserEmail, updateUserPassword }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signIn, 
+      signUp, 
+      signInWithGoogle, 
+      logout, 
+      updateUserProfile, 
+      updateUserEmail, 
+      updateUserPassword 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 // src/lib/cardRecommendations.ts
 import { CreditCardDetails, OptimizationSettings, OptimizationPreference, CreditScoreType } from '@/types/cards';
 import { getPointValue } from '../utils/pointsConverter';
+import { LoadedExpense } from '@/types/cards';
 
 interface SpendingAnalysis {
   totalSpend: number;
@@ -67,6 +68,30 @@ const CREDIT_SCORE_MAP = {
   excellent: 4
 } as const;
 
+// Add these type definitions at the top of the file, near other interfaces
+interface RecommendationOptions {
+  expenses: LoadedExpense[];
+  currentCards: CreditCardDetails[];
+  optimizationSettings: {
+    preference: OptimizationPreference;
+    zeroAnnualFee: boolean;
+  };
+  creditScore: 'poor' | 'fair' | 'good' | 'excellent';
+  excludeCardIds: string[];
+  availableCards: CreditCardDetails[];
+}
+
+interface RecommendedCard {
+  card: CreditCardDetails;
+  score: number;
+  reason: string;
+  matchPercentage?: number;
+  potentialAnnualValue?: number;
+  complementScore?: number;
+  longTermValue?: number;
+  portfolioContribution?: any;
+}
+
 // Determine how complementary a card is to an existing portfolio
 function calculateComplementScore(
   card: CreditCardDetails, 
@@ -83,7 +108,7 @@ function calculateComplementScore(
   for (const category of Object.keys(spendingAnalysis.categoryPercentages)) {
     portfolioBestRates[category] = Math.max(
       0,
-      ...currentCards.map(c => c.rewardRates[category as CategoryKey] || 0)
+      ...currentCards.map(c => (c.rewardRates?.[category as CategoryKey] ?? 0))
     );
   }
   
@@ -95,7 +120,7 @@ function calculateComplementScore(
   
   for (const { category, percentage } of spendingAnalysis.categoryRank) {
     const currentBestRate = portfolioBestRates[category] || 0;
-    const newRate = card.rewardRates[category as CategoryKey] || 0;
+    const newRate = card.rewardRates?.[category as CategoryKey] ?? 0;
     
     if (newRate > currentBestRate) {
       // Weight the improvement by spending percentage in that category
@@ -120,8 +145,8 @@ function calculateComplementScore(
   }
   
   // Perks coverage bonus - reward cards that provide new perks
-  const currentPerks = new Set(currentCards.flatMap(c => c.perks));
-  const newPerks = card.perks.filter(perk => !currentPerks.has(perk));
+  const currentPerks = new Set(currentCards.flatMap(c => c.perks ?? []));
+  const newPerks = (card.perks ?? []).filter(perk => !currentPerks.has(perk));
   
   if (newPerks.length > 0) {
     complementScore += Math.min(newPerks.length * 5, 15);
@@ -135,8 +160,8 @@ function calculateComplementScore(
   }
   
   // Foreign transaction fee coverage - valuable if portfolio doesn't have it
-  const hasNoForeignFeeCard = currentCards.some(c => !c.foreignTransactionFee);
-  if (!hasNoForeignFeeCard && !card.foreignTransactionFee) {
+  const hasNoForeignFeeCard = currentCards.some(c => c.foreignTransactionFee === false);
+  if (!hasNoForeignFeeCard && card.foreignTransactionFee === false) {
     complementScore += 15;
     contributions.push('Adds no foreign transaction fee coverage');
   }
@@ -505,313 +530,338 @@ function generateCardReason(
   return "Good all-around value for your spending habits";
 }
 
-export function getCardRecommendations(params: RecommendationParams): ScoredCard[] {
-  try {
-    const { expenses, currentCards, optimizationSettings, creditScore = 'good', excludeCardIds = [], availableCards } = params;
-    const spendingAnalysis = analyzeSpending(expenses);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const portfolioAnalysis = analyzeCardPortfolio(currentCards);
+// Helper function to analyze category coverage
+function analyzeCardCategoryStrengths(card: CreditCardDetails, spendingAnalysis: SpendingAnalysis): {
+  coveredCategories: string[];
+  bestCategories: string[];
+  avgRate: number;
+  baseRate: number;
+} {
+  if (!card.rewardRates) {
+    return {
+      coveredCategories: [],
+      bestCategories: [],
+      avgRate: 0,
+      baseRate: 1
+    };
+  }
+  
+  // Get all reward categories with rates
+  const categoryRates = Object.entries(card.rewardRates)
+    .filter(([_, rate]) => !isNaN(Number(rate)) && Number(rate) > 0)
+    .map(([category, rate]) => ({ category, rate: Number(rate) }));
+  
+  // Calculate average rate
+  const avgRate = categoryRates.length > 0
+    ? categoryRates.reduce((sum, item) => sum + item.rate, 0) / categoryRates.length
+    : 0;
+  
+  // Find base/other rate
+  const baseRate = card.rewardRates.other || 1;
+  
+  // Check which top spending categories are covered well by this card
+  const coveredCategories = spendingAnalysis.highSpendCategories.filter(category => {
+    const rate = card.rewardRates[category as keyof typeof card.rewardRates];
+    return rate && rate > baseRate;
+  });
+  
+  // Find card's best categories
+  const bestCategories = categoryRates
+    .filter(item => item.rate > baseRate)
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 3)
+    .map(item => item.category);
+  
+  return {
+    coveredCategories,
+    bestCategories,
+    avgRate,
+    baseRate
+  };
+}
 
-    if (!Array.isArray(currentCards)) {
-      throw new Error('Invalid current cards array');
+// Score card based on optimization preference and spending pattern
+function scoreCard(card: CreditCardDetails, spendingAnalysis: SpendingAnalysis, preference: OptimizationPreference): {
+  score: number;
+  reason: string;
+} {
+  try {
+    // Validate required card properties
+    if (!card || !card.rewardRates || !card.name || typeof card.annualFee !== 'number') {
+      console.warn(`Invalid card data for scoring: ${card?.id || 'unknown'}`);
+      return { score: 0, reason: 'Invalid card data' };
     }
 
-    // Use provided availableCards or fallback to an empty array
-    const cardsToFilter = availableCards || [];
+    // Log card being scored
+    console.log(`Scoring card: ${card.name} (${card.id})`);
     
-    if (cardsToFilter.length === 0) {
-      console.warn('No available cards to recommend');
+    // Analyze card category strengths
+    const { coveredCategories, bestCategories, avgRate, baseRate } = 
+      analyzeCardCategoryStrengths(card, spendingAnalysis);
+    
+    // Initialize scoring variables
+    let score = 0;
+    let reasons: string[] = [];
+    
+    // Points optimization
+    if (preference === 'points') {
+      // Value cards that cover top spending categories
+      if (coveredCategories.length > 0) {
+        score += 20 + (coveredCategories.length * 10);
+        reasons.push(`Covers ${coveredCategories.length} of your top spending categories`);
+      } 
+      // Also value cards with good average rewards
+      else if (avgRate > 1.5) {
+        score += 15 + (avgRate * 10);
+        reasons.push(`Offers an average of ${avgRate.toFixed(1)}% rewards`);
+      }
+    }
+    // Cashback optimization
+    else if (preference === 'cashback') {
+      // Value cards with good base cashback rate
+      if (baseRate >= 1.5) {
+        score += 15 + (baseRate * 10);
+        reasons.push(`Offers ${baseRate}% base cashback`);
+      }
+      
+      // Also value category coverage
+      if (coveredCategories.length > 0) {
+        score += 15 + (coveredCategories.length * 10);
+        reasons.push(`Covers ${coveredCategories.length} of your top spending categories`);
+      }
+    }
+    // Travel optimization
+    else if (preference === 'travel') {
+      // Value travel rewards
+      const travelRate = card.rewardRates.travel || 0;
+      if (travelRate > 1) {
+        score += 15 + (travelRate * 10);
+        reasons.push(`Offers ${travelRate}X travel rewards`);
+      }
+      
+      // Check for travel perks
+      const travelPerks = (card.perks || []).filter(perk => 
+        perk.toLowerCase().includes('travel') || 
+        perk.toLowerCase().includes('lounge') ||
+        perk.toLowerCase().includes('global') ||
+        perk.toLowerCase().includes('hotel')
+      );
+      
+      if (travelPerks.length > 0) {
+        score += 10 + (travelPerks.length * 5);
+        reasons.push(`Offers ${travelPerks.length} travel perks`);
+      }
+      
+      // No foreign transaction fee is valuable for travel
+      if (card.foreignTransactionFee === false) {
+        score += 10;
+        reasons.push('No foreign transaction fees');
+      }
+    }
+    
+    // If no specific optimization matched, use a default
+    if (score === 0 || reasons.length === 0) {
+      // Default scoring - average rate
+      if (avgRate > 1) {
+        score += 10 + (avgRate * 5);
+        reasons.push(`Offers an average of ${avgRate.toFixed(1)}% rewards`);
+      } else {
+        // Last resort - give some score to no annual fee cards
+        if (card.annualFee === 0) {
+          score += 15;
+          reasons.push('No annual fee');
+        } else {
+          score += 5;
+          reasons.push('General rewards card');
+        }
+      }
+    }
+    
+    // Adjust score based on annual fee
+    if (card.annualFee > 0) {
+      // Reduce score slightly for high annual fee cards
+      const feePenalty = Math.min(15, card.annualFee / 20);
+      score = Math.max(0, score - feePenalty);
+    } else {
+      // Bonus for no annual fee
+      score += 10;
+    }
+    
+    // Add a small randomness factor (0.01-0.99) to break ties
+    score += Math.random();
+    
+    // Return combined score and primary reason
+    return { 
+      score: Math.max(0, score), // Ensure score is never negative
+      reason: reasons[0] || 'General rewards card'
+    };
+  } catch (error) {
+    console.error(`Error scoring card ${card?.id || 'unknown'}:`, error);
+    return { score: 0, reason: 'Error in scoring calculation' };
+  }
+}
+
+export function getCardRecommendations({
+  expenses,
+  currentCards,
+  optimizationSettings,
+  creditScore,
+  excludeCardIds = [],
+  availableCards
+}: RecommendationOptions): RecommendedCard[] {
+  try {
+    console.log('Starting card recommendation process...');
+    console.log('Input validation:', {
+      availableCardsCount: availableCards?.length || 0,
+      currentCardsCount: currentCards?.length || 0,
+      excludeCardIdsCount: excludeCardIds?.length || 0,
+      expensesCount: expenses?.length || 0,
+      creditScore,
+      optimizationSettings
+    });
+
+    // Guard against missing input data
+    if (!availableCards || availableCards.length === 0) {
+      console.warn('No cards available for recommendations');
       return [];
     }
 
-    // Log the number of available cards for debugging
-    console.log(`Filtering recommendations from ${cardsToFilter.length} available cards`);
+    // Validate card data structure - Only require id, name, and issuer
+    const invalidCards = availableCards.filter(card => 
+      !card?.name || !card?.id || !card?.issuer
+    );
+    if (invalidCards.length > 0) {
+      console.error('Found invalid cards:', invalidCards);
+    }
 
-    // Filter available cards
-    const filteredCards = cardsToFilter.filter(cardItem => {
-      // Filter out cards user already has
-      if (currentCards.some(userCard => userCard.id === cardItem.id)) {
+    // Ensure we have arrays even if null/undefined passed
+    const safeCurrentCards = currentCards || [];
+    const safeExcludeCardIds = excludeCardIds || [];
+    const safeExpenses = expenses || [];
+  
+    // Get spending analysis
+    const spendingAnalysis = analyzeSpending(safeExpenses);
+  
+    // Basic filtering to remove cards user already has or marked as not interested
+    const currentCardIds = new Set(safeCurrentCards.map(card => card.id));
+    let filteredCards = availableCards.filter(card => {
+      // Simpler card validation - require only name, id, and issuer
+      if (!card || !card.id || !card.name || !card.issuer) {
+        console.warn('Skipping invalid card:', card?.id || 'unknown', 'Missing required properties');
+        return false;
+      }
+      return !currentCardIds.has(card.id) && !safeExcludeCardIds.includes(card.id);
+    });
+    console.log('After basic filtering (only current/not-interested cards removed):', filteredCards.length);
+  
+    // Secondary filtering (credit score & annual fee)
+    filteredCards = filteredCards.filter(card => {
+      // Handle missing or malformed card data with safer defaults
+      if (!card) {
         return false;
       }
       
-      // Filter out not interested cards
-      if (excludeCardIds.includes(cardItem.id)) {
+      // Credit score filtering - Using safer defaults if fields are missing
+      const cardScoreRequired = card.creditScoreRequired?.toLowerCase() || 'excellent';
+      const userScore = creditScore?.toLowerCase() || 'poor';
+      
+      // Define the credit score hierarchy
+      const scoreHierarchy = {
+        'poor': 1,
+        'fair': 2,
+        'good': 3,
+        'excellent': 4
+      };
+      
+      // Get numeric values for comparison
+      const cardScoreValue = scoreHierarchy[cardScoreRequired as keyof typeof scoreHierarchy] || 4;
+      const userScoreValue = scoreHierarchy[userScore as keyof typeof scoreHierarchy] || 1;
+      
+      // User score must be >= card required score
+      if (userScoreValue < cardScoreValue) {
         return false;
       }
       
-      // Credit score check - make this stricter
-      const requiredScore = CREDIT_SCORE_MAP[cardItem.creditScoreRequired] || CREDIT_SCORE_MAP.good;
-      const userScoreValue = CREDIT_SCORE_MAP[creditScore] || CREDIT_SCORE_MAP.good;
-      if (userScoreValue < requiredScore) {
-        return false; // Don't show cards that require better credit than user has
-      }
-      
-      // Annual fee check - enforce strictly
-      if (optimizationSettings.zeroAnnualFee && cardItem.annualFee > 0) {
-        return false;
+      // Annual fee filtering (if user wants zero annual fee)
+      if (optimizationSettings.zeroAnnualFee) {
+        // Consider cards with annual fee under $1 as effectively zero annual fee
+        // Also handle undefined annual fee gracefully
+        const annualFee = card.annualFee ?? 0;
+        if (annualFee > 1) {
+          return false;
+        }
       }
       
       return true;
     });
-
-    // Log filtered cards count
-    console.log(`After filtering, ${filteredCards.length} cards remain as candidates`);
-
-
-    // Optimization preference weights - amplify user's chosen preference
-    type PreferenceWeights = {
-      [key in OptimizationPreference]: {
-        rewards: number;
-        perks: number;
-        value: number;
-        signup: number;
-        complement: number;
-        longTerm: number;
-      }
-    };
-    
-    const preferenceWeights: PreferenceWeights = {
-      points: {
-        rewards: 0.35,
-        perks: 0.15,
-        value: 0.15,
-        signup: 0.15,
-        complement: 0.1,
-        longTerm: 0.1
-      },
-      cashback: {
-        rewards: 0.3,
-        perks: 0.1,
-        value: 0.25,
-        signup: 0.15,
-        complement: 0.1,
-        longTerm: 0.1
-      },
-      perks: {
-        rewards: 0.2,
-        perks: 0.35,
-        value: 0.1,
-        signup: 0.15,
-        complement: 0.1,
-        longTerm: 0.1
-      },
-      travel: {
-        rewards: 0.3,
-        perks: 0.2,
-        value: 0.15,
-        signup: 0.15,
-        complement: 0.1,
-        longTerm: 0.1
-      },
-      business: {
-        rewards: 0.3,
-        perks: 0.15,
-        value: 0.2,
-        signup: 0.15,
-        complement: 0.1,
-        longTerm: 0.1
-      },
-      creditScore: {
-        rewards: 0.25,
-        perks: 0.15,
-        value: 0.2,
-        signup: 0.15,
-        complement: 0.15,
-        longTerm: 0.1
-      }
-    };
-
-    const weights = preferenceWeights[optimizationSettings.preference];
-
-    // Score all available cards
-    const scoredCards: ScoredCard[] = filteredCards.map(cardItem => {
-      // Start with base score components
-      let preferenceScore = 0;
-      let spendingScore = 0;
-      let valueScore = 0;
-      let signupScore = 0;
-      let perksScore = 0; // Added perksScore
-      let matchFactors = 0;
-      const reasons: string[] = [];
-
-      // 1. Preference Matching Score - increase weight substantially
-      if (cardItem.categories.includes(optimizationSettings.preference)) {
-        preferenceScore += weights.rewards * 3; // Triple the weight for stronger preference matching
-        matchFactors++;
-        reasons.push(`Optimizes for ${optimizationSettings.preference}`);
-      }
-
-      // Add specific handling for each preference type
-      if (optimizationSettings.preference === 'points' && 
-          (cardItem.categories.includes('points') || cardItem.categories.includes('travel'))) {
-        preferenceScore += weights.rewards * 2; // Additional boost for points cards
-      }
-
-      if (optimizationSettings.preference === 'cashback' && 
-          cardItem.categories.includes('cashback')) {
-        preferenceScore += weights.rewards * 2; // Additional boost for cashback cards
-      }
-
-      if (optimizationSettings.preference === 'perks' && 
-          cardItem.perks.length > 3) {
-        preferenceScore += weights.rewards * 2; // Additional boost for cards with many perks
-      }
-
-      if (optimizationSettings.preference === 'creditScore' && 
-          cardItem.annualFee === 0) {
-        preferenceScore += weights.rewards * 2; // For credit building, prefer no annual fee cards
-      }
-
-      // 2. Spending Pattern Analysis - dynamically weighted by category importance
-      let categoryMatchScore = 0;
-      const matchedCategories: string[] = [];
-      const topSpendingCategories = spendingAnalysis.categoryRank.slice(0, 3); // Get top 3 spending categories
-      
-      for (const { category, percentage } of topSpendingCategories) {
-        const rewardRate = cardItem.rewardRates[category as CategoryKey] || 0;
-        
-        // Significantly boost score for cards that are strong in top spending categories
-        if (rewardRate > 2) {
-          // Weight by both the reward rate and the spending percentage
-          categoryMatchScore += (rewardRate * percentage / 100) * 5; // Increase this multiplier
-          matchedCategories.push(category);
-          
-          // Add specific reasoning
-          if (percentage > 20) {
-            reasons.push(`Strong ${rewardRate}x rewards in ${category}, your highest spending category`);
-          } else {
-            reasons.push(`Good ${rewardRate}x rewards in ${category}`);
-          }
-        }
-      }
-      
-  // Add the categoryMatchScore to spendingScore
-  spendingScore += categoryMatchScore;
-
-  // Keep your original perksScore calculation logic here
-  // For example:
-  if (cardItem.perks.length > 0) {
-    perksScore = Math.min(cardItem.perks.length * 5, weights.perks);
-  }
-
-      // 4. Value Proposition
-      const annualRewardsEstimate = spendingAnalysis.categoryRank.reduce((sum, { category, percentage }) => {
-        const spend = (spendingAnalysis.monthlyAverage * 12) * (percentage / 100);
-        const rate = cardItem.rewardRates[category as CategoryKey] || 0;
-        return sum + (spend * (rate / 100));
-      }, 0);
-      
-      if (cardItem.annualFee === 0 && optimizationSettings.zeroAnnualFee) {
-        valueScore = weights.value;
-        reasons.push("No annual fee");
-      } else if (annualRewardsEstimate > cardItem.annualFee * 3) {
-        valueScore = weights.value;
-        reasons.push(`Rewards value easily exceeds ${cardItem.annualFee} annual fee`);
-      } else if (annualRewardsEstimate > cardItem.annualFee * 1.5) {
-        valueScore = weights.value * 0.8;
-        reasons.push(`Good value compared to ${cardItem.annualFee} annual fee`);
-      } else if (annualRewardsEstimate > cardItem.annualFee) {
-        valueScore = weights.value * 0.5;
-      }
-
-      // 5. Sign-up Bonus Value
-      if (cardItem.signupBonus && spendingAnalysis.canMeetSignupBonus) {
-        const bonusValue = cardItem.signupBonus.type === 'points' ? 
-          cardItem.signupBonus.amount * 0.015 : 
-          cardItem.signupBonus.amount;
-        
-        if (bonusValue > 500) {
-          signupScore = weights.signup;
-          matchFactors++;
-          reasons.push(`Valuable sign-up bonus worth $${bonusValue.toFixed(0)}`);
-        } else if (bonusValue > 200) {
-          signupScore = weights.signup * 0.7;
-        }
-      }
-      
-      // 6. Calculate how well this card complements the existing portfolio
-      const { score: complementScore, contributions } = calculateComplementScore(
-        cardItem, 
-        currentCards,
-        spendingAnalysis
-      );
-      
-      // 7. Calculate long-term value (averaged over 4 years)
-      const { value: longTermValue, description: valueDescription } = calculateLongTermValue(
-        cardItem,
-        spendingAnalysis
-      );
-      
-      if (valueDescription) {
-        reasons.push(valueDescription);
-      }
-
-// 8. Calculate final score with all components
-const baseScore = preferenceScore + spendingScore + perksScore + valueScore + signupScore;
-const portfolioFactors = (complementScore / 100 * weights.complement) + (longTermValue / 1000 * weights.longTerm);
-
-// Add category overlap penalty to improve portfolio diversity
-let categoryOverlapPenalty = 0;
-
-// Safe check for currentCards
-if (currentCards && currentCards.length > 0) {
-  // Check each spending category in this card's reward rates
-  for (const category in cardItem.rewardRates) {
-    if (cardItem.rewardRates[category as keyof typeof cardItem.rewardRates] > 2) {
-      // Check if any existing card is also strong in this category
-      const hasOverlap = currentCards.some(existingCard => 
-        existingCard.rewardRates[category as keyof typeof existingCard.rewardRates] > 2
-      );
-      
-      if (hasOverlap) {
-        // Add penalty for category overlap
-        categoryOverlapPenalty += 15;
-      }
+    console.log('After secondary filtering (credit score & annual fee):', filteredCards.length);
+  
+    // If no cards remain after filtering, return an empty array
+    if (filteredCards.length === 0) {
+      console.warn('No cards remain after filtering');
+      return [];
     }
+  
+    // Log the spending analysis for debugging
+    console.log('Generated spending analysis:', spendingAnalysis);
+  
+    // Score cards
+    console.log('Scoring', filteredCards.length, 'cards for recommendations');
+    const scoredCards: ScoredCard[] = [];
+  
+    try {
+      // Score each card
+      for (const card of filteredCards) {
+        try {
+          // Use the dedicated scoring function
+          const { score, reason } = scoreCard(card, spendingAnalysis, optimizationSettings.preference);
+          
+          // Add scored card
+          scoredCards.push({
+            card,
+            score,
+            reason,
+            matchPercentage: Math.min(100, Math.round(score / 0.7)),
+            potentialAnnualValue: 0,
+            complementScore: 0,
+            longTermValue: 0,
+            portfolioContribution: []
+          });
+        } catch (cardError) {
+          console.error(`Error scoring card ${card.id}:`, cardError);
+          // Continue to next card instead of failing entire scoring process
+        }
+      }
+    } catch (error) {
+      console.error('Critical error in recommendation algorithm:', error);
+      // Return a minimal set of cards if algorithm fails
+      return filteredCards.slice(0, 10).map(card => ({
+        card,
+        score: 10,
+        reason: 'Matched your preferences'
+      }));
+    }
+  
+    // Sort by score (descending)
+    scoredCards.sort((a, b) => b.score - a.score);
+  
+    // Log top 5 recommendations for debugging
+    console.log('Top recommendations:');
+    scoredCards.slice(0, 5).forEach((rec, i) => {
+      console.log(`  ${i+1}. ${rec.card.name || rec.card.id} - Score: ${rec.score}, Reason: ${rec.reason}`);
+    });
+  
+    // Return top 10 recommendations
+    return scoredCards.slice(0, 10);
+  } catch (error) {
+    console.error('Critical error in getCardRecommendations:', error);
+    console.error('Input state:', {
+      availableCards: availableCards?.length,
+      currentCards: currentCards?.length,
+      expenses: expenses?.length,
+      creditScore,
+      optimizationSettings
+    });
+    return [];
   }
-}
-
-// Modify the final score calculation to include the penalty
-const totalScore = baseScore + portfolioFactors - categoryOverlapPenalty;
-
-const matchPercentage = (matchFactors / 3) * 100;
-
-// Generate reason for recommendation
-const scoreComponents = {
-  preferenceScore,
-  spendingScore,
-  longTermValue,
-  complementScore
-};
-
-return {
-  card: cardItem,
-  reason: generateCardReason(cardItem, contributions, scoreComponents),
-  score: totalScore, // Changed from finalScore to totalScore
-  matchPercentage,
-  potentialAnnualValue: annualRewardsEstimate,
-  complementScore,
-  longTermValue,
-  portfolioContribution: contributions
-};
-});
-
-// Sort by score
-const rankedCards = scoredCards
-  .sort((a: ScoredCard, b: ScoredCard) => b.score - a.score);
-
-// First, establish the recommendation count
-const recommendationCount = Math.min(4, Math.max(2, rankedCards.length));
-
-// Then create the unique recommendations array
-const uniqueRecommendations = Array.from(
-  new Map(rankedCards.map(card => [card.card.id, card])).values()
-) as ScoredCard[];
-
-// Return recommendations limited to the calculated count
-return uniqueRecommendations.slice(0, recommendationCount);
-} catch (err) {
-console.error('Recommendation generation error:', err);
-return [];
-}
 }

@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation';
 
+// TypeScript declaration for Calendly
+declare global {
+  interface Window {
+    Calendly?: any;
+  }
+}
+
 export default function ConsultationPage() {
   const { user, signIn, signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
@@ -29,6 +36,41 @@ export default function ConsultationPage() {
   const handleFaqToggle = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
+
+  // Ensure Calendly widget loads properly
+  useEffect(() => {
+    // Function to load the Calendly script if it's not already loaded
+    const loadCalendlyScript = () => {
+      if (typeof window !== 'undefined' && !window.Calendly) {
+        const script = document.createElement('script');
+        script.src = 'https://assets.calendly.com/assets/external/widget.js';
+        script.async = true;
+        script.onload = initializeWidget;
+        document.body.appendChild(script);
+      } else if (window.Calendly) {
+        initializeWidget();
+      }
+    };
+
+    // Function to initialize the widget
+    const initializeWidget = () => {
+      if (window.Calendly && document.getElementsByClassName('calendly-inline-widget')[0]) {
+        window.Calendly.initInlineWidget({
+          url: 'https://calendly.com/matthewpieguy/30min',
+          parentElement: document.getElementsByClassName('calendly-inline-widget')[0],
+          prefill: {},
+          utm: {}
+        });
+      }
+    };
+
+    // Small delay to ensure the DOM element is ready
+    setTimeout(loadCalendlyScript, 100);
+
+    return () => {
+      // Cleanup if needed
+    };
+  }, []);
 
   // Listen for Calendly events
   useEffect(() => {
@@ -182,7 +224,7 @@ export default function ConsultationPage() {
         </div>
       )}
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Information Column */}
           <div className="lg:col-span-7 space-y-10">
@@ -313,23 +355,16 @@ export default function ConsultationPage() {
           <div className="lg:col-span-5">
             <div className="sticky top-24">
               <div className="bg-white p-8 rounded-lg shadow-sm border">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Consultation Service Currently Being Updated</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Book Your Free Consultation</h2>
                 <p className="text-gray-600 mb-6">
-                  We're currently updating our consultation booking system to better serve you. Please check back later or contact us directly.
+                  Select a time slot below that works for you. Our expert will reach out with conference details after booking.
                 </p>
                 
-                <div className="flex justify-center p-6 bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <svg className="h-12 w-12 text-blue-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                    <h3 className="text-lg font-medium text-gray-900 mb-1">Coming Soon</h3>
-                    <p className="text-gray-500">Our improved booking system will be available shortly.</p>
-                  </div>
-                </div>
+                {/* Calendly inline widget */}
+                <div className="calendly-inline-widget" data-url="https://calendly.com/matthewpieguy/30min" style={{minWidth: "320px", height: "700px"}}></div>
                 
                 <p className="mt-6 text-sm text-gray-500">
-                  For immediate assistance, please email us at 
+                  For assistance with booking, please email us at 
                   <a href="mailto:support@example.com" className="text-blue-600 hover:text-blue-800"> support@example.com</a>
                 </p>
               </div>

@@ -93,8 +93,11 @@ export const CardDisplay: React.FC<CardDisplayProps> = ({
   const colors = getIssuerColors(card.issuer);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  // Check if card is in loading state
-  const isLoading = card.isLoading === true;
+  // More robust check for loading state
+  const isLoading = Boolean(card.isLoading) || 
+                   !card.name || 
+                   card.name === 'Loading Card Details...' ||
+                   card.issuer === 'Loading...';
   
   // Render skeleton UI while loading
   if (isLoading) {

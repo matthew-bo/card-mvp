@@ -34,7 +34,6 @@ const Navigation: React.FC = () => {
     { href: '/recommender', label: 'Recommender', active: pathname === '/recommender' },
     { href: '/review', label: 'Reviews', active: pathname.startsWith('/review') },
     { href: '/consultation', label: 'Consultation', active: pathname === '/consultation' },
-    { href: '/blog', label: 'Blog', active: pathname === '/blog' },
     { href: '/contact', label: 'Contact', active: pathname === '/contact' }
   ];
 

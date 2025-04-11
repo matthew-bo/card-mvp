@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import cardSearchIndex from '@/services/cardSearchIndex';
+import { SearchResultCard } from '@/types/cards';
 
 interface CardSearchProps {
   onCardSelect: (cardKey: string, cardName: string, cardIssuer: string) => void;
@@ -24,9 +26,15 @@ export default function CardSearch({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [loadingCards, setLoadingCards] = useState<Set<string>>(new Set());
   const [debug, setDebug] = useState(false);
   
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Initialize search index on component mount
+    cardSearchIndex.initialize().catch(console.error);
+  }, []);
   
   useEffect(() => {
     if (searchTerm.length < 3) {
@@ -35,7 +43,7 @@ export default function CardSearch({
       return;
     }
     
-    // Debounce search to avoid excessive API calls
+    // Debounce search to avoid excessive processing
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
@@ -45,6 +53,22 @@ export default function CardSearch({
       setError(null);
       
       try {
+        // First try local search index
+        const localResults = cardSearchIndex.search(searchTerm);
+        
+        if (localResults.length > 0) {
+          // Filter out excluded cards
+          const filteredResults = localResults.filter(
+            card => !excludeCardKeys.includes(card.cardKey)
+          );
+          
+          setResults(filteredResults);
+          setIsOpen(filteredResults.length > 0);
+          setLoading(false);
+          return;
+        }
+        
+        // Fall back to API search if no local results
         const response = await fetch(`/api/cards/search?q=${encodeURIComponent(searchTerm)}`);
         
         if (!response.ok) {
@@ -54,15 +78,15 @@ export default function CardSearch({
         const data = await response.json();
         
         if (data.success && data.data && data.data.length > 0) {
-          // Filter out cards that are in the exclude list
+          // Filter out excluded cards
           const filteredResults = data.data.filter(
             (card: SearchResult) => !excludeCardKeys.includes(card.cardKey)
           );
           
-          // Remove any duplicates - with explicit type assertion
+          // Remove duplicates
           const uniqueResults = Array.from(
             new Map(filteredResults.map((card: SearchResult) => [card.cardKey, card])).values()
-          ) as SearchResult[]; // Add type assertion here
+          ) as SearchResult[];
           
           setResults(uniqueResults);
           setIsOpen(uniqueResults.length > 0);
@@ -86,62 +110,66 @@ export default function CardSearch({
       }
     };
   }, [searchTerm, excludeCardKeys]);
-   
-  const handleSelectCard = (card: SearchResult) => {
-    onCardSelect(card.cardKey, card.cardName, card.cardIssuer);
-    setSearchTerm('');
-    setResults([]);
-    setIsOpen(false);
+  
+  const handleSelectCard = async (card: SearchResult) => {
+    try {
+      setLoadingCards(prev => new Set(prev).add(card.cardKey));
+      onCardSelect(card.cardKey, card.cardName, card.cardIssuer);
+      setSearchTerm('');
+      setResults([]);
+      setIsOpen(false);
+    } finally {
+      setLoadingCards(prev => {
+        const next = new Set(prev);
+        next.delete(card.cardKey);
+        return next;
+      });
+    }
   };
   
   return (
-    <div className="relative" style={{zIndex: 50}}>
-      <div className="relative">
-        <input
-          type="text"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder={placeholder}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onFocus={() => {
-            // Show results dropdown when input is focused if there are results
-            if (results.length > 0) {
-              setIsOpen(true);
-            }
-          }}
-          onBlur={() => {
-            // Delay hiding the dropdown to allow for clicking on results
-            setTimeout(() => setIsOpen(false), 200);
-          }}
-        />
-        {loading && (
-          <div className="absolute right-3 top-2.5">
-            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-          </div>
-        )}
-      </div>
+    <div className="relative w-full">
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label="Search for credit cards"
+      />
       
-      {error && (
-        <div className="mt-1 text-sm text-red-600">
-          {error}
+      {loading && (
+        <div className="absolute right-3 top-2.5">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
         </div>
       )}
       
-      {results.length > 0 && (
-        <div 
-          className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto" 
-          style={{display: isOpen ? 'block' : 'none'}}
-        >
+      {isOpen && results.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto">
           {results.map((card) => (
-            <div
+            <button
               key={card.cardKey}
-              className="px-4 py-2 cursor-pointer hover:bg-gray-100"
               onClick={() => handleSelectCard(card)}
+              disabled={loadingCards.has(card.cardKey)}
+              className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="font-medium">{card.cardName}</div>
-              <div className="text-sm text-gray-500">{card.cardIssuer}</div>
-            </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{card.cardName}</div>
+                  <div className="text-sm text-gray-600">{card.cardIssuer}</div>
+                </div>
+                {loadingCards.has(card.cardKey) && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                )}
+              </div>
+            </button>
           ))}
+        </div>
+      )}
+      
+      {error && (
+        <div className="mt-2 text-sm text-red-600">
+          {error}
         </div>
       )}
       

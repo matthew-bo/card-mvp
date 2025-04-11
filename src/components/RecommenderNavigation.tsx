@@ -40,12 +40,6 @@ export default function RecommenderNavigation() {
             Home
           </button>
           <button 
-            onClick={() => navigateTo('/blog')}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            Blog
-          </button>
-          <button 
             onClick={() => navigateTo('/contact')}
             className="text-gray-600 hover:text-gray-900"
           >

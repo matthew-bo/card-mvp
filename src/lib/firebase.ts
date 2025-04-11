@@ -1,5 +1,5 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { Logger } from '@/utils/logger';
 
@@ -21,35 +21,72 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase only if it hasn't been initialized already
-const getFirebaseApp = (): FirebaseApp => {
-  if (!getApps().length) {
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-      throw new Error('Firebase configuration is missing required fields');
+// Singleton instance
+let firebaseApp: FirebaseApp | null = null;
+let firestore: Firestore | null = null;
+let firebaseAuth: Auth | null = null;
+
+export const initializeFirebase = (): { app: FirebaseApp; db: Firestore; auth: Auth } => {
+  try {
+    if (!firebaseApp) {
+      if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        const error = new Error('Firebase configuration is missing required fields');
+        Logger.error('Firebase initialization failed', { error, context: 'firebase' });
+        throw error;
+      }
+
+      // Check if Firebase is already initialized
+      const existingApps = getApps();
+      if (existingApps.length > 0) {
+        firebaseApp = existingApps[0];
+        Logger.info('Using existing Firebase app instance', { context: 'firebase' });
+      } else {
+        firebaseApp = initializeApp(firebaseConfig);
+        Logger.info('Firebase app initialized successfully', { context: 'firebase' });
+      }
     }
-    const app = initializeApp(firebaseConfig);
-    Logger.info('Firebase app initialized successfully', { context: 'firebase' });
-    return app;
+
+    if (!firestore) {
+      firestore = getFirestore(firebaseApp);
+      
+      // Enable offline persistence
+      if (typeof window !== 'undefined') {
+        enableIndexedDbPersistence(firestore).catch((err) => {
+          if (err.code === 'failed-precondition') {
+            Logger.warn('Multiple tabs open, persistence can only be enabled in one tab at a time', { context: 'firebase' });
+          } else if (err.code === 'unimplemented') {
+            Logger.warn('The current browser does not support persistence', { context: 'firebase' });
+          }
+        });
+      }
+    }
+
+    if (!firebaseAuth) {
+      firebaseAuth = getAuth(firebaseApp);
+    }
+
+    Logger.info('Firebase services initialized successfully', { context: 'firebase' });
+
+    return {
+      app: firebaseApp,
+      db: firestore,
+      auth: firebaseAuth
+    };
+  } catch (error) {
+    Logger.error('Failed to initialize Firebase', { error, context: 'firebase' });
+    throw error;
   }
-  return getApps()[0];
 };
 
-// Initialize services
-let app: FirebaseApp;
-let db: Firestore;
-let auth: Auth;
+// Export initialized instances
+export const { app, db, auth } = initializeFirebase();
 
-try {
-  app = getFirebaseApp();
-  db = getFirestore(app);
-  auth = getAuth(app);
-  Logger.info('Firebase services initialized successfully', { context: 'firebase' });
-} catch (error) {
-  Logger.error('Error initializing Firebase', { 
-    context: 'firebase',
-    data: error 
-  });
-  throw error; // We need to throw here as the app can't function without Firebase
-}
+// Type guard for Firestore
+export const isFirestore = (db: any): db is Firestore => {
+  return db && typeof db === 'object' && 'collection' in db;
+};
 
-export { app, db, auth };
+// Helper function to check if Firebase is properly initialized
+export const isFirebaseInitialized = (): boolean => {
+  return !!(firebaseApp && firestore && firebaseAuth);
+};

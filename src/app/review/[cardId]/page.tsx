@@ -282,7 +282,7 @@ export default function ReviewPage({ params }: { params: { cardId: string } }) {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         {/* Breadcrumb */}
         <nav className="mb-8">
           <Link href="/review" className="text-blue-600 hover:text-blue-800 flex items-center">

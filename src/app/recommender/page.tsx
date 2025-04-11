@@ -3,12 +3,9 @@
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useCallback, Suspense, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, Firestore, CollectionReference, DocumentData, updateDoc } from 'firebase/firestore';
 import type { 
   OptimizationPreference, 
   CreditCardDetails,
-  FirestoreExpense,
   LoadedExpense,
   RecommendedCard,
   ApiResponse,
@@ -21,15 +18,140 @@ import { useCards } from '@/hooks/useCards';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import { Logger } from '@/utils/logger';
-import { FIREBASE_COLLECTIONS } from '@/lib/firebase';
 import safeStorage from '@/utils/safeStorage';
 import Link from 'next/link';
 import cardSearchIndex from '@/services/cardSearchIndex';
 import { cardCache as persistentCardCache } from '@/lib/utils/cardCache';
 import cardDataService from '@/services/cardDataService';
-import ExpensesList from '@/components/ExpensesList'; // Add ExpensesList component
+import ExpensesList from '@/components/ExpensesList';
 import ImprovementsModal from '@/components/ImprovementsModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
+
+// Re-add Firebase imports
+import { db, isFirestore } from '@/lib/firebase';
+import { collection, query, where, getDocs, DocumentData, CollectionReference } from 'firebase/firestore';
+// Define FIREBASE_COLLECTIONS constant if it can't be imported
+const FIREBASE_COLLECTIONS = {
+  USER_CARDS: 'user_cards',
+  USER_PREFERENCES: 'user_preferences',
+  CARD_REVIEWS: 'card_reviews',
+  EXPENSES: 'expenses'
+};
+
+// Improved localStorage utility with error handling and type safety
+const UserDataStorage = {
+  getItem<T>(key: string, defaultValue: T): T {
+    if (typeof window === 'undefined') return defaultValue;
+    try {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : defaultValue;
+    } catch (error) {
+      console.error(`Error reading ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  },
+  
+  setItem<T>(key: string, value: T): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      console.error(`Error saving ${key} to localStorage:`, error);
+      return false;
+    }
+  }
+};
+
+// Define consistent storage keys
+const STORAGE_KEYS = {
+  USER_PREFERENCES: 'recommender.preferences',
+  USER_CARDS: 'recommender.userCards',
+  USER_EXPENSES: 'recommender.expenses',
+  NOT_INTERESTED_CARDS: 'recommender.notInterestedCards',
+  CARD_CACHE: 'recommender.cardCache',
+  SEARCH_CACHE: 'recommender.searchCache',
+  // Add version for schema changes
+  VERSION: 'recommender.version'
+};
+
+// Current data schema version
+const CURRENT_SCHEMA_VERSION = 1;
+
+// Enhanced card cache with expiration
+const CardCache = {
+  // In-memory cache
+  _cache: new Map<string, {card: CreditCardDetails, timestamp: number}>(),
+  
+  // Cache expiration (24 hours)
+  EXPIRATION: 24 * 60 * 60 * 1000,
+  
+  // Get card from cache
+  getCard(id: string): CreditCardDetails | null {
+    const entry = this._cache.get(id);
+    if (!entry) return null;
+    
+    // Check if cached data is expired
+    if (Date.now() - entry.timestamp > this.EXPIRATION) {
+      this._cache.delete(id);
+      return null;
+    }
+    
+    return entry.card;
+  },
+  
+  // Store card in cache
+  setCard(id: string, card: CreditCardDetails): void {
+    this._cache.set(id, {
+      card,
+      timestamp: Date.now()
+    });
+    
+    // Also persist to localStorage for faster future loads
+    const persistentCache = UserDataStorage.getItem(STORAGE_KEYS.CARD_CACHE, {} as Record<string, {card: CreditCardDetails, timestamp: number}>);
+    persistentCache[id] = {
+      card,
+      timestamp: Date.now()
+    };
+    UserDataStorage.setItem(STORAGE_KEYS.CARD_CACHE, persistentCache);
+  },
+  
+  // Load cache from localStorage on initialization
+  initialize(): void {
+    const persistentCache = UserDataStorage.getItem(STORAGE_KEYS.CARD_CACHE, {} as Record<string, {card: CreditCardDetails, timestamp: number}>);
+    Object.entries(persistentCache).forEach(([id, entry]) => {
+      // Only load non-expired entries
+      if (Date.now() - entry.timestamp <= this.EXPIRATION) {
+        this._cache.set(id, entry);
+      }
+    });
+    console.log(`Initialized card cache with ${this._cache.size} cards`);
+  },
+  
+  // Get cache statistics
+  getStats() {
+    const now = Date.now();
+    let oldestTimestamp = now;
+    let newestTimestamp = 0;
+    let totalAge = 0;
+    
+    this._cache.forEach(entry => {
+      if (entry.timestamp < oldestTimestamp) oldestTimestamp = entry.timestamp;
+      if (entry.timestamp > newestTimestamp) newestTimestamp = entry.timestamp;
+      totalAge += (now - entry.timestamp);
+    });
+    
+    const size = this._cache.size;
+    const averageAge = size > 0 ? totalAge / size : 0;
+    
+    return {
+      size,
+      oldestTimestamp,
+      newestTimestamp,
+      averageAge
+    };
+  }
+};
 
 // Dynamically import recharts chart component
 const DynamicRewardsChart = dynamic(() => import('@/components/RewardsChart'), { ssr: false });
@@ -51,11 +173,6 @@ const setSafeStorageItem = (key: string, value: string) => {
     console.error('Error setting storage:', error);
     return false;
   }
-};
-
-// Type guard for Firestore instance
-const isFirestore = (db: Firestore | null): db is Firestore => {
-  return db !== null;
 };
 
 // Card filtering utilities - update to respect explicit cardType property
@@ -109,12 +226,42 @@ type FeatureTableProps = {
   recommendedCards: RecommendedCard[];
 };
 
+// Add the getLocalStoragePreferences function
+const getLocalStoragePreferences = (): UserPreferences => {
+  if (typeof window === 'undefined') return {
+    optimizationPreference: 'points',
+    creditScore: 'good',
+    zeroAnnualFee: false,
+    preferredCardType: 'personal'
+  };
+  
+  try {
+    const storedPrefs = localStorage.getItem('userPreferences');
+    return storedPrefs ? JSON.parse(storedPrefs) : {
+      optimizationPreference: 'points',
+      creditScore: 'good',
+      zeroAnnualFee: false,
+      preferredCardType: 'personal'
+    };
+  } catch (error) {
+    console.error('Error reading preferences from localStorage:', error);
+    return {
+      optimizationPreference: 'points',
+      creditScore: 'good',
+      zeroAnnualFee: false,
+      preferredCardType: 'personal'
+    };
+  }
+};
+
 const RecommenderPage = () => {
   // Use a ref to check if this is the initial mount
   const mountRef = useRef(false);
   
   // Add a state for window width
   const [windowWidth, setWindowWidth] = useState(0);
+  
+  // Remove the Firebase initialization from here, we'll place it after user is declared
   
   // Log only on initial mount and set window width
   useEffect(() => {
@@ -138,6 +285,12 @@ const RecommenderPage = () => {
   }, []);
   
   const { user } = useAuth();
+  
+  // Safe access to Firebase - now placed after user is declared
+  const firebaseDb = typeof db !== 'undefined' ? db : null;
+  const canUseFirebase = !!(user && firebaseDb && isFirestore(firebaseDb));
+  const cardCacheRef = useRef<Record<string, CreditCardDetails>>({});
+  
   const [userCardIds, setUserCardIds] = useState<string[]>([]);
   
   // Only use useCards when we have specific card keys to fetch
@@ -186,7 +339,18 @@ const RecommenderPage = () => {
     if (typeof window === 'undefined') return [];
     try {
       const storedCards = localStorage.getItem('anonymousCards');
-      return storedCards ? JSON.parse(storedCards) : [];
+      if (!storedCards) return [];
+      
+      const cards = JSON.parse(storedCards);
+      
+      // Safety check: Ensure no cards have isLoading=true
+      // This should never happen with our saveLocalStorageCards function, but let's be extra safe
+      const sanitizedCards = cards.map((card: CreditCardDetails) => ({
+        ...card,
+        isLoading: false // Explicitly make sure isLoading is false
+      }));
+      
+      return sanitizedCards;
     } catch (error) {
       console.error('Error reading cards from localStorage:', error);
       return [];
@@ -196,7 +360,23 @@ const RecommenderPage = () => {
   const saveLocalStorageCards = (cards: CreditCardDetails[]) => {
     if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem('anonymousCards', JSON.stringify(cards));
+      // Make sure we never save cards with isLoading=true to localStorage
+      const sanitizedCards = cards.map(card => {
+        if (card.isLoading) {
+          // Skip saving loading cards altogether
+          console.log(`Skipping saving loading card ${card.id} to localStorage`);
+          return null;
+        }
+        
+        // Make an explicit copy with isLoading set to false
+        return {
+          ...card,
+          isLoading: false
+        };
+      }).filter(Boolean) as CreditCardDetails[]; // Remove null entries
+      
+      console.log(`Saving ${sanitizedCards.length} cards to localStorage (filtered out ${cards.length - sanitizedCards.length} loading cards)`);
+      localStorage.setItem('anonymousCards', JSON.stringify(sanitizedCards));
     } catch (error) {
       console.error('Error saving cards to localStorage:', error);
     }
@@ -224,8 +404,8 @@ const RecommenderPage = () => {
 
   // Add the loadExpenses function implementation
   const loadExpenses = async () => {
-    // For anonymous users, load from localStorage
-    if (!user || !db || !isFirestore(db)) {
+    // For non-logged in users or when Firebase isn't available, just use localStorage
+    if (!user || !canUseFirebase) {
       const localExpenses = getLocalStorageExpenses();
       setExpenses(localExpenses);
       Logger.info(`Loaded ${localExpenses.length} local expenses`, { 
@@ -234,405 +414,127 @@ const RecommenderPage = () => {
       });
       return;
     }
-
+    
+    // For logged-in users with Firebase access, try to get expenses from Firebase
     try {
-      setLoadingState('loading');
-      const expensesRef = collection(db, FIREBASE_COLLECTIONS.EXPENSES);
-      const q = query(expensesRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
+      const expensesRef = collection(firebaseDb, FIREBASE_COLLECTIONS.EXPENSES);
+      const q = query(expensesRef, where('userId', '==', user.uid));
       const expensesSnap = await getDocs(q);
       
+      if (expensesSnap.empty) {
+        // No expenses in Firebase, fall back to localStorage
+        const localExpenses = getLocalStorageExpenses();
+        setExpenses(localExpenses);
+        return;
+      }
+      
+      // Convert Firebase data to LoadedExpense objects
       const loadedExpenses: LoadedExpense[] = expensesSnap.docs.map(doc => {
-        const data = doc.data() as FirestoreExpense;
-        // Handle Firestore timestamp conversion safely
-        let expenseDate: Date;
-        if (data.date) {
-          // Check if it's a Firestore timestamp with toDate method
-          if (typeof data.date === 'object' && 'toDate' in data.date && typeof data.date.toDate === 'function') {
-            expenseDate = data.date.toDate();
-          } else if (data.date instanceof Date) {
-            // It's already a Date object
-            expenseDate = data.date;
-          } else {
-            // Try to parse it as a date string
-            expenseDate = new Date(data.date as any);
-          }
-        } else {
-          // Fallback to current date if no date provided
-          expenseDate = new Date();
-        }
-        
+        const data = doc.data();
         return {
           id: doc.id,
           amount: data.amount,
           category: data.category,
-          date: expenseDate,
+          date: data.date?.toDate() || new Date(),
           userId: data.userId
         };
       });
       
       setExpenses(loadedExpenses);
-      Logger.info(`Loaded ${loadedExpenses.length} expenses`, { 
+      Logger.info(`Loaded ${loadedExpenses.length} Firebase expenses`, { 
         context: 'RecommenderPage',
         data: { count: loadedExpenses.length }
       });
     } catch (error) {
-      Logger.error('Error loading expenses', { 
+      console.error("Error loading expenses from Firebase:", error);
+      Logger.error('Error loading expenses from Firebase', { 
         context: 'RecommenderPage',
-        data: error 
+        data: error instanceof Error ? error.message : String(error)
       });
-      setLoadingState('error', 'Failed to load expenses');
+      
+      // Fall back to localStorage on error
+      const localExpenses = getLocalStorageExpenses();
+      setExpenses(localExpenses);
     }
   };
 
   // Implement proper deleteExpense function
   const deleteExpense = async (expenseId: string) => {
-    // For anonymous users
-    if (!user || !db || !isFirestore(db)) {
-      const localExpenses = getLocalStorageExpenses();
-      const updatedExpenses = localExpenses.filter(exp => exp.id !== expenseId);
-      saveLocalStorageExpenses(updatedExpenses);
-      
-      // Update local state
-      setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== expenseId));
-      showNotification('Expense deleted successfully', 'success');
-      return;
-    }
-
-    try {
-      await deleteDoc(doc(db, FIREBASE_COLLECTIONS.EXPENSES, expenseId));
-      
-      // Update local state
-      setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== expenseId));
-      showNotification('Expense deleted successfully', 'success');
-    } catch (error) {
-      Logger.error('Error deleting expense', { 
-        context: 'RecommenderPage',
-        data: error 
-      });
-      showNotification('Failed to delete expense', 'error');
-    }
+    const localExpenses = getLocalStorageExpenses();
+    const updatedExpenses = localExpenses.filter(exp => exp.id !== expenseId);
+    saveLocalStorageExpenses(updatedExpenses);
+    
+    // Update local state
+    setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== expenseId));
+    showNotification('Expense deleted successfully', 'success');
   };
 
-  // Add implementation for handleAddCard
+  // Add the addExpense function implementation
+  const addExpense = async (expense: Omit<LoadedExpense, 'id' | 'userId'>) => {
+    const localExpenses = getLocalStorageExpenses();
+    const newExpense: LoadedExpense = {
+      ...expense,
+      id: crypto.randomUUID(),
+      userId: user?.uid || 'anonymous'
+    };
+    
+    const updatedExpenses = [...localExpenses, newExpense];
+    saveLocalStorageExpenses(updatedExpenses);
+    
+    // Update local state
+    setExpenses(updatedExpenses);
+    showNotification('Expense added successfully', 'success');
+  };
+
+  // Add the addCardToUser function implementation
   const addCardToUser = async (card: CreditCardDetails) => {
-    // If no login, use localStorage
-    if (!user || !db || !isFirestore(db)) {
-      // Check if the card is already added
-      const anonymousCards = getLocalStorageCards();
-      if (anonymousCards.some(c => c.id === card.id)) {
-        showNotification('This card is already in your collection', 'info');
-        return;
-      }
-
-      // Add the card to local storage
-      const updatedCards = [...anonymousCards, card];
-      saveLocalStorageCards(updatedCards);
-      
-      // Update local state to include the new card
-      setUserCardIds(prev => [...prev, card.id]);
-      setUserCards(prev => [...prev, card]);
-      
-      // Remove from not interested if it was there
-      if (notInterestedCards.includes(card.id)) {
-        setNotInterestedCards(prev => prev.filter(id => id !== card.id));
-        // Also save to localStorage
-        const notInterested = notInterestedCards.filter(id => id !== card.id);
-        try {
-          localStorage.setItem('notInterestedCards', JSON.stringify(notInterested));
-        } catch (e) {
-          console.error('Error saving not interested cards', e);
-        }
-      }
-      
-      showNotification(`${card.name || card.id} added to your collection`, 'success');
-      
-      // Refresh recommendations
-      setShowUpdateButton(true);
-      return;
-    }
-
-    try {
-      // First check if the card is already in the user's collection
-      const cardsRef = collection(db, FIREBASE_COLLECTIONS.USER_CARDS);
-      const q = query(cardsRef, 
-        where('userId', '==', user.uid),
-        where('cardId', '==', card.id)
-      );
-      const existingCards = await getDocs(q);
-      
-      if (!existingCards.empty) {
-        showNotification('This card is already in your collection', 'info');
-        return;
-      }
-      
-      // Add the card to the user's collection
-      await addDoc(collection(db, FIREBASE_COLLECTIONS.USER_CARDS), {
-        userId: user.uid,
-        cardId: card.id,
-        dateAdded: new Date()
-      });
-      
-      // Update local state to include the new card
-      setUserCardIds(prev => [...prev, card.id]);
-      setUserCards(prev => [...prev, card]);
-      
-      // Remove from not interested if it was there
-      if (notInterestedCards.includes(card.id)) {
-        setNotInterestedCards(prev => prev.filter(id => id !== card.id));
-      }
-      
-      showNotification(`${card.name || card.id} added to your collection`, 'success');
-      
-      // Refresh recommendations
-      setShowUpdateButton(true);
-    } catch (error) {
-      Logger.error('Error adding card to user', { 
-        context: 'RecommenderPage',
-        data: error 
-      });
-      showNotification('Failed to add card to your collection', 'error');
-    }
+    const localCards = getLocalStorageCards();
+    const updatedCards = [...localCards, card];
+    saveLocalStorageCards(updatedCards);
+    
+    // Update local state
+    setUserCards(updatedCards);
+    showNotification('Card added successfully', 'success');
   };
 
-  // Implement handleDeleteCard
+  // Add the handleDeleteCard function implementation
   const handleDeleteCard = async (cardId: string) => {
-    // For anonymous users
-    if (!user || !db || !isFirestore(db)) {
-      const anonymousCards = getLocalStorageCards();
-      const updatedCards = anonymousCards.filter(card => card.id !== cardId);
-      saveLocalStorageCards(updatedCards);
-      
-      // Update local state
-      setUserCardIds(prev => prev.filter(id => id !== cardId));
-      setUserCards(prev => prev.filter(card => card.id !== cardId));
-      
-      showNotification('Card removed from your collection', 'success');
-      
-      // Refresh recommendations
-      setShowUpdateButton(true);
-      return;
-    }
-
-    try {
-      // Find the card document to delete
-      const cardsRef = collection(db, FIREBASE_COLLECTIONS.USER_CARDS);
-      const q = query(cardsRef, 
-        where('userId', '==', user.uid),
-        where('cardId', '==', cardId)
-      );
-      const cardDocs = await getDocs(q);
-      
-      if (cardDocs.empty) {
-        showNotification('Card not found in your collection', 'error');
-        return;
-      }
-      
-      // Delete the card document
-      await deleteDoc(doc(db, FIREBASE_COLLECTIONS.USER_CARDS, cardDocs.docs[0].id));
-      
-      // Update local state
-      setUserCardIds(prev => prev.filter(id => id !== cardId));
-      setUserCards(prev => prev.filter(card => card.id !== cardId));
-      
-      showNotification('Card removed from your collection', 'success');
-      
-      // Refresh recommendations
-      setShowUpdateButton(true);
-    } catch (error) {
-      Logger.error('Error removing card', { 
-        context: 'RecommenderPage',
-        data: error 
-      });
-      showNotification('Failed to remove card from your collection', 'error');
-    }
+    const localCards = getLocalStorageCards();
+    const updatedCards = localCards.filter(card => card.id !== cardId);
+    saveLocalStorageCards(updatedCards);
+    
+    // Update local state
+    setUserCards(updatedCards);
+    showNotification('Card removed successfully', 'success');
   };
 
-  // Implement handleNotInterested
-  const handleNotInterested = (cardId: string) => {
-    setNotInterestedCards(prev => [...prev, cardId]);
+  // Add the handleNotInterested function implementation
+  const handleNotInterested = async (cardId: string) => {
+    const updatedNotInterested = [...notInterestedCards, cardId];
+    setNotInterestedCards(updatedNotInterested);
     
-    // Filter out the card from recommendations
-    const updateRecommendations = manualRecommendations.filter(rec => rec.card.id !== cardId);
-    setManualRecommendations(updateRecommendations);
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('notInterestedCards', JSON.stringify(updatedNotInterested));
+    }
     
-    showNotification('Card added to not interested list', 'info');
+    showNotification('Card marked as not interested', 'success');
   };
 
-  // Implement handleRemoveFromNotInterested
-  const handleRemoveFromNotInterested = (cardId: string) => {
-    setNotInterestedCards(prev => prev.filter(id => id !== cardId));
-    setShowNotInterestedList(false);
+  // Add the handleRemoveFromNotInterested function implementation
+  const handleRemoveFromNotInterested = async (cardId: string) => {
+    const updatedNotInterested = notInterestedCards.filter(id => id !== cardId);
+    setNotInterestedCards(updatedNotInterested);
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('notInterestedCards', JSON.stringify(updatedNotInterested));
+    }
+    
     showNotification('Card removed from not interested list', 'success');
-    
-    // Refresh recommendations
-    setShowUpdateButton(true);
   };
 
-  // Implement handleUpdateRecommendations
-  const handleUpdateRecommendations = () => {
-    // Use the memoized availableForRecommendation
-    const algorithmRecommendations = getCardRecommendations({
-      expenses,
-      currentCards: userCards,
-      optimizationSettings: {
-        preference: optimizationPreference,
-        zeroAnnualFee
-      },
-      creditScore,
-      excludeCardIds: notInterestedCards,
-      availableCards: availableForRecommendation
-    });
-    
-    setManualRecommendations(algorithmRecommendations);
-    setShowUpdateButton(false);
-  };
-
-  // Find existing cardCache declaration:
-  // const cardCache = useRef<Record<string, CreditCardDetails>>({});
-  // And replace it with:
-  const cardCacheRef = useRef<Record<string, CreditCardDetails>>({});
-
-  // Then update the fetchCardDetails function:
-  const fetchCardDetails = async (cardKey: string) => {
-    console.log('Fetching card details for:', cardKey);
-    
-    try {
-      // Create optimistic placeholder card immediately for better UX
-      const placeholderCard: CreditCardDetails = {
-        id: cardKey,
-        name: cardKey.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        issuer: 'Loading...',
-        annualFee: 0,
-        rewardRates: {
-          dining: 1, travel: 1, grocery: 1, gas: 1, entertainment: 1,
-          rent: 1, other: 1, drugstore: 1, streaming: 1
-        },
-        creditScoreRequired: 'good', // Must be a valid CreditScoreType
-        perks: [],
-        foreignTransactionFee: false,
-        categories: [],
-        description: 'Loading card details...',
-        cardType: 'personal',
-        isLoading: true // We'll need to extend the CreditCardDetails type to include this
-      } as CreditCardDetails;
-      
-      // Update UI immediately with placeholder
-      setUserCards(prev => [...prev, placeholderCard]);
-      setUserCardIds(prev => [...prev, cardKey]);
-      
-      // Clear search state for responsive UX
-      setSearchTerm('');
-      setSearchResults([]);
-      
-      // First check caches for immediate update
-      const cachedCard = 
-        persistentCardCache.getCard(cardKey) ||
-        cardCacheRef.current[cardKey];
-      
-      if (cachedCard) {
-        console.log('Using cached card details for:', cardKey);
-        
-        // Update UI with cached card (replacing placeholder)
-        setUserCards(prev => prev.map(card => 
-          card.id === cardKey ? cachedCard : card
-        ));
-        
-        // Process in background
-        setTimeout(() => {
-          // Add to localStorage for persistence
-          if (!user) {
-            const localCards = getLocalStorageCards();
-            saveLocalStorageCards([...localCards.filter(c => c.id !== cardKey), cachedCard]);
-          } else if (db && isFirestore(db)) {
-            // Add to Firestore if user is logged in (non-blocking)
-            addDoc(collection(db, FIREBASE_COLLECTIONS.USER_CARDS), {
-              userId: user.uid,
-              cardId: cachedCard.id,
-              dateAdded: new Date()
-            }).catch(e => console.error('Background save error:', e));
-          }
-        }, 50); // Reduced timeout for faster response
-        
-        showNotification(`${cachedCard.name || cardKey} added to your collection`, 'success');
-        setShowUpdateButton(true);
-        return;
-      }
-      
-      // Set loading state but keep UI responsive
-      setCardSearchLoading(true);
-      
-      // Fetch actual card details in background
-      const cardDataService = await import('@/services/cardDataService').then(mod => mod.default);
-      const cardData = await cardDataService.fetchCardById(cardKey);
-      
-      if (cardData) {
-        // Replace placeholder with real card
-        setUserCards(prev => prev.map(card => 
-          card.id === cardKey ? cardData : card
-        ));
-        
-        // Cache for future use
-        cardCacheRef.current[cardKey] = cardData;
-        persistentCardCache.setCard(cardKey, cardData);
-        
-        // Save to persistence in background
-        setTimeout(() => {
-          if (!user) {
-            const localCards = getLocalStorageCards();
-            saveLocalStorageCards([...localCards.filter(c => c.id !== cardKey), cardData]);
-          } else if (db && isFirestore(db)) {
-            // Add to Firestore if user is logged in (non-blocking)
-            addDoc(collection(db, FIREBASE_COLLECTIONS.USER_CARDS), {
-              userId: user.uid,
-              cardId: cardData.id,
-              dateAdded: new Date()
-            }).catch(e => console.error('Background save error:', e));
-          }
-        }, 50);
-        
-        showNotification(`${cardData.name || cardKey} added to your collection`, 'success');
-      } else {
-        // If API fetch fails, use the placeholder with updated name
-        const fallbackCard: CreditCardDetails = {
-          ...placeholderCard,
-          name: placeholderCard.name + ' (Limited Info)',
-          description: 'Limited information available for this card.',
-          isLoading: false
-        } as CreditCardDetails;
-        
-        // Update UI with fallback
-        setUserCards(prev => prev.map(card => 
-          card.id === cardKey ? fallbackCard : card
-        ));
-        
-        // Cache fallback card
-        cardCacheRef.current[cardKey] = fallbackCard;
-        persistentCardCache.setCard(cardKey, fallbackCard);
-        
-        // Save to persistence
-        if (!user) {
-          const localCards = getLocalStorageCards();
-          saveLocalStorageCards([...localCards.filter(c => c.id !== cardKey), fallbackCard]);
-        }
-        
-        showNotification(`Added ${fallbackCard.name} to your collection`, 'info');
-      }
-      
-      setCardSearchLoading(false);
-      setShowUpdateButton(true);
-    } catch (error) {
-      console.error('Error fetching card details:', error);
-      showNotification('Failed to add card to your collection', 'error');
-      
-      // Remove the placeholder card on error
-      setUserCards(prev => prev.filter(card => card.id !== cardKey));
-      setUserCardIds(prev => prev.filter(id => id !== cardKey));
-      
-      setCardSearchLoading(false);
-    }
-  };
-
-  // Improve the handleAddExpense implementation to save to the database
+  // Implement handleAddCard
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Add expense:', { amount, category });
@@ -649,55 +551,20 @@ const RecommenderPage = () => {
       return;
     }
     
-    // For non-logged in users, use localStorage
-    if (!user || !db || !isFirestore(db)) {
-      const newExpense: LoadedExpense = {
-        id: `expense-${Date.now()}`,
-        amount: numAmount,
-        category,
-        date: new Date(),
-        userId: 'anonymous'
-      };
-      
-      const localExpenses = getLocalStorageExpenses();
-      const updatedExpenses = [newExpense, ...localExpenses];
-      saveLocalStorageExpenses(updatedExpenses);
-      
-      setExpenses(prev => [newExpense, ...prev]);
-      showNotification('Expense added successfully', 'success');
-      
-      // Clear form
-      setAmount('');
-      setCategory('');
-      return;
-    }
+    const newExpense: LoadedExpense = {
+      id: `expense-${Date.now()}`,
+      amount: numAmount,
+      category,
+      date: new Date(),
+      userId: 'anonymous'
+    };
     
-    // If logged in, save to Firebase
-    try {
-      const expenseData: Omit<FirestoreExpense, 'id'> = {
-        amount: numAmount,
-        category,
-        date: new Date(),
-        userId: user.uid
-      };
-      
-      const docRef = await addDoc(collection(db, FIREBASE_COLLECTIONS.EXPENSES), expenseData);
-      
-      // Add to local state with the new ID
-      const newExpense: LoadedExpense = {
-        id: docRef.id,
-        amount: numAmount,
-        category,
-        date: new Date(),
-        userId: user.uid
-      };
-      
-      setExpenses(prev => [newExpense, ...prev]);
-      showNotification('Expense added successfully', 'success');
-    } catch (error) {
-      console.error('Error adding expense:', error);
-      showNotification('Failed to add expense', 'error');
-    }
+    const localExpenses = getLocalStorageExpenses();
+    const updatedExpenses = [newExpense, ...localExpenses];
+    saveLocalStorageExpenses(updatedExpenses);
+    
+    setExpenses(prev => [newExpense, ...prev]);
+    showNotification('Expense added successfully', 'success');
     
     // Clear form
     setAmount('');
@@ -717,40 +584,47 @@ const RecommenderPage = () => {
     initializeSearchIndex();
   }, []);
 
-  // Replace the search useEffect with this optimized version
+  // Replace the search useEffect with this improved version
   useEffect(() => {
     if (searchTerm.length < 3) {
       setSearchResults([]);
+      setCardSearchLoading(false);
       return;
     }
     
     // Keep track of the current search term to prevent stale updates
     const currentSearchTerm = searchTerm;
     
-    // Set loading state
+    // Set loading state immediately
     setCardSearchLoading(true);
     
-    // Use the search index for instant results
+    // Use the search index for instant results first
     const performSearch = async () => {
       try {
-        // First try the local search index
-        let results = cardSearchIndex.search(currentSearchTerm);
+        let showingLocalResults = false;
         
-        // If we have results, use them immediately
-        if (results.length > 0) {
+        // First try the local search index for immediate results
+        let localResults = cardSearchIndex.search(currentSearchTerm);
+        
+        // If we have local results, show them right away while we fetch more
+        if (localResults.length > 0) {
           // Filter out cards already in user's collection
-          const filtered = results.filter(
+          const filteredLocalResults = localResults.filter(
             (card) => !userCards.some(userCard => userCard.id === card.cardKey)
           );
-          setSearchResults(filtered);
-          setCardSearchLoading(false);
-          console.log(`Local search completed instantly, found ${filtered.length} results`);
-          return;
+          
+          // Show the local results first
+          setSearchResults(filteredLocalResults);
+          showingLocalResults = true;
+          console.log(`Local search completed instantly, found ${filteredLocalResults.length} results`);
+          
+          // Keep the loading indicator active to show we're still searching
+          // Don't set cardSearchLoading to false here
+        } else {
+          console.log('No local results, falling back to API search only');
         }
         
-        // If local search returned no results, fall back to API
-        console.log('No local results, falling back to API search');
-        
+        // Continue with API search regardless of local results
         // Set a timeout for the API call
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -781,18 +655,27 @@ const RecommenderPage = () => {
             searchCache.current[currentSearchTerm] = data.data;
           }
           
-          const filtered = data.data.filter(
+          const filteredApiResults = data.data.filter(
             (card: SearchResultCard) => !userCards.some(userCard => userCard.id === card.cardKey)
           );
-          setSearchResults(filtered);
-        } else {
+          
+          // Only update results if they're different from what we're already showing
+          if (!showingLocalResults || filteredApiResults.length !== searchResults.length) {
+            setSearchResults(filteredApiResults);
+          }
+        } else if (!showingLocalResults) {
+          // Only clear results if we're not showing local results
           setSearchResults([]);
           console.warn('Search returned no results or an error:', data.error);
         }
       } catch (error) {
         console.error('Error searching cards:', error);
-        setSearchResults([]);
+        // Only clear results if the error is severe
+        if (searchResults.length === 0) {
+          setSearchResults([]);
+        }
       } finally {
+        // Always turn off the loading indicator when API search is complete
         setCardSearchLoading(false);
       }
     };
@@ -800,7 +683,7 @@ const RecommenderPage = () => {
     // Short timeout to prevent rapid typing from triggering too many searches
     const timer = setTimeout(() => {
       performSearch();
-    }, 300); // Reduced from 750ms to 300ms for better responsiveness
+    }, 300);
     
     return () => clearTimeout(timer);
   }, [searchTerm, userCards]);
@@ -828,7 +711,14 @@ const RecommenderPage = () => {
 
   // Memoize the filtered cards available for recommendation
   const availableForRecommendation = useMemo(() => {
-    return allCards.filter((card: CreditCardDetails) => 
+    // First filter out invalid cards
+    const validCards = allCards.filter(card => 
+      // A valid card must have at least id, name, and issuer
+      card && card.id && card.name && card.issuer
+    );
+    
+    // Then filter out cards the user already has or isn't interested in
+    return validCards.filter(card => 
       !userCards.some(uc => uc.id === card.id) && 
       !notInterestedCards.includes(card.id)
     );
@@ -920,35 +810,94 @@ const RecommenderPage = () => {
     throw lastError;
   };
 
-  // Update loadUserCards to use retry
+  // Improved loadUserCards function to handle card loading properly
   const loadUserCards = async () => {
     // For anonymous users, load from localStorage
-    if (!user || !db || !isFirestore(db)) {
-      const anonymousCards = getLocalStorageCards();
-      setUserCards(anonymousCards);
-      setUserCardIds(anonymousCards.map(card => card.id));
-      
-      // Also load not interested cards
+    if (!user || !canUseFirebase) {
       try {
-        const notInterested = localStorage.getItem('notInterestedCards');
-        if (notInterested) {
-          setNotInterestedCards(JSON.parse(notInterested));
+        // Get cards from localStorage
+        let storedCards = [];
+        const storedCardsJson = localStorage.getItem('anonymousCards');
+        
+        if (storedCardsJson) {
+          storedCards = JSON.parse(storedCardsJson);
+          
+          // Deep sanitization - ensure all cards have isLoading=false
+          // and have all required properties
+          const completeSanitizedCards = await Promise.all(
+            storedCards.map(async (card: CreditCardDetails) => {
+              // Always set isLoading to false
+              const baseCard = {
+                ...card,
+                isLoading: false
+              };
+              
+              // If card looks incomplete, try to fetch complete data
+              if (!card.name || card.name === 'Loading Card Details...' || card.issuer === 'Loading...') {
+                try {
+                  // Attempt to get complete data from API
+                  const response = await fetch(`/api/cards/details?cardKey=${encodeURIComponent(card.id)}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                      // Use the complete data
+                      return {
+                        ...data.data,
+                        isLoading: false
+                      };
+                    }
+                  }
+                } catch (e) {
+                  console.error(`Error fetching complete data for card ${card.id}:`, e);
+                }
+              }
+              
+              // Return the sanitized card (either original or with fixed data)
+              return baseCard;
+            })
+          );
+          
+          // Update localStorage with completely sanitized cards
+          saveLocalStorageCards(completeSanitizedCards);
+          
+          // Update UI state
+          setUserCards(completeSanitizedCards);
+          setUserCardIds(completeSanitizedCards.map(card => card.id));
+        } else {
+          // No stored cards
+          setUserCards([]);
+          setUserCardIds([]);
         }
+        
+        // Also load not interested cards
+        try {
+          const notInterested = localStorage.getItem('notInterestedCards');
+          if (notInterested) {
+            setNotInterestedCards(JSON.parse(notInterested));
+          }
+        } catch (e) {
+          console.error('Error loading not interested cards', e);
+        }
+        
+        setLoadingState('ready');
       } catch (e) {
-        console.error('Error loading not interested cards', e);
+        console.error('Error loading user cards from localStorage:', e);
+        setLoadingState('error', 'Failed to load your cards');
+        setUserCards([]);
+        setUserCardIds([]);
       }
       
-      setLoadingState('ready');
       return;
     }
 
+    // Firebase user code (unchanged)
     try {
-      if (!db || !isFirestore(db)) {
+      if (!canUseFirebase) {
         throw new Error('Firestore is not initialized');
       }
 
       await retryOperation(async () => {
-        const cardsRef = collection(db, FIREBASE_COLLECTIONS.USER_CARDS);
+        const cardsRef = collection(firebaseDb, FIREBASE_COLLECTIONS.USER_CARDS);
         const q = query(cardsRef, where('userId', '==', user.uid));
         const cardsSnap = await getDocs(q);
         
@@ -956,16 +905,131 @@ const RecommenderPage = () => {
         setUserCardIds(cardIds);
       });
     } catch (err) {
-      const error = err as Error;
-      Logger.error('Error loading user cards', { context: 'RecommenderPage', data: error.message });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      Logger.error('Error loading user cards', { context: 'RecommenderPage', data: errorMessage });
       setLoadingState('error', 'Failed to load user cards');
       setUserCardIds([]);
     }
   };
 
+  // Completely rewritten fetchCardDetails function to fix loading state issues
+  const fetchCardDetails = async (cardKey: string) => {
+    try {
+      setLoadingState('loading');
+      console.log(`Fetching complete details for card: ${cardKey}`);
+      
+      // First, create a loading card UI element immediately
+      const loadingCard: CreditCardDetails = {
+        id: cardKey,
+        name: 'Loading Card Details...',
+        issuer: 'Loading...',
+        isLoading: true,
+        rewardRates: { dining: 0, travel: 0, grocery: 0, gas: 0, entertainment: 0, other: 0, drugstore: 0, streaming: 0, rent: 0 },
+        perks: [],
+        categories: [],
+        description: 'Loading card information...'
+      };
+      
+      // Get the current user cards from state (not localStorage)
+      const currentCards = [...userCards];
+      
+      // Replace any existing card with the same ID or add a new loading card
+      const updatedStateCards = [
+        ...currentCards.filter(c => c.id !== cardKey),
+        loadingCard
+      ];
+      
+      // Update the UI state only (not localStorage) to show loading card
+      setUserCards(updatedStateCards);
+      
+      // Fetch the data using a direct API call
+      const response = await fetch(`/api/cards/details?cardKey=${encodeURIComponent(cardKey)}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success || !data.data) {
+        throw new Error('API returned no data or error');
+      }
+      
+      // Prepare the complete card with isLoading explicitly set to false
+      const completeCard: CreditCardDetails = {
+        ...data.data,
+        isLoading: false
+      };
+      
+      // Cache the card for future use
+      persistentCardCache.setCard(cardKey, completeCard);
+      cardCache.current[cardKey] = completeCard;
+      
+      // Get the current localStorage cards
+      const storedCards = getLocalStorageCards();
+      
+      // Create the final list by combining current stored cards (without this card) and the new card
+      const finalStoredCards = [
+        ...storedCards.filter(c => c.id !== cardKey),
+        completeCard
+      ];
+      
+      // Save to localStorage only after we have complete data
+      // This ensures we never have a loading card in localStorage
+      saveLocalStorageCards(finalStoredCards);
+      
+      // Update the UI with the complete card
+      const finalStateCards = [
+        ...userCards.filter(c => c.id !== cardKey),
+        completeCard
+      ];
+      setUserCards(finalStateCards);
+      
+      // Show notification only after we have complete data
+      showNotification(`Added ${completeCard.name} to your cards`, 'success');
+      
+    } catch (error) {
+      console.error('Error fetching card details:', error);
+      
+      // Remove the loading card from UI state
+      setUserCards(current => current.filter(c => c.id !== cardKey));
+      
+      setLoadingState('error', 'Failed to add card');
+      showNotification('Failed to add card. Please try again.', 'error');
+    } finally {
+      setLoadingState('ready');
+    }
+  };
+
+  // Add handleUpdateRecommendations function that was referenced in linter errors
+  const handleUpdateRecommendations = () => {
+    setLoadingState('loading');
+    
+    try {
+      const newRecommendations = getCardRecommendations({
+        expenses,
+        currentCards: userCards,
+        optimizationSettings: {
+          preference: optimizationPreference,
+          zeroAnnualFee: zeroAnnualFee
+        },
+        creditScore,
+        excludeCardIds: notInterestedCards,
+        availableCards: availableForRecommendation
+      });
+      
+      setManualRecommendations(newRecommendations);
+      setShowUpdateButton(false);
+      setLoadingState('ready');
+    } catch (error) {
+      console.error('Error updating recommendations:', error);
+      setLoadingState('error', 'Failed to update recommendations');
+    }
+  };
+  
   // Check Firebase initialization
   useEffect(() => {
-    if (!db) {
+    if (!firebaseDb && user) {
       setLoadingState('error', 'Firebase is not properly initialized. Please check your environment variables.');
       return;
     }
@@ -973,14 +1037,13 @@ const RecommenderPage = () => {
     if (loading === 'initializing') {
       setLoadingState('ready');
     }
-  }, [db, loading, setLoadingState]);
+  }, [firebaseDb, user, loading, setLoadingState]);
 
   // Load all cards callback
   const loadAllCards = useCallback(async () => {
-    if (!db) {
+    if (!canUseFirebase && user) {
       Logger.error('Firestore is not initialized', { context: 'RecommenderPage' });
-      setLoadingState('error', 'Firestore is not initialized. Please check your Firebase configuration.');
-      return;
+      // Continue anyway - we'll use the API to fetch cards
     }
 
     try {
@@ -1044,13 +1107,13 @@ const RecommenderPage = () => {
       console.error('Error in loadAllCards:', error);
       Logger.error('Error loading all cards', { 
         context: 'RecommenderPage',
-        data: error 
+        data: error instanceof Error ? error.message : String(error)
       });
       setLoadingState('error', 'Failed to load cards. Please try again later.');
     } finally {
       setLoadingAllCards(false);
     }
-  }, [cardType, setLoadingState, optimizationPreference, zeroAnnualFee, creditScore, notInterestedCards, loading]);
+  }, [cardType, setLoadingState, optimizationPreference, zeroAnnualFee, creditScore, notInterestedCards, loading, user, canUseFirebase]);
 
   // Initial load effect - only load cards, not user data for non-logged in users
   useEffect(() => {
@@ -1062,7 +1125,7 @@ const RecommenderPage = () => {
 
   // Load user data only when logged in
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user || !canUseFirebase) return;
     
     let mounted = true;
     const loadUserData = async () => {
@@ -1073,7 +1136,7 @@ const RecommenderPage = () => {
         // Loading preferences
         try {
           const prefsDoc = await getDocs(
-            query(collection(db, FIREBASE_COLLECTIONS.USER_PREFERENCES),
+            query(collection(firebaseDb, FIREBASE_COLLECTIONS.USER_PREFERENCES),
             where('userId', '==', user.uid))
           );
           
@@ -1091,12 +1154,13 @@ const RecommenderPage = () => {
           }
         } catch (prefError) {
           if (!mounted) return;
-          Logger.error('Error loading preferences', { data: prefError });
+          const errorMessage = prefError instanceof Error ? prefError.message : String(prefError);
+          Logger.error('Error loading preferences', { context: 'RecommenderPage', data: errorMessage });
         }
       } catch (err) {
         if (!mounted) return;
-        const error = err as Error;
-        Logger.error('Error loading user data', { data: error.message });
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        Logger.error('Error loading user data', { context: 'RecommenderPage', data: errorMessage });
       }
     };
 
@@ -1104,7 +1168,7 @@ const RecommenderPage = () => {
     return () => {
       mounted = false;
     };
-  }, [user, db]);
+  }, [user, canUseFirebase, firebaseDb, optimizationPreference, creditScore, zeroAnnualFee, loadExpenses]);
 
   // Load user's cards when user changes
   useEffect(() => {
@@ -1146,50 +1210,116 @@ const RecommenderPage = () => {
   // Load user data effect
   useEffect(() => {
     if (!user) {
-      const savedData = getSafeStorageItem('cardPickerUserData');
-      if (savedData) {
+      // First check if we need to migrate old data
+      const oldData = localStorage.getItem('cardPickerUserData');
+      if (oldData) {
         try {
-          const parsedData = JSON.parse(savedData);
-          setOptimizationPreference(parsedData.optimizationPreference || 'points');
-          setCreditScore(parsedData.creditScore || 'good');
-          setZeroAnnualFee(parsedData.zeroAnnualFee || false);
-          setExpenses(parsedData.expenses || []);
-          setUserCards(parsedData.userCards || []);
-          setNotInterestedCards(parsedData.notInterestedCards || []);
+          // Migrate old data format to new format
+          const parsedData = JSON.parse(oldData);
+          
+          Logger.info('Migrating user data from old format to new format', { context: 'RecommenderPage' });
+          
+          // Save to new format
+          UserDataStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, {
+            optimizationPreference: parsedData.optimizationPreference || 'points',
+            creditScore: parsedData.creditScore || 'good',
+            zeroAnnualFee: parsedData.zeroAnnualFee || false
+          });
+          
+          UserDataStorage.setItem(STORAGE_KEYS.USER_CARDS, parsedData.userCards || []);
+          UserDataStorage.setItem(STORAGE_KEYS.USER_EXPENSES, parsedData.expenses || []);
+          UserDataStorage.setItem(STORAGE_KEYS.NOT_INTERESTED_CARDS, parsedData.notInterestedCards || []);
+          UserDataStorage.setItem(STORAGE_KEYS.VERSION, CURRENT_SCHEMA_VERSION);
+          
+          // Remove old data
+          localStorage.removeItem('cardPickerUserData');
+          
+          Logger.info('Migration completed successfully', { context: 'RecommenderPage' });
         } catch (error) {
-          console.error('Error parsing saved data:', error);
+          console.error('Error migrating saved data:', error);
         }
       }
+      
+      // Load user preferences and data from localStorage
+      const preferences = UserDataStorage.getItem(STORAGE_KEYS.USER_PREFERENCES, {
+        optimizationPreference: 'points' as OptimizationPreference,
+        creditScore: 'good' as 'poor' | 'fair' | 'good' | 'excellent',
+        zeroAnnualFee: false
+      });
+      
+      setOptimizationPreference(preferences.optimizationPreference as OptimizationPreference);
+      setCreditScore(preferences.creditScore as 'poor' | 'fair' | 'good' | 'excellent');
+      setZeroAnnualFee(preferences.zeroAnnualFee);
+      
+      // Load user cards
+      const cards = UserDataStorage.getItem(STORAGE_KEYS.USER_CARDS, [] as CreditCardDetails[]);
+      setUserCards(cards);
+      
+      // Load expenses
+      const savedExpenses = UserDataStorage.getItem(STORAGE_KEYS.USER_EXPENSES, [] as LoadedExpense[]);
+      setExpenses(savedExpenses);
+      
+      // Load not interested cards
+      const notInterested = UserDataStorage.getItem(STORAGE_KEYS.NOT_INTERESTED_CARDS, [] as string[]);
+      setNotInterestedCards(notInterested);
+      
+      Logger.info('User data loaded from localStorage', { context: 'RecommenderPage' });
     }
   }, [user]);
-
-  // Save data effect
+  
+  // Save data effect - when preferences or data change, save to localStorage
   useEffect(() => {
     if (!user) {
-      const dataToSave = {
+      // Save user preferences to localStorage
+      UserDataStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, {
         optimizationPreference,
         creditScore,
-        zeroAnnualFee,
-        expenses,
-        userCards,
-        notInterestedCards,
-      };
-      setSafeStorageItem('cardPickerUserData', JSON.stringify(dataToSave));
+        zeroAnnualFee
+      });
+      
+      // Save user cards
+      UserDataStorage.setItem(STORAGE_KEYS.USER_CARDS, userCards);
+      
+      // Save expenses
+      UserDataStorage.setItem(STORAGE_KEYS.USER_EXPENSES, expenses);
+      
+      // Save not interested cards
+      UserDataStorage.setItem(STORAGE_KEYS.NOT_INTERESTED_CARDS, notInterestedCards);
+      
+      // Save schema version
+      UserDataStorage.setItem(STORAGE_KEYS.VERSION, CURRENT_SCHEMA_VERSION);
+      
+      Logger.info('User data saved to localStorage', { 
+        context: 'RecommenderPage',
+        data: { 
+          hasPreferences: true, 
+          cardCount: userCards.length,
+          expenseCount: expenses.length,
+          notInterestedCount: notInterestedCards.length
+        }
+      });
     }
   }, [optimizationPreference, creditScore, zeroAnnualFee, expenses, userCards, notInterestedCards, user]);
 
-  // Loading timeout effect
+  // Loading timeout effect - consolidated and improved from duplicate implementations
   useEffect(() => {
-    if (!loading || loading === 'ready' || loading === 'error') {
+    if (isReady || isError) {
       return;
     }
 
-    const loadingTimeout = setTimeout(() => {
+    // Create a timeout to prevent indefinite loading states
+    const timeoutId = setTimeout(() => {
       setLoadingState('error', 'Loading timed out. Please refresh the page or try again later.');
     }, 15000);
     
-    return () => clearTimeout(loadingTimeout);
-  }, [loading, setLoadingState]);
+    return () => {
+      clearTimeout(timeoutId);
+      // Reset loading state if component unmounts during loading
+      if (isLoading) {
+        setLoadingState('ready');
+      }
+    };
+  }, [loading, isReady, isError, isLoading, setLoadingState]);
 
   // Load cards effect - REMOVED this effect since it's redundant with the cardType dependency in loadAllCards
 
@@ -1315,27 +1445,26 @@ const RecommenderPage = () => {
 
   // Update the Firebase data loading effect with cleanup
   useEffect(() => {
+    // Update the Firebase data loading effect with cleanup
     let mounted = true;
-    const loadUserData = async () => {
-      if (!user || !db) return;
-      
+    
+    // If user is logged in, load their data
+    if (user && db) {
+      // Use existing loadUserData function (defined around line 846)
       if (loading !== 'loading') {
         setLoadingState('loading');
       }
-
+      
+      // Load user cards
       try {
-        // Loading expenses
-        await loadExpenses();
-
-        // Loading cards
-        try {
-          const cardsRef = collection(db, FIREBASE_COLLECTIONS.USER_CARDS) as CollectionReference<DocumentData>;
-          const q = query(cardsRef, where('userId', '==', user.uid));
-          const cardsSnap = await getDocs(q);
-          
+        const cardsRef = collection(db, FIREBASE_COLLECTIONS.USER_CARDS) as CollectionReference<DocumentData>;
+        const q = query(cardsRef, where('userId', '==', user.uid));
+        const cardsSnap = getDocs(q);
+        
+        cardsSnap.then(snapshot => {
           if (!mounted) return;
           
-          const userCardIds = cardsSnap.docs.map(doc => doc.data().cardId);
+          const userCardIds = snapshot.docs.map(doc => doc.data().cardId);
           
           if (userCreditCards && userCreditCards.length > 0) {
             const loadedCards = userCreditCards.filter(card => userCardIds.includes(card.id));
@@ -1344,50 +1473,21 @@ const RecommenderPage = () => {
               setUserCards(loadedCards);
             }
           }
-        } catch (cardError) {
+        }).catch(cardError => {
           if (!mounted) return;
           Logger.error('Error loading cards', { data: cardError });
           setLoadingState('error', 'Failed to load cards');
-        }
-
-        // Loading preferences
-        try {
-          const prefsDoc = await getDocs(
-            query(collection(db, FIREBASE_COLLECTIONS.USER_PREFERENCES),
-            where('userId', '==', user.uid))
-          );
-          
-          if (!mounted) return;
-          
-          if (!prefsDoc.empty) {
-            const prefs = prefsDoc.docs[0].data();
-            const newOptPref = prefs.optimizationPreference || 'points';
-            const newCreditScore = prefs.creditScore || 'good';
-            const newZeroAnnualFee = prefs.zeroAnnualFee || false;
-
-            if (optimizationPreference !== newOptPref) setOptimizationPreference(newOptPref);
-            if (creditScore !== newCreditScore) setCreditScore(newCreditScore);
-            if (zeroAnnualFee !== newZeroAnnualFee) setZeroAnnualFee(newZeroAnnualFee);
-          }
-        } catch (prefError) {
-          if (!mounted) return;
-          Logger.error('Error loading preferences', { data: prefError });
-          setLoadingState('error', 'Failed to load preferences');
-        }
-
-        if (mounted && loading !== 'ready') {
-          setLoadingState('ready');
-        }
+        });
       } catch (err) {
         if (!mounted) return;
-        const error = err as Error;
-        Logger.error('Error loading user data', { data: error.message });
-        setLoadingState('error', `Failed to load your data: ${error.message}`);
+        Logger.error('Error loading user data', { data: err });
+        setLoadingState('error', `Failed to load your data: ${err}`);
       }
-    };
-  
-    if (user && db) {
-      loadUserData();
+      
+      // Set loading to ready if needed
+      if (mounted && loading !== 'ready') {
+        setLoadingState('ready');
+      }
     } else if (!user && loading !== 'ready') {
       setLoadingState('ready');
     }
@@ -1397,7 +1497,7 @@ const RecommenderPage = () => {
     };
   }, [user, userCreditCards, db, loading]);
 
-  // Add cleanup for loading timeout
+  // Add cleanup for loading timeout effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (loading) {
@@ -1408,11 +1508,88 @@ const RecommenderPage = () => {
     return () => {
       clearTimeout(timeoutId);
       // Reset loading state if component unmounts during loading
-      if (loading) {
+      if (isLoading) {
         setLoadingState('ready');
       }
     };
-  }, [loading]);
+  }, [loading, isReady, isError, isLoading, setLoadingState]);
+ 
+  // Fix Firebase data loading for authenticated users
+  useEffect(() => {
+    // Early exit if not logged in or no Firebase
+    if (!user || !db) return;
+    
+    let mounted = true;
+    setLoadingState('loading');
+    
+    const loadUserCardsFromFirebase = async () => {
+      try {
+        Logger.info('Loading user cards from Firebase', { context: 'RecommenderPage' });
+        
+        // Use a proper try/await/catch pattern instead of Promise chaining
+        const cardsRef = collection(db, FIREBASE_COLLECTIONS.USER_CARDS) as CollectionReference<DocumentData>;
+        const q = query(cardsRef, where('userId', '==', user.uid));
+        const snapshot = await getDocs(q);
+        
+        // Exit if component unmounted during async operation
+        if (!mounted) return;
+        
+        // If no documents exist, fallback to localStorage
+        if (snapshot.empty) {
+          Logger.info('No cards found in Firebase, using localStorage instead', { 
+            context: 'RecommenderPage' 
+          });
+          
+          // Load from localStorage as fallback
+          const localCards = UserDataStorage.getItem(STORAGE_KEYS.USER_CARDS, [] as CreditCardDetails[]);
+          setUserCards(localCards);
+          
+          if (mounted) setLoadingState('ready');
+          return;
+        }
+        
+        // Process Firebase data
+        const userCardIds = snapshot.docs.map(doc => doc.data().cardId);
+        setUserCardIds(userCardIds);
+        
+        // Only update userCards if we have card data and it's different
+        if (userCreditCards && userCreditCards.length > 0) {
+          const loadedCards = userCreditCards.filter(card => userCardIds.includes(card.id));
+          
+          // Only update if changed to avoid unnecessary re-renders
+          const currentCardIds = userCards.map(c => c.id).sort().join(',');
+          const newCardIds = loadedCards.map(c => c.id).sort().join(',');
+          
+          if (currentCardIds !== newCardIds) {
+            setUserCards(loadedCards);
+          }
+        }
+        
+        if (mounted) setLoadingState('ready');
+      } catch (error) {
+        if (!mounted) return;
+        
+        Logger.error('Error loading user cards from Firebase', { 
+          context: 'RecommenderPage', 
+          data: error instanceof Error ? error.message : String(error)
+        });
+        
+        // Fallback to localStorage on error
+        const localCards = UserDataStorage.getItem(STORAGE_KEYS.USER_CARDS, [] as CreditCardDetails[]);
+        setUserCards(localCards);
+        
+        if (mounted) setLoadingState('ready');
+      }
+    };
+    
+    // Execute the async function
+    loadUserCardsFromFirebase();
+    
+    // Cleanup function
+    return () => {
+      mounted = false;
+    };
+  }, [user, db, userCreditCards, userCards, setUserCardIds, setUserCards, setLoadingState]);
 
   // Debug logging effects
   // useEffect(() => {
@@ -1428,48 +1605,6 @@ const RecommenderPage = () => {
   // }, [loading]);
 
   // Add this after the other function definitions
-  const saveUserPreferences = useCallback(async () => {
-    if (!user || !db || !isFirestore(db)) {
-      return;
-    }
-
-    try {
-      const prefsRef = collection(db, FIREBASE_COLLECTIONS.USER_PREFERENCES);
-      const q = query(prefsRef, where('userId', '==', user.uid));
-      const snapshot = await getDocs(q);
-
-      const prefsData = {
-        userId: user.uid,
-        optimizationPreference,
-        creditScore,
-        zeroAnnualFee,
-        lastUpdated: new Date()
-      };
-
-      if (snapshot.empty) {
-        await addDoc(prefsRef, prefsData);
-      } else {
-        await updateDoc(doc(prefsRef, snapshot.docs[0].id), prefsData);
-      }
-    } catch (error) {
-      Logger.error('Error saving preferences:', {
-        context: 'RecommenderPage',
-        data: error
-      });
-      showNotification('Failed to save preferences', 'error');
-    }
-  }, [user, db, optimizationPreference, creditScore, zeroAnnualFee]);
-
-  // Add this effect to save preferences when they change, with debounce
-  useEffect(() => {
-    if (!user) return;
-    
-    const timeoutId = setTimeout(() => {
-      saveUserPreferences();
-    }, 1000);
-
-    return () => clearTimeout(timeoutId);
-  }, [optimizationPreference, creditScore, zeroAnnualFee, user, saveUserPreferences]);
 
   // =========== CATEGORIES ===========
   const categories = [
@@ -1604,10 +1739,16 @@ const RecommenderPage = () => {
       const data = await response.json();
       
       if (data.success && data.data) {
-        // Cache the card
-        persistentCardCache.setCard(cardKey, data.data);
-        cardCache.current[cardKey] = data.data;
-        return data.data;
+        // Ensure isLoading is explicitly set to false before caching
+        const completeCard = {
+          ...data.data,
+          isLoading: false
+        };
+        
+        // Cache the complete card (not the loading one)
+        persistentCardCache.setCard(cardKey, completeCard);
+        cardCache.current[cardKey] = completeCard;
+        return completeCard;
       }
       
       return null;
@@ -1617,7 +1758,14 @@ const RecommenderPage = () => {
       // If this is not already a retry, try the fallback
       if (!isRetry && cardDataService) {
         console.log(`Trying fallback method for ${cardKey} after error...`);
-        return await cardDataService.fetchCardById(cardKey);
+        const fallbackCard = await cardDataService.fetchCardById(cardKey);
+        if (fallbackCard) {
+          // Ensure isLoading is explicitly set to false on fallback card too
+          return {
+            ...fallbackCard,
+            isLoading: false
+          };
+        }
       }
       
       return null;
@@ -1664,10 +1812,17 @@ const RecommenderPage = () => {
       const data = await response.json();
       
       if (data.success && data.data) {
-        // Cache all the preloaded cards
+        // Cache all the preloaded cards, ensuring isLoading is set to false
         Object.entries(data.data).forEach(([cardKey, cardData]) => {
-          persistentCardCache.setCard(cardKey, cardData as CreditCardDetails);
-          cardCache.current[cardKey] = cardData as CreditCardDetails;
+          // Ensure isLoading is explicitly set to false
+          const completeCard = {
+            ...(cardData as CreditCardDetails),
+            isLoading: false
+          };
+          
+          // Cache the card with isLoading explicitly set to false
+          persistentCardCache.setCard(cardKey, completeCard);
+          cardCache.current[cardKey] = completeCard;
         });
         
         console.log(`Successfully preloaded ${Object.keys(data.data).length} cards`);
@@ -1815,7 +1970,8 @@ const RecommenderPage = () => {
       card: createLoadingCard(`rec-${i}`),
       reason: 'Loading recommendation reasons...',
       score: 0,
-      savingsEstimate: 0
+      matchPercentage: 0,
+      potentialAnnualValue: 0
     }));
     
     // Create loading user cards
@@ -2013,15 +2169,16 @@ const RecommenderPage = () => {
                   </div>
                   
                   {/* Search Results */}
-                  {isLoading && (
-                    <div className="mt-2 p-2 text-center">
-                      <div className="inline-block animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-                      <span className="ml-2 text-sm text-gray-600">Searching...</span>
-                    </div>
-                  )}
-                  
-                  {!isLoading && searchResults.length > 0 && (
+                  {searchTerm.length >= 3 && searchResults.length > 0 && (
                     <div className="mt-2 border rounded-md max-h-60 overflow-y-auto shadow-sm">
+                      {/* Show loading indicator at the top of results when loading more */}
+                      {cardSearchLoading && searchResults.length > 0 && (
+                        <div className="p-2 bg-blue-50 text-center text-sm text-blue-700 border-b flex items-center justify-center">
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent mr-2"></div>
+                          Loading more results...
+                        </div>
+                      )}
+                      
                       {searchResults.map((card: {cardKey: string; cardName: string; cardIssuer: string}) => (
                         <div
                           key={card.cardKey}
@@ -2038,7 +2195,16 @@ const RecommenderPage = () => {
                     </div>
                   )}
                   
-                  {searchTerm.length >= 3 && !isLoading && searchResults.length === 0 && (
+                  {/* Show loading when no results yet */}
+                  {searchTerm.length >= 3 && cardSearchLoading && searchResults.length === 0 && (
+                    <div className="mt-2 p-3 text-center bg-gray-50 rounded-md border border-gray-200 flex items-center justify-center">
+                      <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent mr-2"></div>
+                      <span className="text-gray-600">Searching...</span>
+                    </div>
+                  )}
+                  
+                  {/* No results message */}
+                  {searchTerm.length >= 3 && !cardSearchLoading && searchResults.length === 0 && (
                     <div className="mt-2 p-3 text-center text-gray-500 bg-gray-50 rounded-md border border-gray-200">
                       No cards found matching your search
                     </div>
