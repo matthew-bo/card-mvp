@@ -1,0 +1,57 @@
+
+  // Update the Firebase data loading effect with cleanup
+  useEffect(() => {
+    // Update the Firebase data loading effect with cleanup
+    let mounted = true;
+    
+    // If user is logged in, load their data
+    if (user && db) {
+      // Use existing loadUserData function (defined around line 846)
+      if (loading !== 'loading') {
+        setLoadingState('loading');
+      }
+      
+      // Load user cards
+      try {
+        const cardsRef = collection(db, FIREBASE_COLLECTIONS.USER_CARDS) as CollectionReference<DocumentData>;
+        const q = query(cardsRef, where('userId', '==', user.uid));
+        const cardsSnap = getDocs(q);
+        
+        cardsSnap.then(snapshot => {
+          if (!mounted) return;
+          
+          const userCardIds = snapshot.docs.map(doc => doc.data().cardId);
+          
+          if (userCreditCards && userCreditCards.length > 0) {
+            const loadedCards = userCreditCards.filter(card => userCardIds.includes(card.id));
+            // Use JSON stringify comparison to avoid unnecessary re-renders
+            if (JSON.stringify(loadedCards.map(c => c.id)) !== JSON.stringify(userCards.map(c => c.id))) {
+              setUserCards(loadedCards);
+            }
+          }
+        }).catch(cardError => {
+          if (!mounted) return;
+          Logger.error('Error loading cards', { data: cardError });
+          setLoadingState('error', 'Failed to load cards');
+        });
+      } catch (err) {
+        if (!mounted) return;
+        Logger.error('Error loading user data', { data: err });
+        setLoadingState('error', `Failed to load your data: ${err}`);
+      }
+      
+      // Set loading to ready if needed
+      if (mounted && loading !== 'ready') {
+        setLoadingState('ready');
+      }
+    } else if (!user && loading !== 'ready') {
+      setLoadingState('ready');
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, userCreditCards, db, loading]);
+
+  // Add cleanup for loading timeout effect
+  useEffect(() => {

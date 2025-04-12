@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMediaQuery } from 'react-responsive';
 
 // TypeScript declaration for Calendly
 declare global {
@@ -54,10 +56,23 @@ export default function ConsultationPage() {
 
     // Function to initialize the widget
     const initializeWidget = () => {
-      if (window.Calendly && document.getElementsByClassName('calendly-inline-widget')[0]) {
+      // Check if widget is already initialized
+      const existingWidget = document.querySelector('.calendly-inline-widget');
+      if (existingWidget) {
+        return; // Widget already exists, don't initialize again
+      }
+
+      // Create the widget container
+      const widgetContainer = document.createElement('div');
+      widgetContainer.className = 'calendly-inline-widget';
+      widgetContainer.style.minWidth = '320px';
+      widgetContainer.style.height = '630px';
+      document.getElementById('calendly-container')?.appendChild(widgetContainer);
+
+      if (window.Calendly) {
         window.Calendly.initInlineWidget({
           url: 'https://calendly.com/matthewpieguy/30min',
-          parentElement: document.getElementsByClassName('calendly-inline-widget')[0],
+          parentElement: widgetContainer,
           prefill: {},
           utm: {}
         });
@@ -68,7 +83,11 @@ export default function ConsultationPage() {
     setTimeout(loadCalendlyScript, 100);
 
     return () => {
-      // Cleanup if needed
+      // Cleanup: remove the widget when component unmounts
+      const widget = document.querySelector('.calendly-inline-widget');
+      if (widget) {
+        widget.remove();
+      }
     };
   }, []);
 
@@ -173,165 +192,208 @@ export default function ConsultationPage() {
     }
   ];
 
+  // Add media query hook
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navigation />
       
-      {/* Success Message Banner */}
-      {successMessage && (
-        <div className="bg-green-50 text-green-800 p-4 border-b border-green-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <div className="flex items-center">
-              <svg className="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <p>{successMessage}</p>
-            </div>
-            <button 
-              onClick={() => setSuccessMessage('')} 
-              className="text-green-500 hover:text-green-700"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Booking Complete Banner */}
-      {bookingComplete && (
-        <div className="bg-blue-50 text-blue-800 p-4 border-b border-blue-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <div className="flex items-center">
-              <svg className="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <p className="font-medium">Consultation Scheduled!</p>
-                <p className="text-sm">Check your email for confirmation details and calendar invite.</p>
+      {/* Success Message Banner with animation */}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-green-50 text-green-800 p-4 border-b border-green-200"
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <p>{successMessage}</p>
               </div>
+              <button 
+                onClick={() => setSuccessMessage('')} 
+                className="text-green-500 hover:text-green-700"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button 
-              onClick={() => setBookingComplete(false)} 
-              className="text-blue-500 hover:text-blue-700"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Booking Complete Banner with animation */}
+      <AnimatePresence>
+        {bookingComplete && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-blue-50 text-blue-800 p-4 border-b border-blue-200"
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="font-medium">Consultation Scheduled!</p>
+                  <p className="text-sm">Check your email for confirmation details and calendar invite.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setBookingComplete(false)} 
+                className="text-blue-500 hover:text-blue-700"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Information Column */}
-          <div className="lg:col-span-7 space-y-10">
-            <div className="bg-white p-8 rounded-lg shadow-sm border">
-              <h1 className="text-3xl font-bold text-gray-900 mb-6">Free Credit Card Consultation</h1>
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="lg:col-span-7 space-y-10"
+          >
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300"
+            >
+              <h1 className="text-4xl font-bold text-gray-900 mb-6">
+                Free Credit Card Consultation
+              </h1>
               
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800">Get Personalized Credit Card Recommendations</h2>
-                <p className="text-gray-600">
+                <h2 className="text-xl font-semibold text-gray-800">Get Personalized Credit Card Recommendations</h2>
+                <p className="text-gray-600 leading-relaxed">
                   Book a free 30-minute consultation with our credit card expert to receive tailored 
                   recommendations based on your spending habits and financial goals. We&apos;ll help you 
                   optimize your rewards, minimize fees, and maximize the value of every dollar you spend.
                 </p>
                 
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <motion.div 
+                  whileHover={{ scale: 1.01 }}
+                  className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-lg shadow-sm"
+                >
                   <h3 className="font-medium text-blue-700">What you&apos;ll get:</h3>
-                  <ul className="mt-2 space-y-1 text-blue-600">
-                    <li className="flex items-start">
-                      <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Analysis of your current credit card portfolio</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Personalized recommendations to maximize rewards</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Strategic advice on which cards to apply for and when</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Expert guidance on credit score optimization</span>
-                    </li>
+                  <ul className="mt-4 space-y-3 text-blue-600">
+                    {[
+                      "Analysis of your current credit card portfolio",
+                      "Personalized recommendations to maximize rewards",
+                      "Strategic advice on which cards to apply for and when",
+                      "Expert guidance on credit score optimization"
+                    ].map((item, index) => (
+                      <motion.li 
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex items-start group"
+                      >
+                        <svg className="h-5 w-5 mr-3 flex-shrink-0 text-blue-500 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="group-hover:text-blue-700 transition-colors">{item}</span>
+                      </motion.li>
+                    ))}
                   </ul>
-                </div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
             
-            <div className="bg-white p-8 rounded-lg shadow-sm border">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">What to Expect</h2>
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 mb-8">
+                What to Expect
+              </h2>
               
-              <div className="space-y-6">
-                <div className="flex items-start">
-                  <div className="bg-blue-100 rounded-full p-3 text-blue-600 mr-4 flex-shrink-0">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">30-Minute Video Call</h3>
-                    <p className="mt-1 text-gray-600">
-                      We&apos;ll meet over Zoom or Google Meet to discuss your financial situation and goals.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="bg-blue-100 rounded-full p-3 text-blue-600 mr-4 flex-shrink-0">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">Post-Consultation Follow-Up</h3>
-                    <p className="mt-1 text-gray-600">
-                      Within 48 hours, you&apos;ll receive an email with your personalized credit card strategy and specific recommendations.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="bg-blue-100 rounded-full p-3 text-blue-600 mr-4 flex-shrink-0">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">Two Weeks of Support</h3>
-                    <p className="mt-1 text-gray-600">
-                      You&apos;ll have access to email support for two weeks after your consultation to ask any follow-up questions.
-                    </p>
-                  </div>
-                </div>
+              <div className="space-y-8">
+                {[
+                  {
+                    icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+                    title: "30-Minute Video Call",
+                    description: "We'll meet over Zoom or Google Meet to discuss your financial situation and goals."
+                  },
+                  {
+                    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+                    title: "Post-Consultation Follow-Up",
+                    description: "Within 48 hours, you'll receive an email with your personalized credit card strategy and specific recommendations."
+                  },
+                  {
+                    icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+                    title: "Two Weeks of Support",
+                    description: "You'll have access to email support for two weeks after your consultation to ask any follow-up questions."
+                  }
+                ].map((item, index) => (
+                  <motion.div 
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.2 }}
+                    className="flex items-start group"
+                  >
+                    <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full p-4 text-blue-600 mr-4 flex-shrink-0 group-hover:from-blue-200 group-hover:to-indigo-200 transition-colors">
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">{item.title}</h3>
+                      <p className="mt-1 text-gray-600 leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-            </div>
+            </motion.div>
             
-            <div className="bg-white p-8 rounded-lg shadow-sm border">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h2>
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 mb-8">
+                Frequently Asked Questions
+              </h2>
               
               <div className="space-y-4">
                 {faqItems.map((faq, index) => (
-                  <div key={index} className="border-b border-gray-200 pb-4 last:border-0">
+                  <motion.div 
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="border-b border-gray-200 pb-4 last:border-0"
+                  >
                     <button
-                      className="flex w-full justify-between items-center focus:outline-none"
+                      className="flex w-full justify-between items-center focus:outline-none group"
                       onClick={() => handleFaqToggle(index)}
+                      aria-expanded={openFaq === index}
+                      aria-controls={`faq-${index}`}
                     >
-                      <h3 className="text-lg font-medium text-gray-900 text-left">{faq.question}</h3>
+                      <h3 className="text-lg font-medium text-gray-900 text-left group-hover:text-blue-700 transition-colors">
+                        {faq.question}
+                      </h3>
                       <svg 
-                        className={`h-5 w-5 text-gray-500 transform transition-transform ${openFaq === index ? 'rotate-180' : ''}`}
+                        className={`h-5 w-5 text-gray-500 transform transition-transform duration-200 group-hover:text-blue-600 ${
+                          openFaq === index ? 'rotate-180' : ''
+                        }`}
                         fill="none" 
                         viewBox="0 0 24 24" 
                         stroke="currentColor"
@@ -340,36 +402,50 @@ export default function ConsultationPage() {
                       </svg>
                     </button>
                     
-                    {openFaq === index && (
-                      <div className="mt-2 text-gray-600 prose max-w-none">
-                        <p>{faq.answer}</p>
-                      </div>
-                    )}
-                  </div>
+                    <AnimatePresence>
+                      {openFaq === index && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          id={`faq-${index}`}
+                          className="mt-2 text-gray-600 prose max-w-none"
+                        >
+                          <p>{faq.answer}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 ))}
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
           
-          {/* Booking Column */}
-          <div className="lg:col-span-5">
-            <div className="sticky top-24">
-              <div className="bg-white p-8 rounded-lg shadow-sm border">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Book Your Free Consultation</h2>
-                <p className="text-gray-600 mb-6">
-                  Select a time slot below that works for you. Our expert will reach out with conference details after booking.
-                </p>
-                
-                {/* Calendly inline widget */}
-                <div className="calendly-inline-widget" data-url="https://calendly.com/matthewpieguy/30min" style={{minWidth: "320px", height: "700px"}}></div>
-                
-                <p className="mt-6 text-sm text-gray-500">
-                  For assistance with booking, please email us at 
-                  <a href="mailto:support@example.com" className="text-blue-600 hover:text-blue-800"> support@example.com</a>
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Calendly Column */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="lg:col-span-5"
+          >
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 sticky top-8"
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Schedule Your Consultation
+              </h2>
+              <div 
+                id="calendly-container" 
+                className="calendly-container rounded-lg overflow-hidden shadow-inner"
+                style={{ 
+                  minHeight: isMobile ? '400px' : '630px',
+                  width: '100%'
+                }}
+              ></div>
+            </motion.div>
+          </motion.div>
         </div>
       </main>
     </div>
